@@ -6,6 +6,7 @@ public class HelloWorld {
 		System.out.println("Hello from JazzHub");
 		System.out.println("Hello from Eclipse");
 		System.out.println("Johnny was here!");
+		System.out.println("Bogezu was here too!");
 	}
 }
 
