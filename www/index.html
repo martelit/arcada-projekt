@@ -23,19 +23,96 @@
         <meta name="format-detection" content="telephone=no" />
         <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
         <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
-        <link rel="stylesheet" type="text/css" href="css/index.css" />
+        <!-- <link rel="stylesheet" type="text/css" href="css/index.css" /> -->
+	<link rel="stylesheet" type="text/css" href="js/jqm/jquery.mobile-1.4.0.css" />
+	<script type="text/javascript" src="js/jquery-2.0.3.min.js"></script>
+	<script type="text/javascript" src="js/jqm/jquery.mobile-1.4.0.js"></script>
         <title>Hello World</title>
     </head>
     <body>
-        <div class="app">
+	
+	<div data-role="page" id="front">
+		<div data-role="header"></div>
+		<div data-role="content">
+			<div>
+				<a href="#questions" data-role="button">Start</a>
+			</div>
+			<div>
+				<a href="#settings" data-role="button">Settings</a>
+			</div>
+		</div>
+		<div data-role="footer"></div>
+	</div>
+	<div data-role="page" id="questions">
+		<div data-role="header"></div>
+		<div data-role="content">
+			<div id="question-holder"><p>questions</p></div>
+			<fieldset data-role="controlgroup">
+				<legend>Answer</legend>
+				<input type="radio" name="answer" id="a" value="a" />
+				<label for="a">A</label>
+				<input type="radio" name="answer" id="b" value="b" />
+				<label for="b">B</label>
+				<input type="radio" name="answer" id="c" value="c" />
+				<label for="c">C</label>
+				<input type="radio" name="answer" id="d" value="d" />
+				<label for="d">D</label>
+				
+				
+			</fieldset>
+			Alternative:
+			<div class="ui-grid-a">
+				<div class="ui-block-a">
+					<button type="button">A</button>
+					<button type="button">C</button>
+				</div>
+				<div class="ui-block-b">
+					<button type="button">B</button>
+					<button type="button">D</button>
+				</div>
+			</div>
+			<button type="button">Confirm answer</button>
+			
+		</div>
+		<div data-role="footer"></div>
+	</div>
+	<div data-role="page" id="settings">
+		<div data-role="header"></div>
+		<div data-role="content">
+			<p>settings</p>
+			<!-- TODO How to change min value of max slider to be selected value of min slider (eg. if min slider has value 20, change max sliders min value to 20) -->
+			<!-- alternatively use rangeslider plugin, but is deprecated in jqm 1.4.0 -->
+			<label for="min">Smallest numbers</label>
+			<input type="range" name="min" id="min" value="0" min="0" max="100" />
+			<label for="max">Largest numbers</label>
+			<input type="range" name="max" id="max" value="50" min="0" max="100" />
+			<fieldset data-role="controlgroup" data-type="horizontal">
+				<legend>Select arithmetic</legend>
+				<label for="addition">+</label>
+				<input type="checkbox" name="addition" id="addition">
+				<label for="subtraction">−</label>
+				<input type="checkbox" name="subtraction" id="subtraction">
+				<label for="multiplication">×</label>
+				<input type="checkbox" name="multiplication" id="multiplication">
+				<label for="division">÷</label>
+				<input type="checkbox" name="division" id="division">
+			</fieldset>
+			<div data-role="fieldcontain">
+			</div>
+
+		</div>
+		<div data-role="footer"></div>
+	</div>
+       <!-- <div class="app">
             <h1>PhoneGap</h1>
             <div id="deviceready" class="blink">
                 <p class="event listening">Connecting to Device</p>
                 <p class="event received">Device is Ready</p>
             </div>
-        </div>
+        </div> -->
         <script type="text/javascript" src="phonegap.js"></script>
         <script type="text/javascript" src="js/index.js"></script>
+	<script type="text/javascript" src="js/main.js"></script>
         <script type="text/javascript">
             app.initialize();
         </script>
