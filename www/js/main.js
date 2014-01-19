@@ -40,8 +40,8 @@ function formatQuestion(){
 	$("#question-holder").html(questionString);
 	
 	$("input[name=answer]").each(function(i){
-		$(".answers").find("label").eq(i).html(questionData.answers[i]);
-		$(".answers").find("input").eq(i).val(questionData.answers[i]);
+		$("#answers").find("label").eq(i).html(questionData.answers[i]);
+		$("#answers").find("input").eq(i).val(questionData.answers[i]);
 	});
 }
 
