@@ -32,7 +32,10 @@
     <body>
 	
 	<div data-role="page" id="front">
-		<div data-role="header"></div>
+		<div data-role="header">
+			<h1>Snille</h1>
+			<a href="#settings" data-icon="gear" class="ui-btn-right">Settings</a>
+		</div>
 		<div data-role="content">
 			<div>
 				<a href="#questions" data-role="button">Start</a>
@@ -46,6 +49,10 @@
 	<div data-role="page" id="questions">
 		<div data-role="header"></div>
 		<div data-role="content">
+			<!--
+			TODO images for question when only one term present
+			TODO bigger font for question (not in px, needs to scale well)
+			 -->
 			<div id="question-holder"><p>questions</p></div>
 			<fieldset id="answers" data-role="controlgroup">
 				<legend>Answer</legend>
@@ -100,6 +107,13 @@
 			<div data-role="fieldcontain">
 			</div>
 
+		</div>
+		<div data-role="footer"></div>
+	</div>
+	<!-- TODO add rewards page -->
+	<div data-role="page" id="rewards">
+		<div data-role="header"></div>
+		<div data-role="content">
 		</div>
 		<div data-role="footer"></div>
 	</div>

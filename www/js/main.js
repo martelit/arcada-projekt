@@ -1,4 +1,13 @@
+// TODO split file (or not?)
 var correctAnswer = 2;
+
+function getRewardData(){
+	var something = {};
+	return something;
+}
+function setRewardData(){
+	
+}
 
 function getQuestion(){
 	var returnData = {
@@ -15,7 +24,7 @@ function guessAnswer(answer){
 	}
 }
 function getSettings(){
-	// TODO get settings from storage
+	// TODO get settings from storage (frontend or logic?)
 	var settings = {
 		smallestNumber: 10,
 		greatestNumber: 50,
@@ -27,7 +36,7 @@ function getSettings(){
 	return settings;
 }
 function setSettings(settings){
-	// TODO save settings
+	// TODO save settings to storage (frontend or logic?)
 }
 function formatQuestion(){
 	var questionData = getQuestion();
@@ -44,7 +53,7 @@ function formatQuestion(){
 		$("#answers").find("input").eq(i).val(questionData.answers[i]);
 	});
 }
-
+// TODO $(document).ready bad for JQM, should use pageinit instead, check http://www.gajotres.net/document-onpageinit-vs-document-ready/
 $(document).ready(function(){
 	console.log("document ready");
 	formatQuestion();
@@ -69,7 +78,7 @@ $(document).ready(function(){
 		}
 	});
 
-	// TODO doesn't get settings on second click, check why and fix
+	// TODO doesn't get settings on second click, check why and fix or make this happen on settings page load
 	$("#settings").click(function(){
 		var settings = getSettings();
 		$('#min').attr('value',settings.smallestNumber); // for some reason .val() does not work
