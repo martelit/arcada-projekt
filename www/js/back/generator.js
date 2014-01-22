@@ -1,4 +1,3 @@
-// TODO add guessAnswer function
 //The answer that is expected:
 var answer = new Array();
 
