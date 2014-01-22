@@ -2,7 +2,13 @@
 <widget id="com.arcada.snille" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
     <name>Snille</name>
     <description>
-        Hello World sample application that responds to the deviceready event. <!-- TODO make a description-->
+        Hello World sample application that responds to the deviceready event. 
+		<!-- 
+		This is an app created for children, especially with learning disabilities in the field of mathematics. 
+		The goal is for the app to be as simple as possible with as high learning potential as possible.
+		Using the app can not only learn mathematics from the beginning, it can also give young children that have problems
+		with numbers a better understanding how to use them and calculate simple tasks.
+		-->
     </description>
     <author email="support@phonegap.com" href="http://phonegap.com">
         PhoneGap Team
