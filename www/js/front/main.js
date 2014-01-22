@@ -61,7 +61,7 @@ function formatQuestion(){
 	});
 }
 // TODO $(document).ready bad for JQM, should use pageinit instead, check http://www.gajotres.net/document-onpageinit-vs-document-ready/
-$(document).ready(function(){
+$(document).on('pageinit', function(){
 	
 	formatQuestion();
 
