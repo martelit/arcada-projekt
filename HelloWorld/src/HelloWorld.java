@@ -8,11 +8,7 @@ public class HelloWorld {
 		System.out.println("Johnny was here!");
 		System.out.println("Bogezu was here too!");
 		System.out.println("Fredrik was here too!");
-<<<<<<< HEAD
-        System.out.println("Oscar was here!");
-=======
 		System.out.println("Oscar was here too!");
->>>>>>> 33d9394aa267aeb719acdd79ff79bb3eb1182303
 	}
 }
 
