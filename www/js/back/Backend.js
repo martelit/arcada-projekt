@@ -6,12 +6,14 @@
  * TODO: Configure require.js to make this bitch work.
  *
  * Changelog :
+ * -bollen :: 27.1.2014 :: added settings
  *
  */
 
 var Backend = new function() {
 
 	this.QuestionGenerator = new QuestionGenerator();
+	this.Settings = new Store("Settings");
 
 
 	/*
