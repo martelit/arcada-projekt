@@ -8,7 +8,16 @@ function setRewardData(){
 	
 }
 
-var correctAnswer = 2;
+var correctAnswer = setCorrectAnswer(3);		
+	//Correct Answer hardcoded to 3, need to get correct answer from logic and set the value in correctAnswer ?
+
+
+function setCorrectAnswer(logicAnswer){				
+    var correct = logicAnswer;					
+    return correct;
+}
+	//function for setting what is the correct answer
+
 function guessAnswer(answer){
 	if(answer == correctAnswer){
 		return true;
