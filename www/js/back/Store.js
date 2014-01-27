@@ -12,30 +12,30 @@
  * 
  */
 function Store(){
-	(function() {
-		var has = function (object, key){
-			return Object.prototype.hasOwnProperty.call(object, key);
-	};
+    (function() {
+        var has = function (object, key){
+	    return Object.prototype.hasOwnProperty.call(object, key);
+    };
 	 	
-	var Store = this.Store = function(name, defaults){
-		this.name = name;
-		this.defaults = defaults || {};
-	};
-	
-	Store.clear = function () {
+    var Store = this.Store = function(name, defaults){
+        this.name = name;
+        this.defaults = defaults || {};
+    };
+
+    Store.clear = function () {
         localStorage.clear();
-	};
-    
+    };
+
     Store.prototype.applyDefaults = function () {
         for (var key in this.defaults) {
             if (has(this.defaults, key) && this.get(key) === undefined) {
                 this.set(key, this.defaults[key]);
             }
-        }
-        
+	    }
+
         return this;
     };
-	
+
 	Store.prototype.get = function (name) {
         var value = localStorage.getItem("store." + this.name + "." + name);
         if (value === null) { return undefined; }
