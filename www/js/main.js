@@ -4,15 +4,16 @@ require.config({
 		jquery: 'jquery',
 		jqm: 	'../lib/jqm/jquery.mobile',
 		back:	'../back/generator',
-		front:	'../front/main'
+		front:	'../front/main',
+		sounds: '../front/sounds',
 	},
 	shim: {
 		'jqm': ['jquery'],
 		'front': ['back']
 	}
 });
-require([ 'jquery', 'jqm', 'back', 'front' ],
-function(  $,        jqm,   back,   front){
+require([ 'jquery', 'jqm', 'back', 'front', 'sounds' ],
+function(  $,        jqm,   back,   front, sounds){
 	$(function(){
 	});
 
