@@ -1,0 +1,3 @@
+[submodule "www/js/bonus-game"]
+	path = www/js/bonus-game
+	url = https://github.com/jimppa/bonus-game.git
