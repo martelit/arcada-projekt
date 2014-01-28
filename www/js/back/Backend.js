@@ -50,7 +50,7 @@ var Backend = new function() {
 	* antal som bonusspelet spelats.
 	*/
 	var BonusPlayed;
-	this.setBonusPlayed() = function(amountplayed)
+	this.setBonusPlayed = function(amountplayed)
 	{
 		BonusPlayed = amountplayed;
 	}

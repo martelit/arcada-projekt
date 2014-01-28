@@ -1,19 +1,22 @@
 require.config({
-	baseUrl: 'js/lib',
+	baseUrl: 'js',
 	paths:  {
-		jquery: 'jquery',
-		jqm: 	'../lib/jqm/jquery.mobile',
-		back:	'../back/generator',
-		front:	'../front/main',
-		sounds: '../front/sounds',
+		jquery:		'lib/jquery',
+		jqm: 		'lib/jqm/jquery.mobile',
+		generator:	'back/QuestionGenerator',
+		store:		'back/Store',
+		back:		'back/Backend',
+		front:		'front/main',
+		sounds:		'front/sounds',
 	},
 	shim: {
 		'jqm': ['jquery'],
-		'front': ['back']
+		'front': ['back'],
+		'back': ['generator']
 	}
 });
-require([ 'jquery', 'jqm', 'back', 'front', 'sounds' ],
-function(  $,        jqm,   back,   front, sounds){
+require([ 'jquery', 'jqm', 'back', 'generator', 'store', 'front', 'sounds' ],
+function(  $,        jqm,   back,   generator,   store,   front, sounds){
 	$(function(){
 	});
 

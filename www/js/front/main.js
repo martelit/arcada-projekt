@@ -19,6 +19,8 @@ function setCorrectAnswer(logicAnswer){
 	//function for setting what is the correct answer
 
 function guessAnswer(answer){
+	var answer = Backend.QuestionGenerator.answer;
+	console.log(answer);
 	if(answer == correctAnswer){
 		return true;
 	} else {
@@ -41,10 +43,14 @@ function setSettings(settings){
 	// TODO save settings to storage (frontend or logic?)
 }
 function formatQuestion(){
-	var raw = getQuestion();
+	var raw = Backend.QuestionGenerator.getQuestion();
 	var sign = "";
-	if(raw[0][0][1] == 1){
+	var signCode = raw[0][0][1];
+	if(signCode == 0){
 		sign = "+";
+	}
+	if(signCode == 1){
+		sign = "-";
 	}
 
 	var questionData = {
@@ -71,7 +77,6 @@ function formatQuestion(){
 }
 // TODO $(document).ready bad for JQM, should use pageinit instead, check http://www.gajotres.net/document-onpageinit-vs-document-ready/
 $(document).on('pageinit', function(){
-	
 	formatQuestion();
 
 	// checks if answer is correct and changes colors accordingly
