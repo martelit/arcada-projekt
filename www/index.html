@@ -22,28 +22,25 @@
         <meta charset="utf-8" />
         <meta name="format-detection" content="telephone=no" />
         <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
-        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
-        <!-- <link rel="stylesheet" type="text/css" href="css/index.css" /> -->
-	<link rel="stylesheet" type="text/css" href="js/lib/jqm/jquery.mobile.css" />
-	<script data-main="js/main.js" src="js/require.js"></script>
-	<title>Snille</title>
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />      
+		<link rel="stylesheet" type="text/css" href="js/lib/jqm/jquery.mobile.css" />
+		<link rel="stylesheet" type="text/css" href="css/style.css" />
+		<script data-main="js/main.js" src="js/require.js"></script>
+		<title>Snille</title>
     </head>
     <body>
 	
-	<div data-role="page" id="front">
-		<div data-role="header">
+	<div data-role="page" id="front" >
+		<div data-role="header" data-position="fixed">
 			<h1>Snille</h1>
 			<a href="#settings" data-icon="gear" class="ui-btn-right play-click">Settings</a>
 		</div>
-		<div data-role="content">
-			<div>
-				<a href="#questions" data-role="button" class="play-click">Start</a>
-			</div>
-			<div>
-				<a id="settings" href="#settings" data-role="button" class="play-click">Settings</a>
-			</div>
+		<div data-role="content" class="cont">
+		<h1>Put some text in here</h1>
+		<a href="#questions" data-role="button" class="startbtn">Start</a>
 		</div>
-		<div data-role="footer"></div>
+		<div data-role="footer" class="footer" data-position="fixed">
+		</div>
 	</div>
 	<div data-role="page" id="questions">
 		<div data-role="header"></div>
