@@ -8,8 +8,8 @@ function setRewardData(){
 	
 }
 
-var correctAnswer = setCorrectAnswer(3);		
-	//Correct Answer hardcoded to 3, need to get correct answer from logic and set the value in correctAnswer ?
+var correctAnswer;	
+
 
 
 function setCorrectAnswer(logicAnswer){				
@@ -53,8 +53,13 @@ function formatQuestion(){
 		sign = "-";
 	}
 
+	var value1 = raw[0][0][0];
+	var value2 = raw[0][0][2];
+	var result = value1 + value2;
+	correctAnswer = setCorrectAnswer(result);
+	
 	var questionData = {
-		question: [raw[0][0][0],sign,raw[0][0][2]],
+		question: [value1,sign,value2],
 		answers: []
 	};
 	for(var i = 0; i < raw[0][1].length; i++){
