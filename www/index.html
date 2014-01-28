@@ -33,14 +33,14 @@
 	<div data-role="page" id="front">
 		<div data-role="header">
 			<h1>Snille</h1>
-			<a href="#settings" data-icon="gear" class="ui-btn-right">Settings</a>
+			<a href="#settings" data-icon="gear" class="ui-btn-right"onclick="clicksound.playclip()">Settings</a>
 		</div>
 		<div data-role="content">
 			<div>
-				<a href="#questions" data-role="button">Start</a>
+				<a href="#questions" data-role="button"onclick="clicksound.playclip()">Start</a>
 			</div>
 			<div>
-				<a id="settings" href="#settings" data-role="button">Settings</a>
+				<a id="settings" href="#settings" data-role="button"onclick="clicksound.playclip()">Settings</a>
 			</div>
 		</div>
 		<div data-role="footer"></div>
@@ -70,12 +70,12 @@
 			Alternatively use these (not yet working):
 			<div class="ui-grid-a">
 				<div class="ui-block-a">
-					<button type="button">A</button>
-					<button type="button">C</button>
+					<button type="button"onclick="clicksound.playclip()">A</button>
+					<button type="button"onclick="clicksound.playclip()">C</button>
 				</div>
 				<div class="ui-block-b">
-					<button type="button">B</button>
-					<button type="button">D</button>
+					<button type="button"onclick="clicksound.playclip()">B</button>
+					<button type="button"onclick="clicksound.playclip()">D</button>
 				</div>
 			</div>
 			
@@ -94,13 +94,13 @@
 			<input type="range" name="max" id="max" value="50" min="0" max="100" />
 			<fieldset data-role="controlgroup" data-type="horizontal">
 				<legend>Select arithmetic</legend>
-				<label for="addition">+</label>
+				<label for="addition" onclick="clicksound.playclip()">+</label>
 				<input type="checkbox" name="addition" id="addition">
-				<label for="subtraction">−</label>
+				<label for="subtraction" onclick="clicksound.playclip()">−</label>
 				<input type="checkbox" name="subtraction" id="subtraction">
-				<label for="multiplication">×</label>
+				<label for="multiplication" onclick="clicksound.playclip()">×</label>
 				<input type="checkbox" name="multiplication" id="multiplication">
-				<label for="division">÷</label>
+				<label for="division" onclick="clicksound.playclip()">÷</label>
 				<input type="checkbox" name="division" id="division">
 			</fieldset>
 			<div data-role="fieldcontain">
