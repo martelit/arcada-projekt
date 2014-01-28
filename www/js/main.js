@@ -6,12 +6,12 @@ require.config({
 		generator:	'back/QuestionGenerator',
 		store:		'back/Store',
 		back:		'back/Backend',
-		front:		'front/main',
 		sounds:		'front/sounds',
+		front:		'front/main'
 	},
 	shim: {
 		'jqm': ['jquery'],
-		'front': ['back'],
+		'front': ['back','sounds'],
 		'back': ['generator']
 	}
 });

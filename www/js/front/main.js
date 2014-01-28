@@ -1,5 +1,4 @@
 // TODO split file (or not?)
-
 function getRewardData(){
 	var something = {};
 	return something;
@@ -83,7 +82,11 @@ function formatQuestion(){
 // TODO $(document).ready bad for JQM, should use pageinit instead, check http://www.gajotres.net/document-onpageinit-vs-document-ready/
 $(document).on('pageinit', function(){
 	formatQuestion();
-
+	
+	$(".play-click").click(function(){
+		clicksound.playclip();
+	});
+	
 	// checks if answer is correct and changes colors accordingly
 	// TODO change colors back to normal
 	// TODO get new question after a while, by timing or "next question"-button
