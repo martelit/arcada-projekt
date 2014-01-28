@@ -84,7 +84,26 @@ function QuestionGenerator () {
 
 		for (i = 1; i< howMany; i++)
 		{
-			alternativ[i] = this.rn(minAnswer,maxValue);	
+			if(maxAnswer-minAnswer<howMany)	//This is here just to insure if some call the fuction whit a to low howMany value
+			{
+				alternativ[i] = this.rn(minAnswer,maxValue);	
+				console.warn("This should not happen maxAnswer, minAnswer, howMany: " + maxAnswer + " , " + minAnswer + " , " + howMany);
+			}
+			else	//Create unique values for possible answers
+			{
+				var newRandomInt = 0;
+				var minusOne = -1 ;
+				do
+				{
+					var newRandomInt = this.rn(minAnswer,maxValue);
+					minusOne = alternativ.indexOf(newRandomInt);
+
+				}
+				while ( minusOne != -1);	// != -1 means that the newRandomInt does not exist in the array and is aloud to be
+				alternativ[i] = newRandomInt;
+			}
+
+				
 		}
 		alternativ.sort(); 
 		
