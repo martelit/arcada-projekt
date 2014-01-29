@@ -10,10 +10,10 @@
  *
  */
 
-var Backend = new function() {
+function Backend() {
 
-	var questionGenerator = this.QuestionGenerator = new QuestionGenerator();
-	var Settings = this.Settings = new Store("Settings");
+	this.QuestionGenerator = new QuestionGenerator();
+	this.Settings = new Store("Settings");
 
 
 	/*
