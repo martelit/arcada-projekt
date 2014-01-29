@@ -95,18 +95,17 @@ $(document).on('pageinit', function(){
 	$(".answer-button").click(function(){
 	var answer = getCorrectAnswer();
 	
-	$('.button-container').find('button').each(function(i){ 
-	console.log(i);
+$('.button-container').find('button').each(function(i){
 	if(guessAnswer(answer)){
-	$('.answer-button').css({
+	$(this).css({
 	'background': 'green'
 	});
 	} else {
-	$('.answer-button').css({
-	'background': 'red'
+	$(this).css({
+	'background': 'red'	
 	});
 	}
-	
+	return false;
 	});
 		});
 	
