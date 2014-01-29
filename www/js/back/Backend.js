@@ -12,15 +12,15 @@
 
 var Backend = new function() {
 
-	this.QuestionGenerator = new QuestionGenerator();
-	this.Settings = new Store("Settings");
+	var questionGenerator = this.QuestionGenerator = new QuestionGenerator();
+	var Settings = this.Settings = new Store("Settings");
 
 
 	/*
 	* Bonusgame evaluation
-	* från guessAnswer() borde räknas antalet rätta svar. corrects - en int variabel som inneh. antal gånger som man fått rätt svar
-	* i stil får man 3 rätt kan man spela bonusgame nästa gång måste man ha 1 rätt, några andra krav borde säkert finnas..
-	* TODO: corrects måste få ett värde, når man guessAnswer() metodens resultat?
+	* frï¿½n guessAnswer() borde rï¿½knas antalet rï¿½tta svar. corrects - en int variabel som inneh. antal gï¿½nger som man fï¿½tt rï¿½tt svar
+	* i stil fï¿½r man 3 rï¿½tt kan man spela bonusgame nï¿½sta gï¿½ng mï¿½ste man ha 1 rï¿½tt, nï¿½gra andra krav borde sï¿½kert finnas..
+	* TODO: corrects mï¿½ste fï¿½ ett vï¿½rde, nï¿½r man guessAnswer() metodens resultat?
 	*/
 	
 	this.isBonusAvailable = function()
