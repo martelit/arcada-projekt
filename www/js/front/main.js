@@ -16,6 +16,11 @@ function setCorrectAnswer(logicAnswer){
     return correct;
 }
 	//function for setting what is the correct answer
+	
+function getCorrectAnswer(){
+return correctAnswer;
+}
+	//Get the correct answer
 
 function guessAnswer(answer){
 	var answer = Backend.QuestionGenerator.answer;
@@ -87,11 +92,29 @@ $(document).on('pageinit', function(){
 		clicksound.playclip();
 	});
 	
+	$(".answer-button").click(function(){
+	var answer = getCorrectAnswer();
+	
+	$('.button-container').find('button').each(function(i){ 
+	console.log(i);
+	if(guessAnswer(answer)){
+	$('.answer-button').css({
+	'background': 'green'
+	});
+	} else {
+	$('.answer-button').css({
+	'background': 'red'
+	});
+	}
+	
+	});
+		});
+	
 	// checks if answer is correct and changes colors accordingly
 	// TODO change colors back to normal
 	// TODO get new question after a while, by timing or "next question"-button
 	// TODO check if .click() is the best way to do this on a mobile device
-	$("#confirm-answer").click(function(){
+	/*$("#confirm-answer").click(function(){
 		var $checked = $('input[name=answer]:checked');
 		var answer = $checked.val();
 		if(guessAnswer(answer)){
@@ -106,7 +129,7 @@ $(document).on('pageinit', function(){
 			});
 		}
 	});
-
+	*/
 	// TODO doesn't get settings on second click, check why and fix or make this happen on settings page load
 	$("#settings").click(function(){
 		var settings = getSettings();
