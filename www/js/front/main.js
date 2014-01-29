@@ -1,15 +1,11 @@
-// TODO split file (or not?)
 function getRewardData(){
 	var something = {};
 	return something;
 }
+
 function setRewardData(){
 	
 }
-
-var correctAnswer;	
-
-
 
 function setCorrectAnswer(logicAnswer){				
     var correct = logicAnswer;					
@@ -18,7 +14,7 @@ function setCorrectAnswer(logicAnswer){
 	//function for setting what is the correct answer
 
 function guessAnswer(answer){
-	var answer = Backend.QuestionGenerator.answer;
+	var correctAnswer = Backend.QuestionGenerator.answer;
 	console.log(answer);
 	if(answer == correctAnswer){
 		return true;
@@ -27,7 +23,7 @@ function guessAnswer(answer){
 	}
 }
 function getSettings(){
-	// TODO get settings from storage (frontend or logic?)
+	//TODO implement back/Store.js
 	var settings = {
 		smallestNumber: 10,
 		greatestNumber: 50,
@@ -39,7 +35,7 @@ function getSettings(){
 	return settings;
 }
 function setSettings(settings){
-	// TODO save settings to storage (frontend or logic?)
+	//TODO implement back/Store.js
 }
 function formatQuestion(){
 	var raw = Backend.QuestionGenerator.getQuestion();
