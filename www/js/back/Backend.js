@@ -12,7 +12,7 @@ function Backend() {
 
 	this.QuestionGenerator = new QuestionGenerator();
 	this.Settings = new Store("Settings");
-	this.questions_answered = 0;	// These varaible names are vague. TODO: RENAME.  - Neko
+	this.questions_answered = 0;
 	this.correct_answers = 0;
 	this.bonus_found = 0;
 	this.total_score = 0;
