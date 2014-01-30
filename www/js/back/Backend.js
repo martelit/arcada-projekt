@@ -3,66 +3,64 @@
  *
  * Author :: Neko :: 22.1.2014
  *
- * TODO: Configure require.js to make this bitch work.
- *
  * Changelog :
- * -bollen :: 27.1.2014 :: added settings
- *
+ * - bollen :: 27.1.2014 :: added settings
+ * - neko :: 30.1.2014 :: added game-logic
  */
-
 function Backend() {
+
 
 	this.QuestionGenerator = new QuestionGenerator();
 	this.Settings = new Store("Settings");
+	this.questions_answered = 0;	// These varaible names are vague. TODO: RENAME.  - Neko
+	this.correct_answers = 0;
+	this.bonus_found = 0;
+	this.total_score = 0;
 
 
-	/*
-	* Bonusgame evaluation
-	* fr�n guessAnswer() borde r�knas antalet r�tta svar. corrects - en int variabel som inneh. antal g�nger som man f�tt r�tt svar
-	* i stil f�r man 3 r�tt kan man spela bonusgame n�sta g�ng m�ste man ha 1 r�tt, n�gra andra krav borde s�kert finnas..
-	* TODO: corrects m�ste f� ett v�rde, n�r man guessAnswer() metodens resultat?
-	*/
-	
-	this.isBonusAvailable = function()
+	/* Param 'a' = guessed answer. Increments total questions and correctly answered questions */
+	this.getAnswer = function(a)
 	{
-		var isAvailable = new Boolean();
-		var required = 3;
-		
-		if(guessAnswer() && corrects >= required)
-		{
-			isAvailable = true;
-			required += 1;
-		}
-		else if(!guessAnswer())
-		{
-			isAvailable = false;
-			required = 3;
-		}
-		else
-		{
-			isAvailable = false;
-		}
-		
-		return isAvailable;
+		if(parseInt(a) == this.QuestionGenerator.answer){ this.correct_answers++; }
+		this.questions_answered++;
+		return this.QuestionGenerator.answer;
+	}
+
+
+	/* returns true for every 10'th question answered */
+	this.bonusIsAvailable = function()
+	{
+		return ((this.questions_answered % 10) == 0) && (this.questions_answered > 0) ? true : false;
 	}
 	
-	/*
-	* antal som bonusspelet spelats.
-	*/
-	var BonusPlayed;
-	this.setBonusPlayed = function(amountplayed)
+
+	/* Updates found bonuses, current total score. */
+	this.BonusPlayed = function(bonusFound)
 	{
-		BonusPlayed = amountplayed;
+		this.bonus_found += parseInt(bonusFound);
+		this.total_score += this.correct_answers;
+		this.correct_answers = 0;
+	}
+
+
+	/* returns amount of bonus-lamps earned */
+	this.getLampsEarned = function()
+	{
+		var retval = 1;
+		if(this.correct_answers >= 9) { retval = 4 };
+		if((this.correct_answers >= 6) && (this.correct_answers < 9)) { retval = 3 };
+		if((this.correct_answers >= 3) && (this.correct_answers < 6)) { retval = 2 };
+		return retval;
 	}
 	
-	/*
-	 * For debugging purposes, alerts fields in object
-	 */
-	this.dbg_var_dump = function(obj){
-	
+
+
+	/* For debugging purposes, alerts fields in object */
+	this.dbg_var_dump = function(obj)
+	{
     	var out = '';
     	for (var i in obj) {
-        out += i + ": " + obj[i] + "\n";
+        	out += i + ": " + obj[i] + "\n";
     	}
 
     	alert(out);
