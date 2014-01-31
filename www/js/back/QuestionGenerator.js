@@ -5,13 +5,13 @@
  *
  * ChangeLog:
  *
- * -  neko :: 22.1.2014 :: Refactored to OO-model, renamed to QuestionGenerator.js, cleaned comments.
+ * - neko :: 22.1.2014 :: Refactored to OO-model, renamed to QuestionGenerator.js, cleaned comments.
+ * - neko :: 30.1.2014 :: Fixed this.answer-bug 
  */
-
 function QuestionGenerator () {
 
 	//The answer that is expected:
-	this.answer = new Array();
+	this.answer = undefined;
 
 	/*
 	 * Returns a Question object.
@@ -49,8 +49,9 @@ function QuestionGenerator () {
 		switch (operation)
 		{
 		case 0:	// +
-			answer = x + y;
-			maxAnswer = 2 * maxValue;
+			this.answer = (x + y);
+			//alert(this.answer);
+			maxAnswer = (2 * maxValue);
 			break;
 		case 1:	// -
 			// The answer is not allowed to be negative
@@ -62,16 +63,16 @@ function QuestionGenerator () {
 				x = y;
 				y = z;
 			}
-			answer = x - y;
+			this.answer = x - y;
 			break;
 		case 2:	// *
-			answer = x * y;
+			this.answer = x * y;
 			maxAnswer = maxValue * maxValue;
 			break;
 		case 3:	// /
 			// Division = It is not allowed to be any fractions
 			z = x * y;
-			answer = x;
+			this.answer = x;
 			x = z;		
 			break;
 		}
@@ -80,7 +81,7 @@ function QuestionGenerator () {
 		var question = new Array(x,operation,y);
 		//Create Possible Answers , might be nice to impove 
 		var alternativ = new Array()
-		alternativ[0] = answer;
+		alternativ[0] = this.answer;
 
 		for (i = 1; i< howMany; i++)
 		{
