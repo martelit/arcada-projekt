@@ -32,19 +32,22 @@ function guessAnswer(answer){
 	}
 }
 function getSettings(){
-	// TODO get settings from storage (frontend or logic?)
-	var settings = {
-		smallestNumber: 10,
-		greatestNumber: 50,
-		addition: true,
-		subtraction: false,
-		multiplication: false,
-		division: false
+	var store = Backend.settings.get("Settings");
+	
+	var settings {
+		smallestNumber: store.smallestNumber,
+		greatestNumber: store.greatestNumber,
+		addition: store.addition,
+		subtraction: store.subtraction,
+		multiplication: store.multiplication,
+		division: store.division
 	};
 	return settings;
 }
-function setSettings(settings){
-	// TODO save settings to storage (frontend or logic?)
+function setSettings(){
+	var store = Backend.settings.set("Settings", settings);
+	
+	
 }
 function formatQuestion(){
 	var raw = Backend.QuestionGenerator.getQuestion();
@@ -130,10 +133,14 @@ $('.button-container').find('button').each(function(i){
 	});
 	*/
 	// TODO doesn't get settings on second click, check why and fix or make this happen on settings page load
-	$("#settings").click(function(){
+	$("#settingsBtn").click(function(){
 		var settings = getSettings();
 		$('#min').attr('value',settings.smallestNumber); // for some reason .val() does not work
-		console.log(settings.smallestNumber);
+		$('#max').attr('value',settings.greatestNumber); // for some reason .val() does not work
+		$('#addition').attr('value',settings.addition); // for some reason .val() does not work
+		$('#subtraction').attr('value',settings.subtraction); // for some reason .val() does not work
+		$('#multiplication').attr('value',settings.multiplication); // for some reason .val() does not work
+		$('#division').attr('value',settings.disivion); // for some reason .val() does not work
 		// TODO change the rest of the settings page to what the settings are
 	});
 	
