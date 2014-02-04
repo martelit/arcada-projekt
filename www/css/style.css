@@ -101,7 +101,7 @@ Everything from this point on is custom code by johnrothberg
 }
 .cont { /*Content class*/
 	height: 100% !important;
-	background-image:url(../img/start.jpg); /*{a-bar-background-color}*/;
+	background-image:url(../img/startscrn.jpg); /*{a-bar-background-color}*/;
 	background-repeat:no-repeat !important;
 	background-size:cover;
 	overflow: hidden;
@@ -112,7 +112,8 @@ Everything from this point on is custom code by johnrothberg
 	height: 5em;
 	width: 10em;
 	top: 70%;
-	left: 50%;
+	margin-left: auto;
+	margin-right: auto;
 	padding-top:1.5em !important;
 	background-color: #4060DD !important;
 	color: #EEEEEE !important;
