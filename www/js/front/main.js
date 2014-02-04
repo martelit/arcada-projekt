@@ -40,9 +40,17 @@ function setSettings(settings){
 }
 
 $(document).on('pageshow', function(){
-
+	//plays a click sound
 	$(".play-click").click(function(){
 		clicksound.playclip();
+	});
+	//starts playing background music
+	$(".play-music").click(function(){
+		music.playclip();
+	});
+	//pauses background music
+	$(".stop-music").click(function(){
+		music.pause();
 	});
 
 	var task = getQuestion();

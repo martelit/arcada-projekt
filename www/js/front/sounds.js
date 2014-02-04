@@ -31,3 +31,4 @@ function createsoundbite(sound){
 }
 
 var clicksound=createsoundbite("res/sounds/click.wav")
+var music=createsoundbite("res/sounds/music.mp3")
