@@ -58,7 +58,7 @@ function setSettings(settings){
 >>>>>>> 186c504e85685d54f1d7d93f5fb1429cf5b4d356
 }
 
-$(document).on('pageinit', function(){
+$(document).on('pageshow', function(){
 
 	$(".play-click").click(function(){
 		clicksound.playclip();
