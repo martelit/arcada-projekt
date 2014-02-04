@@ -39,7 +39,7 @@ function setSettings(settings){
 	//TODO implement back/Store.js // should be Backend.Store.set("settings")
 }
 
-$(document).on('pageinit', function(){
+$(document).on('pageshow', function(){
 
 	$(".play-click").click(function(){
 		clicksound.playclip();
