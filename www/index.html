@@ -25,6 +25,7 @@
         <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />      
 		<link rel="stylesheet" type="text/css" href="js/lib/jqm/jquery.mobile.css" />
 		<link rel="stylesheet" type="text/css" href="css/style.css" />
+		<link rel="stylesheet" type="text/css" href="css/buttons.css" />
 		<script data-main="js/main.js" src="js/require.js"></script>
 		<title>Snille</title>
     </head>
@@ -48,7 +49,7 @@
 			TODO bigger font for question (not in px, needs to scale well)
 			 -->
 			<div id="question-holder"><p>questions</p></div>
-			<fieldset id="answers" data-role="controlgroup">
+			<!--<fieldset id="answers" data-role="controlgroup">
 				<legend>Answer</legend>
 				<input type="radio" name="answer" id="a" value="a" />
 				<label for="a">A</label>
@@ -61,15 +62,18 @@
 				
 				
 			</fieldset>
-			<button id="confirm-answer" type="button">Confirm answer</button>
-			Alternatively use these (not yet working):
-			<div class="ui-grid-a">
+			<button id="confirm-answer" type="button">Confirm answer</button>-->
+			<div class="ui-grid-c">
 				<div class="ui-block-a button-container">
-					<button type="button" class="play-click answer-button">A</button>	
-					<button type="button" class="play-click answer-button">C</button>			
+					<button type="button" class="play-click answer-button">A</button>
 				</div>
 				<div class="ui-block-b button-container">
 					<button type="button" class="play-click answer-button">B</button>
+				</div>
+				<div class="ui-block-c button-container">					
+					<button type="button" class="play-click answer-button">C</button>
+				</div>
+				<div class="ui-block-d button-container">
 					<button type="button" class="play-click answer-button">D</button>
 				</div>
 			</div>

@@ -1,0 +1,9 @@
+.guessed-answer{
+font-size:200% !important;
+}
+.correct-answer{
+background: green !important;
+}
+.wrong-answer{
+background: red !important;
+}

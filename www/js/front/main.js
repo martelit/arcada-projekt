@@ -62,13 +62,9 @@ $(document).on('pageshow', function(){
 	$(".answer-button").click(function(){
 		var answer = $(this).html();
 		if( guessAnswer(answer) ){
-			$(this).css({
-				'background': 'green'
-			});
+			$(this).addClass("guessed-answer correct-answer");
 		} else {
-			$(this).css({
-				'background': 'red'	
-			});
+			$(this).addClass("guessed-answer wrong-answer");
 		}
 	});
 	
