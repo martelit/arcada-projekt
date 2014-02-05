@@ -54,6 +54,14 @@ $(document).on('pageshow', function(){
 	});
 
 	var task = getQuestion();
+	var theQ ="";
+	
+	for(var i = 0; i < task.question.length; i++){
+	var temp = task.question[i];
+	theQ = theQ + temp;
+	}
+	
+	$("#question-holder").html(theQ);
 	
 	$('.button-container').find('button').each(function(i){
 		$(this).html(task.answers[i]);
