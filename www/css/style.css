@@ -138,3 +138,12 @@ Everything from this point on is custom code by johnrothberg
 .footer {
 	
 }
+#questions {
+	/*height: 100% !important;
+	background-image:url(../img/startscrn.jpg); 
+	background-repeat:no-repeat !important;
+	background-size:cover;
+	overflow: hidden;
+	width: 100%;
+	position: relative;*/
+}
