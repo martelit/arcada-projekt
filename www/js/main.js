@@ -12,8 +12,9 @@ require.config({
 	},
 	shim: {
 		'jqm': ['jquery'],
-		'front': ['back','sounds'],
-		'back': ['generator']
+		'front': ['back','sounds','helper'],
+		'back': ['generator', 'store'],
+		'helper': ['back']
 	}
 });
 require([ 'jquery', 'jqm', 'back', 'generator', 'store', 'helper', 'front', 'sounds' ],

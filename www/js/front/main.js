@@ -15,7 +15,7 @@ function getQuestion(){
 }
 
 function guessAnswer(guess){
-	if( guess == 2 ) {
+	if( answerQuestion(guess)  ) {
 		return true;
 	} else {
 		return false;
@@ -54,7 +54,7 @@ $(document).on('pageshow', function(){
 	});
 
 	var task = getQuestion();
-	
+	$('#question-holder').html(task.question);
 	$('.button-container').find('button').each(function(i){
 		$(this).html(task.answers[i]);
 	});

@@ -1,14 +1,23 @@
-
+var back = new Backend();
+console.log(back);
+function answerQuestion(guess){
+	var answer = back.getAnswer();
+	if(guess == answer){
+		return true;
+	} else {
+		return false;
+	}
+}
 function formatQuestion(){
 	
-	if(typeof Backend === 'undefined' || typeof Backend.QuestionGenerator === 'undefined' || typeof Backend.QuestionGenerator.getQuestion() === 'undefined' ){
+	if(typeof back === 'undefined' || typeof back.QuestionGenerator === 'undefined' || typeof back.QuestionGenerator.getQuestion() === 'undefined' ){
 		console.log("backend broken or missing, defaulting to dummy values");
 		return {
 			question: [1, "+", 1],
 			answers: [1, 2, 3, 4]
 		};
 	} else {
-		var raw = Backend.QuestionGenerator.getQuestion();
+		var raw = back.QuestionGenerator.getQuestion();
 	}
 	
 	var task = {
@@ -30,12 +39,8 @@ function formatQuestion(){
 
 	task.question = [value1, sign, value2];
 	
-	var result = value1 + value2;
-	correctAnswer = setCorrectAnswer(result);
-	
 	for(var i = 0; i < raw[0][1].length; i++){
 		task.answers.push(raw[0][1][i]);
 	}
-
-	return task;	
+	return task;
 }

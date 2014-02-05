@@ -1,3 +1,30 @@
+function initSounds(){
+	var sounds = getAvailableSounds();
+	var music = sounds.music;
+	var click = sounds.clickeffect;
+	
+	this.musicElement = document.createElement('audio');
+	musicElement.setAttribute('src', music);
+	musicElement.setAttribute('autoplay', 'autoplay');
+	this.clickSoundElement = document.createElement('audio');
+	clickSoundElement.setAttribute('src', click);
+	clickSoundElement.setAttribute('autoplay','autoplay');
+
+}
+function getAvailableSounds(){
+	var folder = "res/sounds/";
+	return {
+		music: folder + "music.mp3",
+		clickeffect: folder + "click"
+	}
+}
+function play(filename){
+	
+}
+
+function pause(filename){
+	
+}
 //define list of audio file extensions and their associated audio types. Add to it if your specified audio file isn't on this list:
 var html5_audiotypes={ 
 	"mp3": "audio/mpeg",
