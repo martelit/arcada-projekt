@@ -140,10 +140,10 @@ Everything from this point on is custom code by johnrothberg
  */
 #questions {
 	background: url(../img/gamescreen_background.jpg) no-repeat center center fixed; 
-  -webkit-background-size: cover;
-  -moz-background-size: cover;
-  -o-background-size: cover;
-  background-size: cover;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
 }
 
  #question-holder {
@@ -158,7 +158,7 @@ Everything from this point on is custom code by johnrothberg
  	font: 10em "Arial Black"; 
  }
  
-.ui-btn-inline {
+.ui-block-a .ui-btn-inline {
 	background: #1e5799 !important; /* Old browsers */ 
 	background: -moz-linear-gradient(top, #1e5799 0%, #2989d8 3%, #207cca 97%, #1e5799 100%) !important; /* FF3.6+ */
 	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#1e5799), color-stop(3%,#2989d8), color-stop(97%,#207cca), color-stop(100%,#1e5799) !important); /* Chrome,Safari4+ */
@@ -173,3 +173,23 @@ Everything from this point on is custom code by johnrothberg
 	height: 2.44em !important;
 	font-size: 3.44em;
 }
+
+#response-popup.ui-popup{
+	width:auto;
+	height:auto;
+	font: 1em "Arial"; 
+	background-color: #0072bc;
+	padding: 1em;
+}
+
+#response-popup span{
+	font: 2em "Arial";
+	text-align: center;
+	margin: 0.01em;	
+	color: #FFF;
+}
+
+#response-popup #correct-answer-number {
+	font: 4em "Arial Black";
+}
+

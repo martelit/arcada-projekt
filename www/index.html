@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!--
     Licensed to the Apache Software Foundation (ASF) under one
     or more contributor license agreements.  See the NOTICE file
@@ -70,7 +70,13 @@
 					<button type="button" data-inline="true" class="play-click answer-button">D</button>
 				</div>
 			</div>
-			
+		</div>
+		<div id="response-popup" data-position-to="window" data-dismissible="false" data-role="popup">
+			<span class="answer-string">Du svarade fel/rätt</span><br/>
+			<span class="answer-string">Rätta svaret var</span><br/>
+			<span id="correct-answer-number" class="">10</span>
+			<button type="button" data-inline="true" id="next-question" class="popup-button">Nästa fråga</button>
+			<button type="button" data-inline="true" id="play-bonus-game" class="popup-button">Spela bonus-spelet</button>
 		</div>
 	</div>
 	<div data-role="page" id="settings">

@@ -74,8 +74,11 @@ $(document).on('pageshow', function(){
 			$(this).addClass("guessed-answer correct-answer");
 		} else {
 			$(this).addClass("guessed-answer wrong-answer");
+			
 		}
+		$("#response-popup").popup("open");
 	});
+	
 	
 	// TODO doesn't get settings on second click, check why and fix or make this happen on settings page load
 	$("#settings").click(function(){
