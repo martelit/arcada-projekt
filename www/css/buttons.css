@@ -1,9 +1,23 @@
 .guessed-answer{
-font-size:200% !important;
+
 }
 .correct-answer{
-background: green !important;
+	background: #459a1e !important; /* Old browsers */
+	background: -moz-linear-gradient(top,  #459a1e 0%, #70d82a 3%, #61ca20 97%, #459a1e 100%) !important; /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#459a1e), color-stop(3%,#70d82a), color-stop(97%,#61ca20), color-stop(100%,#459a1e)) !important; /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #459a1e 0%,#70d82a 3%,#61ca20 97%,#459a1e 100%) !important; /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #459a1e 0%,#70d82a 3%,#61ca20 97%,#459a1e 100%) !important; /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #459a1e 0%,#70d82a 3%,#61ca20 97%,#459a1e 100%) !important; /* IE10+ */
+	background: linear-gradient(to bottom,  #459a1e 0%,#70d82a 3%,#61ca20 97%,#459a1e 100%) !important; /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#459a1e', endColorstr='#459a1e',GradientType=0 ) !important; /* IE6-9 */
 }
 .wrong-answer{
-background: red !important;
+	background: #9a1e20; /* Old browsers */
+	background: -moz-linear-gradient(top,  #9a1e20 0%, #d82a3b 3%, #ca202e 97%, #9a1e20 100%) !important; /* FF3.6+ */
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#9a1e20), color-stop(3%,#d82a3b), color-stop(97%,#ca202e), color-stop(100%,#9a1e20)) !important; /* Chrome,Safari4+ */
+	background: -webkit-linear-gradient(top,  #9a1e20 0%,#d82a3b 3%,#ca202e 97%,#9a1e20 100%) !important; /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top,  #9a1e20 0%,#d82a3b 3%,#ca202e 97%,#9a1e20 100%) !important; /* Opera 11.10+ */
+	background: -ms-linear-gradient(top,  #9a1e20 0%,#d82a3b 3%,#ca202e 97%,#9a1e20 100%) !important; /* IE10+ */
+	background: linear-gradient(to bottom,  #9a1e20 0%,#d82a3b 3%,#ca202e 97%,#9a1e20 100%) !important; /* W3C */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#9a1e20', endColorstr='#9a1e20',GradientType=0 ) !important; /* IE6-9 */
 }
