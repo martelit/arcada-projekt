@@ -1,34 +1,32 @@
-.ui-btn-inline.correct-answer{
-	background: #459a1e !important; /* Old browsers */
-	background: -moz-linear-gradient(top,  #459a1e 0%, #70d82a 3%, #61ca20 97%, #459a1e 100%) !important; /* FF3.6+ */
-	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#459a1e), color-stop(3%,#70d82a), color-stop(97%,#61ca20), color-stop(100%,#459a1e)) !important; /* Chrome,Safari4+ */
-	background: -webkit-linear-gradient(top,  #459a1e 0%,#70d82a 3%,#61ca20 97%,#459a1e 100%) !important; /* Chrome10+,Safari5.1+ */
-	background: -o-linear-gradient(top,  #459a1e 0%,#70d82a 3%,#61ca20 97%,#459a1e 100%) !important; /* Opera 11.10+ */
-	background: -ms-linear-gradient(top,  #459a1e 0%,#70d82a 3%,#61ca20 97%,#459a1e 100%) !important; /* IE10+ */
-	background: linear-gradient(to bottom,  #459a1e 0%,#70d82a 3%,#61ca20 97%,#459a1e 100%) !important; /* W3C */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#459a1e', endColorstr='#459a1e',GradientType=0 ) !important; /* IE6-9 */
+.start-button {
+	height: 5em;
+	width: 10em;
+	top: 70%;
+	margin-left: auto;
+	margin-right: auto;
+	/*padding-top:1.5em !important;*/
+	background-color: #4060DD !important;
+	color: #EEEEEE !important;
+	padding: 2em 2em;
+	display: block;
+	text-align: center;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	font-size: 3em;
+	/*white-space: nowrap;
+	cursor: pointer;*/
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	-webkit-box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+	-webkit-appearance: none;
+	-moz-appearance: none;
 }
-.ui-btn-inline.wrong-answer{
-	background: #9a1e20; /* Old browsers */
-	background: -moz-linear-gradient(top,  #9a1e20 0%, #d82a3b 3%, #ca202e 97%, #9a1e20 100%) !important; /* FF3.6+ */
-	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#9a1e20), color-stop(3%,#d82a3b), color-stop(97%,#ca202e), color-stop(100%,#9a1e20)) !important; /* Chrome,Safari4+ */
-	background: -webkit-linear-gradient(top,  #9a1e20 0%,#d82a3b 3%,#ca202e 97%,#9a1e20 100%) !important; /* Chrome10+,Safari5.1+ */
-	background: -o-linear-gradient(top,  #9a1e20 0%,#d82a3b 3%,#ca202e 97%,#9a1e20 100%) !important; /* Opera 11.10+ */
-	background: -ms-linear-gradient(top,  #9a1e20 0%,#d82a3b 3%,#ca202e 97%,#9a1e20 100%) !important; /* IE10+ */
-	background: linear-gradient(to bottom,  #9a1e20 0%,#d82a3b 3%,#ca202e 97%,#9a1e20 100%) !important; /* W3C */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#9a1e20', endColorstr='#9a1e20',GradientType=0 ) !important; /* IE6-9 */
-}
-
 /* this apparently works without overrides, go figure...*/
-#response-popup .ui-btn-inline {
-	background: #2075d6; /* Old browsers */
-	background: -moz-linear-gradient(top,  #2075d6 0%, #4ca1e6 3%, #3895e6 97%, #2075d6 100%); /* FF3.6+ */
-	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#2075d6), color-stop(3%,#4ca1e6), color-stop(97%,#3895e6), color-stop(100%,#2075d6)); /* Chrome,Safari4+ */
-	background: -webkit-linear-gradient(top,  #2075d6 0%,#4ca1e6 3%,#3895e6 97%,#2075d6 100%); /* Chrome10+,Safari5.1+ */
-	background: -o-linear-gradient(top,  #2075d6 0%,#4ca1e6 3%,#3895e6 97%,#2075d6 100%); /* Opera 11.10+ */
-	background: -ms-linear-gradient(top,  #2075d6 0%,#4ca1e6 3%,#3895e6 97%,#2075d6 100%); /* IE10+ */
-	background: linear-gradient(to bottom,  #2075d6 0%,#4ca1e6 3%,#3895e6 97%,#2075d6 100%); /* W3C */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#2075d6', endColorstr='#2075d6',GradientType=0 ); /* IE6-9 */
+#response-popup {
 	border: 0;
 	width:100%;
 	color: #FFF;

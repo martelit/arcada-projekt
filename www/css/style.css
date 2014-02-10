@@ -96,10 +96,15 @@ h1 {
 /**
 Everything from this point on is custom code by johnrothberg
 */
+
 #front { /*This is the id of the start page div*/
 	height: 100% !important;
 }
-.cont { /*Content class*/
+.front-content {
+	background-image: url("../img/startscrn.jpg");
+	height: 99% !important;
+}
+.front-content {
 	height: 100% !important;
 	background-image:url(../img/startscrn.jpg); /*{a-bar-background-color}*/;
 	background-repeat:no-repeat !important;
@@ -107,33 +112,6 @@ Everything from this point on is custom code by johnrothberg
 	overflow: hidden;
 	width: 100%;
 	position: relative;
-}
-.startbtn { /*Start button class*/
-	height: 5em;
-	width: 10em;
-	top: 70%;
-	margin-left: auto;
-	margin-right: auto;
-	/*padding-top:1.5em !important;*/
-	background-color: #4060DD !important;
-	color: #EEEEEE !important;
-	padding: 2em 2em;
-	display: block;
-	text-align: center;
-	text-overflow: ellipsis;
-	overflow: hidden;
-	font-size: 3em;
-	/*white-space: nowrap;
-	cursor: pointer;*/
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-	-webkit-box-sizing: border-box;
-	-moz-box-sizing: border-box;
-	box-sizing: border-box;
-	-webkit-appearance: none;
-	-moz-appearance: none;
 }
 /**
  * Overrides for main game screen
@@ -158,18 +136,11 @@ Everything from this point on is custom code by johnrothberg
  	font: 10em "Arial Black"; 
  }
  
-.ui-block-a .ui-btn-inline {
-	background: #1e5799 !important; /* Old browsers */ 
-	background: -moz-linear-gradient(top, #1e5799 0%, #2989d8 3%, #207cca 97%, #1e5799 100%) !important; /* FF3.6+ */
-	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#1e5799), color-stop(3%,#2989d8), color-stop(97%,#207cca), color-stop(100%,#1e5799) !important); /* Chrome,Safari4+ */
-	background: -webkit-linear-gradient(top, #1e5799 0%,#2989d8 3%,#207cca 97%,#1e5799 100%) !important; /* Chrome10+,Safari5.1+ */
-	background: -o-linear-gradient(top, #1e5799 0%,#2989d8 3%,#207cca 97%,#1e5799 100%) !important; /* Opera 11.10+ */
-	background: -ms-linear-gradient(top, #1e5799 0%,#2989d8 3%,#207cca 97%,#1e5799 100%) !important; /* IE10+ */
-	background: linear-gradient(to bottom, #1e5799 0%,#2989d8 3%,#207cca 97%,#1e5799 100%) !important; /* W3C */
-	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#1e5799', endColorstr='#1e5799',GradientType=0 ) !important; /* IE6-9 */
+.answer-button {
 	color: #FFF !important;
 	text-shadow: 0 !important;
 	width: 3.44em !important;
+	width: 100% !important;
 	height: 2.44em !important;
 	font-size: 3.44em;
 }

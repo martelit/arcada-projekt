@@ -26,37 +26,48 @@
 		<link rel="stylesheet" type="text/css" href="js/lib/jqm/jquery.mobile.css" />
 		<link rel="stylesheet" type="text/css" href="css/style.css" />
 		<link rel="stylesheet" type="text/css" href="css/buttons.css" />
+		<link rel="stylesheet" type="text/css" href="css/gradients.css" />
 		<script data-main="js/main.js" src="js/require.js"></script>
 		<title>Snille</title>
     </head>
     <body>
 	
 	<div data-role="page" id="front" >
+		<!--
 		<div data-role="header" data-position="fixed">
 			<h1>Snille</h1>
 			<a href="#settings" id="settingsBtn" data-icon="gear" class="ui-btn-right play-click">Settings</a>
 		</div>
-		<div data-role="content" class="cont">
-		<a href="#settings" data-icon="gear" class="ui-btn-right play-click"><img src="img/options.png"></a>
-		<a href="#questions" data-role="button" class="startbtn">Start</a>
+		-->
+		<div data-role="content" class="front-content">
+			<a href="#settings" data-icon="gear" class="ui-btn-right play-click"><img src="img/options.png"></a>
+			<a href="#questions" data-role="button" class="start-button button">Start</a>
 		</div>
 		</div>
 	</div>
 	<div data-role="page" id="questions">
+		<!--
 		<div data-role="header">
 			<a href="#settings" data-icon="gear" class="ui-btn-right play-click">Settings</a>
 		</div>
+		-->
 		<div data-role="content">
 			<!--
 			TODO images for question when only one term present
 			TODO bigger font for question (not in px, needs to scale well)
 			 -->
 			<div id="question-holder"><p>questions</p></div>
-			<div class="button-container">
+			<div class="ui-grid-c button-container">
 				<div class="ui-block-a">
 					<button type="button" data-inline="true" class="play-click answer-button">A</button>
+				</div>
+				<div class="ui-block-b">
 					<button type="button" data-inline="true" class="play-click answer-button">B</button>
+				</div>
+				<div class="ui-block-c">
 					<button type="button" data-inline="true" class="play-click answer-button">C</button>
+				</div>
+				<div class="ui-block-d">
 					<button type="button" data-inline="true" class="play-click answer-button">D</button>
 				</div>
 			</div>
