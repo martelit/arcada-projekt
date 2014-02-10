@@ -1,0 +1,18 @@
+#settings {
+	background: url(../img/gamescreen_background.jpg) no-repeat center center fixed; 
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+}
+
+#settings #settings-container {
+	width:60% !important;
+	margin: 0 auto;
+}
+
+#settings label, #settings legend{
+	font: 1.2em "Arial" !important;
+	text-shadow: none;
+}
+

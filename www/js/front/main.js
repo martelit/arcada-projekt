@@ -91,6 +91,39 @@ $(document).on('pageshow', function(){
 	});
 	
 	
+	// Sets min and max values for the sliders.
+	// This is is not optimal, but probably the best solution if we want to
+	// use sliders. 
+	$( "#min" ).on( "slidestop", function( event, ui ) {
+		var minValue = $('#min').val();
+		$("#max").prop('min', minValue).slider( "refresh" );
+		if($("#max").prop('value') < minValue){
+			$("#max").prop('value', minValue).slider( "refresh" );
+		}
+	} );
+	
+	$( "#max" ).on( "slidestop", function( event, ui ) {
+		var maxValue = $('#max').val();
+		$("#min").prop('max', maxValue).slider( "refresh" );
+		if($("#min").prop('value') > maxValue){
+			$("#min").prop('value', maxValue).slider( "refresh" );
+		}
+	} );
+	
+	//Deselects all other arithmetic options if symbols are selected (counting without arithmetic)
+	$("#symbols").click(function(){
+		$(this).closest('#arithmetic-settings').find('input[type="checkbox"]:not("#symbols")').prop('checked', false).checkboxradio( "refresh" );
+	});
+	
+	//Deselects symbols (counting without arithmetic) if any other arithmetic setting is clicked
+	$('#arithmetic-settings input[type="checkbox"]:not("#symbols")').click(function(){
+		if($('#symbols').prop('checked', true)){
+			$("#symbols").prop('checked', false).checkboxradio( "refresh" );
+		}
+	});
+	
+	
+	
 	// TODO doesn't get settings on second click, check why and fix or make this happen on settings page load
 	$("#settingsBtn").click(function(){
 		var settings = getSettings();
@@ -100,6 +133,7 @@ $(document).on('pageshow', function(){
 		$('#subtraction').attr('value',settings.subtraction);
 		$('#multiplication').attr('value',settings.multiplication);
 		$('#division').attr('value',settings.disivion);
+		$('#symbols').attr('value', settings.symbols);
 		// TODO change the rest of the settings page to what the settings are
 	});
 	
