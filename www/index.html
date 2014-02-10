@@ -26,7 +26,11 @@
 		<link rel="stylesheet" type="text/css" href="js/lib/jqm/jquery.mobile.css" />
 		<link rel="stylesheet" type="text/css" href="css/style.css" />
 		<link rel="stylesheet" type="text/css" href="css/buttons.css" />
+<<<<<<< HEAD
 		<link rel="stylesheet" type="text/css" href="css/gradients.css" />
+=======
+		<link rel="stylesheet" type="text/css" href="css/settings.css" />
+>>>>>>> f598b09bc598ab6abacb68d8f65b9ed0ec98e8f1
 		<script data-main="js/main.js" src="js/require.js"></script>
 		<title>Snille</title>
     </head>
@@ -81,45 +85,47 @@
 		</div>
 	</div>
 	<div data-role="page" id="settings">
-		<div data-role="header"></div>
 		<div data-role="content">
-			<p>settings</p>
 			<!-- TODO How to change min value of max slider to be selected value of min slider (eg. if min slider has value 20, change max sliders min value to 20) -->
 			<!-- alternatively use rangeslider plugin, but is deprecated in jqm 1.4.0 -->
-			<label for="min">Smallest numbers</label>
-			<input type="range" name="min" id="min" value="0" min="0" max="100" />
-			<label for="max">Largest numbers</label>
-			<input type="range" name="max" id="max" value="50" min="0" max="100" />
-			<fieldset data-role="controlgroup" data-type="horizontal">
-				<legend>Select arithmetic</legend>
-				<label for="addition"  class="play-click">+</label>
-				<input type="checkbox" name="addition" id="addition">
-				<label for="subtraction"  class="play-click">−</label>
-				<input type="checkbox" name="subtraction" id="subtraction">
-				<label for="multiplication"  class="play-click">×</label>
-				<input type="checkbox" name="multiplication" id="multiplication">
-				<label for="division"  class="play-click">÷</label>
-				<input type="checkbox" name="division" id="division">
-			</fieldset>
-			<form>
-				<label for="flip-sound1">sound:</label>
-				<select id="flip-sound1" name="flip-sound1" data-role="slider">
-					<option value="off">Off</option>
-					<option value="on">On</option>
-				</select>
-				<label for="flip-music1">music:</label>
-				<select id="flip-music1" name="flip-music1" data-role="slider">
-					<option value="off">Off</option>
-					<option value="on">On</option>
-				</select>
-				<button type="button"class="play-music">Music On</button>
-				<button type="button" class="stop-music">Music Off</button>
-			</form>
-			<div data-role="fieldcontain">
-			</div>
-			<div data-role="fieldcontain">
-			</div>
-
+			<div id="settings-container">
+				<label for="min">Smallest numbers</label>
+				<input type="range" name="min" id="min" value="0" min="0" max="100" />
+				<label for="max">Largest numbers</label>
+				<input type="range" name="max" id="max" value="50" min="0" max="100" />
+				<fieldset data-role="controlgroup" id="arithmetic-settings" data-type="horizontal">
+					<legend>Select arithmetic</legend>
+					<label for="addition"  class="play-click">+</label>
+					<input type="checkbox" name="addition" id="addition">
+					<label for="subtraction"  class="play-click">−</label>
+					<input type="checkbox" name="subtraction" id="subtraction">
+					<label for="multiplication"  class="play-click">×</label>
+					<input type="checkbox" name="multiplication" id="multiplication">
+					<label for="division"  class="play-click">÷</label>
+					<input type="checkbox" name="division" id="division">
+					<label for="symbols" class="play-click">Symbols</label>
+					<input type="checkbox" name="symbols" id="symbols">
+				</fieldset>
+				<form>
+					<label for="flip-sound1">Sound</label>
+					<select id="flip-sound1" name="flip-sound1" data-role="slider">
+						<option value="off">Off</option>
+						<option value="on">On</option>
+					</select>
+					<label for="flip-music1">Music</label>
+					<select id="flip-music1" name="flip-music1" data-role="slider">
+						<option value="off">Off</option>
+						<option value="on">On</option>
+					</select>
+					<button type="button"class="play-music">Music On</button>
+					<button type="button" class="stop-music">Music Off</button>
+				</form>
+				<div data-role="fieldcontain">
+				</div>
+				<div data-role="fieldcontain">
+				</div>
+				<button type="button" id="save-settings">Save settings</button>
+		</div>
 		</div>
 	</div>
 	<!-- TODO add rewards page -->
