@@ -23,10 +23,8 @@ function guessAnswer(guess){
 }
 
 function getSettings(){
-<<<<<<< HEAD
 	var store = Backend.settings.get("Settings");
-	
-	var settings {
+	var settings = {
 		smallestNumber: store.smallestNumber,
 		greatestNumber: store.greatestNumber,
 		addition: store.addition,
@@ -40,7 +38,6 @@ function setSettings(){
 	var store = Backend.settings.set("Settings", settings);
 	
 	
-=======
 	//TODO implement back/Store.js // should be Backend.Store.get("settings")
 	var settings = {
 		smallestNumber: 10,
@@ -51,11 +48,6 @@ function setSettings(){
 		division: false
 	};
 	return settings;
-}
-
-function setSettings(settings){
-	//TODO implement back/Store.js // should be Backend.Store.set("settings")
->>>>>>> 186c504e85685d54f1d7d93f5fb1429cf5b4d356
 }
 
 $(document).on('pageshow', function(){
@@ -102,12 +94,12 @@ $(document).on('pageshow', function(){
 	// TODO doesn't get settings on second click, check why and fix or make this happen on settings page load
 	$("#settingsBtn").click(function(){
 		var settings = getSettings();
-		$('#min').attr('value',settings.smallestNumber); // for some reason .val() does not work
-		$('#max').attr('value',settings.greatestNumber); // for some reason .val() does not work
-		$('#addition').attr('value',settings.addition); // for some reason .val() does not work
-		$('#subtraction').attr('value',settings.subtraction); // for some reason .val() does not work
-		$('#multiplication').attr('value',settings.multiplication); // for some reason .val() does not work
-		$('#division').attr('value',settings.disivion); // for some reason .val() does not work
+		$('#min').attr('value',settings.smallestNumber);
+		$('#max').attr('value',settings.greatestNumber);
+		$('#addition').attr('value',settings.addition);
+		$('#subtraction').attr('value',settings.subtraction);
+		$('#multiplication').attr('value',settings.multiplication);
+		$('#division').attr('value',settings.disivion);
 		// TODO change the rest of the settings page to what the settings are
 	});
 	
