@@ -5,7 +5,6 @@ function getRewardData(){
 		canPlay: false
 	};
 }
-
 function setRewardData(data){
 	// TODO do we need this?
 }
@@ -81,15 +80,39 @@ $(document).on('pageshow', function(){
 	
 	$(".answer-button").click(function(){
 		var answer = $(this).html();
+		var correctAnswer = back.getAnswer();
 		if( guessAnswer(answer) ){
 			$(this).addClass("guessed-answer correct-answer");
+			$("#correct-wrong").text("Du svarade rätt!");
+			$("#correct-answer-number").text(answer);
 		} else {
 			$(this).addClass("guessed-answer wrong-answer");
+			$("#correct-wrong").text("Du svarade fel.");
+			$("#correct-answer-number").text(correctAnswer);
+			
 			
 		}
 		$("#response-popup").popup("open");
 	});
 	
+		$(".next-button").click(function(){
+		
+		var nextTask = getQuestion();
+		$('#question-holder').html(nextTask.question);
+		$('.button-container').find('button').each(function(i){
+		$(this).html(nextTask.answers[i]);
+		});
+		$("#response-popup").popup("close");
+		});
+		
+		
+		$(".bonus-button").click(function(){
+		if(back.bonusIsAvailable == true){
+		//start bonus game
+		}else{
+		//ask new question
+		}
+		});
 	
 	// Sets min and max values for the sliders.
 	// This is is not optimal, but probably the best solution if we want to
