@@ -28,7 +28,7 @@ function Backend() {
 	/* returns true for every 10'th question answered */
 	this.bonusIsAvailable = function()
 	{
-		return ((this.questions_answered % 10) == 0) && (this.questions_answered > 0) ? true : false;
+		return ((this.questions_answered % 10) == 0) && (this.questions_answered > 0);
 	}
 	
 	/* Updates found bonuses, current total score.
@@ -49,7 +49,7 @@ function Backend() {
 
 	/* returns Bonus-lamp radius in pixels depending on current score*/
 	// TODO: return proper values
-	this.getaLampSize = function()
+	this.getLampSize = function()
 	{
 		var retval = 10;
 		if(this.correct_answers >= 9) { retval = 40 };
