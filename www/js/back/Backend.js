@@ -9,7 +9,6 @@
  */
 function Backend() {
 
-
 	this.QuestionGenerator = new QuestionGenerator();
 	this.Settings = new Store("Settings");
 	this.questions_answered = 0;
@@ -26,35 +25,39 @@ function Backend() {
 		return this.QuestionGenerator.answer;
 	}
 
-
 	/* returns true for every 10'th question answered */
 	this.bonusIsAvailable = function()
 	{
 		return ((this.questions_answered % 10) == 0) && (this.questions_answered > 0) ? true : false;
 	}
 	
-
-	/* Updates found bonuses, current total score. */
-	this.BonusPlayed = function(bonusFound)
+	/* Updates found bonuses, current total score.
+	   Returns true if all 5 bonus objects have been found */
+	this.bonusPlayed = function(bonusFound)
 	{
 		this.bonus_found += parseInt(bonusFound);
 		this.total_score += this.correct_answers;
 		this.correct_answers = 0;
+		return (this.bonus_found >= 5);
 	}
 
+	/* As an alternative for the function above. 
+	   Returns true if all 5 bonus objects have been found  */
+	this.allBonusObjectsFound = function(){
+		return (this.bonus_found >= 5);
+	}
 
-	/* returns amount of bonus-lamps earned */
-	this.getLampsEarned = function()
+	/* returns Bonus-lamp radius in pixels depending on current score*/
+	// TODO: return proper values
+	this.getaLampSize = function()
 	{
-		var retval = 1;
-		if(this.correct_answers >= 9) { retval = 4 };
-		if((this.correct_answers >= 6) && (this.correct_answers < 9)) { retval = 3 };
-		if((this.correct_answers >= 3) && (this.correct_answers < 6)) { retval = 2 };
+		var retval = 10;
+		if(this.correct_answers >= 9) { retval = 40 };
+		if((this.correct_answers >= 6) && (this.correct_answers < 9)) { retval = 30 };
+		if((this.correct_answers >= 3) && (this.correct_answers < 6)) { retval = 20 };
 		return retval;
 	}
 	
-
-
 	/* For debugging purposes, alerts fields in object */
 	this.dbg_var_dump = function(obj)
 	{
