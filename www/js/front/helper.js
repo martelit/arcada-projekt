@@ -1,5 +1,26 @@
-var back = new Backend();
-console.log(back);
+function getBackend(){
+	if(typeof(Backend) === 'undefined'){
+		console.log("something wrong with backend, using dummy instead");
+		var dummy = {
+			QuestionGenerator: {
+				getQuestion: function(){
+					return [[[1,0,1],[2,3,4,5],1]];
+				}
+			},
+			getAnswer: function(a){
+				return 2;
+			}
+		};
+		return dummy;
+	} else {
+		if(typeof(back) === 'undefined'){
+			return new Backend();
+		} else {
+			return back;
+		}
+	}
+}
+var back = getBackend();
 function answerQuestion(guess){
 	var answer = back.getAnswer();
 	if(guess == answer){
@@ -9,16 +30,7 @@ function answerQuestion(guess){
 	}
 }
 function formatQuestion(){
-	
-	if(typeof back === 'undefined' || typeof back.QuestionGenerator === 'undefined' || typeof back.QuestionGenerator.getQuestion() === 'undefined' ){
-		console.log("backend broken or missing, defaulting to dummy values");
-		return {
-			question: [1, "+", 1],
-			answers: [1, 2, 3, 4]
-		};
-	} else {
-		var raw = back.QuestionGenerator.getQuestion();
-	}
+	var raw = back.QuestionGenerator.getQuestion();
 	
 	var task = {
 		question: [],
@@ -35,6 +47,12 @@ function formatQuestion(){
 	}
 	if(signCode == 1){
 		sign = "-";
+	}
+	if(signCode == 2){
+		sign = "*";
+	}
+	if(signCode == 3){
+		sign = "/";
 	}
 
 	task.question = [value1, sign, value2];
