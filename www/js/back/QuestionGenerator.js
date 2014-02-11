@@ -24,7 +24,7 @@ function QuestionGenerator () {
 	this.getQuestion = function(){
 		
 		//TODO: here should come som function about how to generate next question
-		var arrayObj = new Array(this.generateQuestion(4,10,1));
+		var arrayObj = new Array(this.generateQuestion(4, 0 , 20,0));
 		return arrayObj;
 	}
 
@@ -38,57 +38,83 @@ function QuestionGenerator () {
 	*	int maxValue 	== The maximum value there is in the math Problem
 	*	int operation 	== 0 == + , 1 == - , 2 == * , 3 == /
 	*/
-	this.generateQuestion = function(howMany, maxValue, operation) {
+	this.generateQuestion = function(howMany, minValue, maxValue, operation) {
 
-		var x = this.rn(0, maxValue);	// x value
-		var y = this.rn(0, maxValue);	// y value
-		var maxAnswer = maxValue;		// MaxValue ,addition 2*MaxValue, multiplication maxValue * maxValue
-										// TODO: Maxanswer is never used, only assigned.
-		var minAnswer = 0;				// Minimal Answer, static at the moment
-		
+		var x = 0;	// x value
+		var y = 0;	// y value
+		var question = new Array();
 		switch (operation)
 		{
 		case 0:	// +
-			this.answer = (x + y);
-			//alert(this.answer);
-			maxAnswer = (2 * maxValue);
+
+			this.answer = this.rn(minValue, maxValue);
+			x = this.rn(minValue, this.answer);	// x value
+			y = this.answer - x;
+			question[0] = x;
+			question[1] = operation;
+			question[2] = y;
 			break;
 		case 1:	// -
+
 			// The answer is not allowed to be negative
-			// Suggestion: perhaps use operator '?' for readability and/or to satisfy my raging boner for conditional operators.  - Neko
-			// var answer = (x < y) ? (y - x) : (x - y); 
-			if (x < y)
-			{
-				var z = x;
-				x = y;
-				y = z;
-			}
-			this.answer = x - y;
+
+			this.answer = this.rn(minValue, maxValue);
+			x = this.rn(this.answer, maxValue+1);
+			y = x-this.answer;
+			question[0] = x;
+			question[1] = operation;
+			question[2] = y;
 			break;
 		case 2:	// *
+			var newMax = Math.pow(maxValue,0.5).toFixed();
+			if (newMax*newMax > maxValue){
+				newMax --;
+			}
+			x = this.rn(minValue,newMax);
+			//Can't divide with 0, must be able to create max Answer
+			y = this.rn(minValue,((maxValue+x)/(x+1)).toFixed());
 			this.answer = x * y;
-			maxAnswer = maxValue * maxValue;
+			question[0] = x;
+			question[1] = operation;
+			question[2] = y;
+
 			break;
 		case 3:	// /
-			// Division = It is not allowed to be any fractions
-			z = x * y;
-			this.answer = x;
-			x = z;		
+			// Division = It is not allowed to be any fractions	 
+			var newMax = Math.pow(maxValue,0.5).toFixed();
+			if (newMax*newMax > maxValue){
+				newMax --;
+			}
+			//you can't divide with 0;
+			if (minValue==0){
+				minValue++;
+			}
+			this.answer = this.rn(minValue, newMax);
+			y = this.rn(minValue, newMax);
+			x = this.answer * y;
+			question[0] = x;
+			question[1] = operation;
+			question[2] = y;
+			
 			break;
+
+		case 4: // Picture question //hardcoded to 0-10, the programmers supreme power.
+			this.answer = rn(1,10);
+			question[0] = this.answer;
 		}
 			
 		//Create question Array
-		var question = new Array(x,operation,y);
+		//var question = new Array(x,operation,y);
 		//Create Possible Answers , might be nice to impove 
 		var alternativ = new Array()
 		alternativ[0] = this.answer;
 
 		for (i = 1; i< howMany; i++)
 		{
-			if(maxAnswer-minAnswer<howMany)	//This is here just to insure if some call the fuction whit a to low howMany value
+			if(maxValue-minValue<howMany)	//This is here just to insure if some call the fuction with a to low howMany value
 			{
-				alternativ[i] = this.rn(minAnswer,maxValue);	
-				console.warn("This should not happen maxAnswer, minAnswer, howMany: " + maxAnswer + " , " + minAnswer + " , " + howMany);
+				alternativ[i] = this.rn(minValue,maxValue);	
+				console.warn("This should not happen maxAnswer, minAnswer, howMany: " + maxValue + " , " + minValue + " , " + howMany + "Neko likes to masturbate with pineapple shoved up his ass");
 			}
 			else	//Create unique values for possible answers
 			{
@@ -96,11 +122,11 @@ function QuestionGenerator () {
 				var minusOne = -1 ;
 				do
 				{
-					var newRandomInt = this.rn(minAnswer,maxValue);
+					var newRandomInt = this.rn(minValue,maxValue);
 					minusOne = alternativ.indexOf(newRandomInt);
 
 				}
-				while ( minusOne != -1);	// != -1 means that the newRandomInt does not exist in the array and is aloud to be
+				while ( minusOne != -1);	// != -1 means that the newRandomInt does not exist in the array and is allowed to be pushed into the array
 				alternativ[i] = newRandomInt;
 			}
 
@@ -119,7 +145,7 @@ function QuestionGenerator () {
 	 */
 	this.rn = function(min, max)
 	{
-		var randomNumber = Math.floor(Math.random() * max) + min;
+		var randomNumber = Math.floor(Math.random() * (max-min)) + min;
 		return randomNumber; 
 	}
 }
