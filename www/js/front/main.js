@@ -21,6 +21,10 @@ function guessAnswer(guess){
 	}
 }
 
+function getLamp(){
+return back.getLampSize();
+}
+
 function getSettings(){
 	var store = Backend.settings.get("Settings");
 	var settings = {
