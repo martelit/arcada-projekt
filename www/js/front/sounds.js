@@ -11,6 +11,7 @@ $(".music").Pause();
 function playSound(filename)
 {
 	$(".sound").Play("res/sounds/"+filename+".pm3");
+	
 }
 function pauseMusic()
 {

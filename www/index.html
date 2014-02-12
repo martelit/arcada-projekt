@@ -87,14 +87,17 @@
 		</div>
 	</div>
 	<div data-role="page" id="settings">
+		<div data-role="header">
+			<a href="#" class="ui-btn-left play-click">Save</a>
+			<a href="#" class="ui-btn-right play-click">Undo</a>
+		</div>
 		<div data-role="content">
-			<!-- TODO How to change min value of max slider to be selected value of min slider (eg. if min slider has value 20, change max sliders min value to 20) -->
-			<!-- alternatively use rangeslider plugin, but is deprecated in jqm 1.4.0 -->
 			<div id="settings-container">
-				<label for="min">Smallest numbers</label>
-				<input type="range" name="min" id="min" value="0" min="0" max="100" />
-				<label for="max">Largest numbers</label>
-				<input type="range" name="max" id="max" value="50" min="0" max="100" />
+				<div data-role="rangeslider">
+					<label for="min">Lowest and highest possible numbers</label>
+					<input type="range" name="min" id="min" value="0" min="0" max="100" />
+					<input type="range" name="max" id="max" value="50" min="0" max="100" />
+				</div>
 				<fieldset data-role="controlgroup" id="arithmetic-settings" data-type="horizontal">
 					<legend>Select arithmetic</legend>
 					<label for="addition"  class="play-click">+</label>
@@ -108,7 +111,6 @@
 					<label for="symbols" class="play-click">Symbols</label>
 					<input type="checkbox" name="symbols" id="symbols">
 				</fieldset>
-				<form>
 				<label for="flip-sound">Sound</label>
 				<select class="flip-sound" name="flip-sound" data-role="slider">
 					<option value="off">Off</option>
@@ -119,17 +121,7 @@
 					<option value="off" >Off</option>
 					<option value="on">On</option>
 				</select>
-					<!--
-					<button type="button"class="play-music">Music On</button>
-					<button type="button" class="stop-music">Music Off</button>
-					-->
-				</form>
-				<div data-role="fieldcontain">
-				</div>
-				<div data-role="fieldcontain">
-				</div>
-				<button type="button" id="save-settings">Save settings</button>
-		</div>
+			</div>
 		</div>
 	</div>
 	<!-- TODO add rewards page -->

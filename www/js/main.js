@@ -17,8 +17,8 @@ require.config({
 		'helper': ['back']
 	}
 });
-require([ 'jquery', 'jqm', 'back', 'generator', 'store', 'helper', 'front', 'sounds' ],
-function(  $,        jqm,   back,   generator,   store,   helper,   front,   sounds){
+require(['jquery', 'jqm', 'back', 'generator', 'store', 'helper', 'front', 'sounds' ],
+function($,        jqm,   back,   generator,   store,   helper,   front,   sounds){
 	$(function(){
 	});
 

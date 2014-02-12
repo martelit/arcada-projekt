@@ -166,6 +166,8 @@ if(this.value=="on")
 	// Sets min and max values for the sliders.
 	// This is is not optimal, but probably the best solution if we want to
 	// use sliders. 
+	// Rangeslider implemented (the _plugin_ was deprecated because it is apparently now part of standard jqm)
+	/*
 	$( "#min" ).on( "slidestop", function( event, ui ) {
 		var minValue = $('#min').val();
 		$("#max").prop('min', minValue).slider( "refresh" );
@@ -181,7 +183,7 @@ if(this.value=="on")
 			$("#min").prop('value', maxValue).slider( "refresh" );
 		}
 	} );
-	
+	*/
 	//Deselects all other arithmetic options if symbols are selected (counting without arithmetic)
 	$("#symbols").click(function(){
 		$(this).closest('#arithmetic-settings').find('input[type="checkbox"]:not("#symbols")').prop('checked', false).checkboxradio( "refresh" );
