@@ -8,25 +8,11 @@ function isPhoneGap() {
 }
 
 function getBackend(){
-	if(typeof(Backend) === 'undefined'){
-		console.log("something wrong with backend, using dummy instead");
-		var dummy = {
-			QuestionGenerator: {
-				getQuestion: function(){
-					return [[[1,0,1],[2,3,4,5],1]];
-				}
-			},
-			getAnswer: function(a){
-				return 2;
-			}
-		};
-		return dummy;
+	if(typeof(back) === 'undefined'){
+		console.log("init backend");
+		return new Backend();
 	} else {
-		if(typeof(back) === 'undefined'){
-			return new Backend();
-		} else {
-			return back;
-		}
+		return back;
 	}
 }
 var back = getBackend();
@@ -39,7 +25,7 @@ function answerQuestion(guess){
 	}
 }
 function formatQuestion(){
-	var raw = back.QuestionGenerator.getQuestion();
+	var raw = back.getQuestion();
 	
 	var task = {
 		question: [],
