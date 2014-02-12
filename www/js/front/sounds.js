@@ -1,3 +1,22 @@
+function playMusic()
+{
+	$(".music").play();
+}
+
+function pauseMusic()
+{
+$(".music").Pause();
+}
+
+function playSound(filename)
+{
+	$(".sound").Play("res/sounds/"+filename+".pm3");
+}
+function pauseMusic()
+{
+	$(".sound").Pause();
+}
+/*
 function initSounds(){
 	var sounds = getAvailableSounds();
 	var music = sounds.music;
@@ -18,8 +37,10 @@ function getAvailableSounds(){
 		clickeffect: folder + "click"
 	}
 }
+*/
 function play(filename){
-	
+	var filename = createsoundbite("res/sounds/"+filename+".mp3");
+	filename.play();	
 }
 
 function pause(filename){
@@ -58,4 +79,4 @@ function createsoundbite(sound){
 }
 
 var clicksound=createsoundbite("res/sounds/click.wav")
-var music=createsoundbite("res/sounds/music.mp3")
+var musicOld=createsoundbite("res/sounds/music.mp3")

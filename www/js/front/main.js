@@ -53,10 +53,40 @@ function setSettings(){
 	return settings;
 }
 
+//Starts and stops music
+$( ".flip-music" ).change(function () {
+	if(this.value=="on")
+	{
+		musicOld.play();
+		//playMusic();
+	}
+	else
+	{
+		musicOld.pause();
+		//pauseMusic();
+	}
+});
+			
+var Sound;
+$( ".flip-sound" ).change(function () {
+if(this.value=="on")
+	{
+		Sound=true;
+	}
+	else
+	{
+		Sound=false;
+	}
+});
+
 $(document).on('pageshow', function(){
 	//plays a click sound
 	$(".play-click").click(function(){
-		clicksound.playclip();
+		if(Sound)
+		{
+			play("click");
+		}
+		else{}
 	});
 	//starts playing background music
 	$(".play-music").click(function(){
@@ -105,10 +135,18 @@ $(document).on('pageshow', function(){
 		
 		//Should not be activated/visible before back.bonusIsAvailable returns true? -Bogezu
 		$(".bonus-button").click(function(){
-		if(back.bonusIsAvailable == true){
+		if(back.bonusIsAvailable() == true){
 		//start bonus game
+		$.mobile.changePage("#rewards");
+		$("#response-popup").popup("close");
 		}else{
 		//Next question
+		var nextTask = getQuestion();
+		$('#question-holder').html(nextTask.question);
+		$('.button-container').find('button').each(function(i){
+		$(this).html(nextTask.answers[i]);
+		});
+		$("#response-popup").popup("close");
 		}
 		});
 

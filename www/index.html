@@ -32,7 +32,12 @@
 		<title>Snille</title>
     </head>
     <body>
-	
+		<audio class="sound" hidden="hidden">
+			<source src="res/sounds/click.mp3" type="audio/mpeg" >
+		</audio>
+		<audio class="music1" hidden="hidden">
+			<source src="res/sounds/music.mp3" type="audio/mpeg" >
+		</audio>
 	<div data-role="page" id="front" >
 		<!--
 		<div data-role="header" data-position="fixed">
@@ -104,18 +109,20 @@
 					<input type="checkbox" name="symbols" id="symbols">
 				</fieldset>
 				<form>
-					<label for="flip-sound1">Sound</label>
-					<select id="flip-sound1" name="flip-sound1" data-role="slider">
-						<option value="off">Off</option>
-						<option value="on">On</option>
-					</select>
-					<label for="flip-music1">Music</label>
-					<select id="flip-music1" name="flip-music1" data-role="slider">
-						<option value="off">Off</option>
-						<option value="on">On</option>
-					</select>
+				<label for="flip-sound">Sound</label>
+				<select class="flip-sound" name="flip-sound" data-role="slider">
+					<option value="off">Off</option>
+					<option value="on">On</option>
+				</select>
+				<label for="flip-music">Music</label>
+				<select class="flip-music" name="flip-music" data-role="slider">
+					<option value="off" >Off</option>
+					<option value="on">On</option>
+				</select>
+					<!--
 					<button type="button"class="play-music">Music On</button>
 					<button type="button" class="stop-music">Music Off</button>
+					-->
 				</form>
 				<div data-role="fieldcontain">
 				</div>
@@ -129,6 +136,7 @@
 	<div data-role="page" id="rewards">
 		<div data-role="header"></div>
 		<div data-role="content">
+		<p><img src="img/reward.png"></p>
 		</div>
 	</div>
        <!-- <div class="app">
