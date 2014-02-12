@@ -62,23 +62,17 @@ $(document).on('pageshow', function(){
 	$(".stop-music").click(function(){
 		music.pause();
 	});
-
+	
 	var task = getQuestion();
 	$('#question-holder').html(task.question);
-
-	/*var theQ ="";
-	
-	for(var i = 0; i < task.question.length; i++){
-	var temp = task.question[i];
-	theQ = theQ + temp;
-	}
-	$("#question-holder").html(theQ);*/
 
 	$('.button-container').find('button').each(function(i){
 		$(this).html(task.answers[i]);
 	});
 	
 	$(".answer-button").click(function(){
+		console.log(back.questions_answered);		//problem, always sets 2 questions_answered when one is answered? -Bogezu
+		console.log(back.bonusIsAvailable());		//Works, becomes true after 10 questions. -Bogezu
 		var answer = $(this).html();
 		var correctAnswer = back.getAnswer();
 		if( guessAnswer(answer) ){
@@ -105,15 +99,15 @@ $(document).on('pageshow', function(){
 		$("#response-popup").popup("close");
 		});
 		
-		
+		//Should not be activated/visible before back.bonusIsAvailable returns true? -Bogezu
 		$(".bonus-button").click(function(){
 		if(back.bonusIsAvailable == true){
 		//start bonus game
 		}else{
-		//ask new question
+		//Next question
 		}
 		});
-	
+
 	// Sets min and max values for the sliders.
 	// This is is not optimal, but probably the best solution if we want to
 	// use sliders. 
