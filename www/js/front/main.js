@@ -53,6 +53,21 @@ function setSettings(){
 	return settings;
 }
 
+function notifyCallback(){
+
+}
+$(document).on('pageshow', function(){
+	if(isPhoneGap()){
+		console.log("is phonegap");
+		navigator.notification.alert(
+			"is phoegap",
+			notifyCallback,
+			"title",
+			"Button text"
+		);
+	} else {
+		console.log("Not phonegap");
+	}
 //Starts and stops music
 $( ".flip-music" ).change(function () {
 	if(this.value=="on")
@@ -78,8 +93,6 @@ if(this.value=="on")
 		Sound=false;
 	}
 });
-
-$(document).on('pageshow', function(){
 	//plays a click sound
 	$(".play-click").click(function(){
 		if(Sound)

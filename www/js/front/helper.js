@@ -1,3 +1,12 @@
+function isPhoneGap() {
+	if(typeof(cordova) === 'undefined' || typeof(PhoneGap) === 'undefined' || typeof(phonegap) === 'undefined') {
+		return false;
+	}
+	return (cordova || PhoneGap || phonegap) 
+    && /^file:\/{3}[^\/]/i.test(window.location.href) 
+    && /ios|iphone|ipod|ipad|android/i.test(navigator.userAgent);
+}
+
 function getBackend(){
 	if(typeof(Backend) === 'undefined'){
 		console.log("something wrong with backend, using dummy instead");
