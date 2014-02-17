@@ -1,6 +1,7 @@
 html, body {
 	height: 100% !important;
-	background-size: 100%; !important;
+	background-size: 100% !important;
+	overflow: hidden !important;
     -webkit-touch-callout: none;                /* prevent callout to copy image, etc when tap to hold */
     -webkit-text-size-adjust: none;             /* prevent webkit from resizing text to fit */
     -webkit-user-select: none;                  /* prevent copy paste, to allow, change 'none' to 'text' */
@@ -93,26 +94,21 @@ h1 {
     animation:fade 3000ms infinite;
     -webkit-animation:fade 3000ms infinite;
 }
-/**
-Everything from this point on is custom code by johnrothberg
-*/
 
 #front { /*This is the id of the start page div*/
 	height: 100% !important;
-}
-.front-content {
-	background-image: url("../img/startscrn.jpg");
-	height: 99% !important;
-}
-.front-content {
-	height: 100% !important;
-	background-image:url(../img/startscrn.jpg); /*{a-bar-background-color}*/;
-	background-repeat:no-repeat !important;
-	background-size:cover;
 	overflow: hidden;
-	width: 100%;
-	position: relative;
 }
+.front-content {
+	background: url("../img/startscrn.jpg") no-repeat center center fixed;
+	height: 100%;
+	width: 100%;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+}
+
 /**
  * Overrides for main game screen
  */

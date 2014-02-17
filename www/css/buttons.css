@@ -1,29 +1,16 @@
 .start-button {
-	height: 5em;
-	width: 10em;
-	top: 70%;
-	margin-left: auto;
-	margin-right: auto;
-	/*padding-top:1.5em !important;*/
+	height: 15%;
+	width: 20%;
+	position: fixed;
+	bottom: 3%;
+	left: 35%;
 	background-color: #4060DD !important;
-	color: #EEEEEE !important;
-	padding: 2em 2em;
+	font: 6em "Arial";
+	color: #FFFFFF !important;
 	display: block;
 	text-align: center;
-	text-overflow: ellipsis;
 	overflow: hidden;
-	font-size: 3em;
-	/*white-space: nowrap;
-	cursor: pointer;*/
-	-webkit-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
-	-webkit-box-sizing: border-box;
-	-moz-box-sizing: border-box;
-	box-sizing: border-box;
-	-webkit-appearance: none;
-	-moz-appearance: none;
+
 }
 /* this apparently works without overrides, go figure...*/
 #response-popup {
