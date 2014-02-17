@@ -5,13 +5,14 @@
 	bottom: 3%;
 	left: 35%;
 	background-color: #4060DD !important;
-	font: 6em "Arial";
-	color: #FFFFFF !important;
-	display: block;
+	font: 3em "Arial";
+	color: #FFF !important;
 	text-align: center;
 	overflow: hidden;
+	text-overflow: clip;
 
 }
+
 /* this apparently works without overrides, go figure...*/
 #response-popup {
 	border: 0;

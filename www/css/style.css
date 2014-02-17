@@ -121,7 +121,7 @@ h1 {
 }
 
  #question-holder {
- 	width:10em;
+ 	width: 20em;
  	height:2em;
  	background-color:#FFF;
  	border: solid 0.05em #000;
@@ -135,7 +135,7 @@ h1 {
 .answer-button {
 	color: #FFF !important;
 	text-shadow: 0 !important;
-	width: 3.44em !important;
+	/*width: 3.44em !important;*/
 	width: 100% !important;
 	height: 2.44em !important;
 	font-size: 3.44em;
