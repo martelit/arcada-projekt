@@ -1,15 +1,16 @@
 .start-button {
-	height: 15%;
-	width: 20%;
 	position: fixed;
 	bottom: 3%;
-	left: 35%;
+	width: 20%;
+	left: 50%;
+	margin-left:-10%;
 	background-color: #4060DD !important;
 	font: 3em "Arial";
 	color: #FFF !important;
 	text-align: center;
-	overflow: hidden;
 	text-overflow: clip;
+	padding: 0.5em 0.5em;
+	display: block;
 
 }
 

@@ -138,7 +138,7 @@ h1 {
 	/*width: 3.44em !important;*/
 	width: 100% !important;
 	height: 2.44em !important;
-	font-size: 3.44em;
+	font-size: 3.44em !important;
 }
 
 #response-popup.ui-popup{
