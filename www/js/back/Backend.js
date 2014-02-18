@@ -6,6 +6,7 @@
  * Changelog :
  * - bollen :: 27.1.2014 :: added settings
  * - neko :: 30.1.2014 :: added game-logic
+ * - bollen :: ?.2.2014 :: Fixed structure
  */
 
 /*
@@ -30,10 +31,12 @@ define([], function() {
 		this.defaults = {
 				minNumber: 10,
 			    maxNumber: 50,
+			    questionsBeforeBonus: 10,
 			    addition: true,
 			    subtraction: false,
 			    multiplication: false,
-			    division: false
+			    division: false,
+			    symbols: false
 		};
 		
 		// store the default settings
@@ -50,8 +53,8 @@ define([], function() {
     
 	Backend.prototype.testMe = function() {
     	console.log("hello there");
-    	tested += 1;
-    	return tested;
+    	this.tested += 1;
+    	return this.tested;
 	};
 	
 	Backend.prototype.getQuestion = function() {
@@ -74,19 +77,29 @@ define([], function() {
 	Backend.prototype.getMin = function(){
 		return this.getSettings().minNumber;
 	};
+
+	Backend.prototype.getQuestionsBeforeBonus = function(){
+		return this.getSettings().questionsBeforeBonus;
+	}
 	
+	// Helperfile is breaking this logic, this function is called more than once per question.
+	// Parameter 'a' is not passed correctly. currently undefined.
 	/* Param 'a' = guessed answer. Increments total questions and correctly answered questions */
 	Backend.prototype.getAnswer = function(a)
 	{
 		if(parseInt(a) == this.questions.answer){ this.correct_answers++; }
 		this.questions_answered++;
+		// debug:
+		//console.log("questions answered:"+this.questions_answered+" caller: "+arguments.callee.caller.toString());
+		console.log("guessed: "+a+"\ncorrect: "+this.questions.answer+"\ncorrect answers: "+this.correct_answers);
+		// /debug
 		return this.questions.answer;
 	};
 
-	/* returns true for every 10'th question answered */
+	/* returns true for every getQuestionsBeforeBonus()'th question answered */
 	Backend.prototype.bonusIsAvailable = function()
 	{
-		return ((this.questions_answered % 10) == 0) && (this.questions_answered > 0);
+		return ((this.questions_answered % this.getQuestionsBeforeBonus()) == 0) && (this.questions_answered > 0);
 	};
 	
 	/* Updates found bonuses, current total score.
@@ -109,10 +122,10 @@ define([], function() {
 	// TODO: return proper values
 	Backend.prototype.getLampSize = function()
 	{
-		var retval = 10;
-		if(correct_answers >= 9) { retval = 40; };
-		if((correct_answers >= 6) && (correct_answers < 9)) { retval = 30; };
-		if((correct_answers >= 3) && (correct_answers < 6)) { retval = 20; };
+		var retval = 1;
+		if(this.correct_answers >= 9) { retval = 4; };
+		if((this.correct_answers >= 6) && (this.correct_answers < 9)) { retval = 3; };
+		if((this.correct_answers >= 3) && (this.correct_answers < 6)) { retval = 2; };
 		return retval;
 	};
 

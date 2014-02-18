@@ -22,10 +22,12 @@ function guessAnswer(guess){
 }
 
 function getLamp(){
-return back.getLampSize();
+	return back.getLampSize();
 }
 
+//TODO implement back/Store.js // should be Backend.Store.get("settings")
 function getSettings(){
+	/*
 	var store = Backend.settings.get("Settings");
 	var settings = {
 		smallestNumber: store.smallestNumber,
@@ -37,38 +39,33 @@ function getSettings(){
 		symbols: store.symbols,
 		bonus: store.bonus
 	};
-	return settings;
+	*/
+
+	//return back.store.get("snille"); ..or
+	return back.getSettings();
 }
 function setSettings(){
-	var store = Backend.settings.set("Settings", settings);
+	//var store = Backend.settings.set("Settings", settings);
 	
-	
-	//TODO implement back/Store.js // should be Backend.Store.get("settings")
+	// TODO: fix values
 	var settings = {
-		smallestNumber: 10,
-		greatestNumber: 50,
+		minNumber: 10,
+		maxNumber: 50,
 		addition: true,
 		subtraction: false,
 		multiplication: false,
 		division: false,
 		symbols: false,
-		bonus: 10
+		questionsBeforeBonus: 7
 	};
-	return settings;
+	
+	back.store.set("snille", settings);
 }
 
 function notifyCallback(){
 
 }
-
-function drawStatistics(){
-	if($.mobile.activePage.attr('id') == 'statistics'){
-		drawStats();
-	}
-}
-
 $(document).on('pageshow', function(){
-	drawStatistics();
 	if(isPhoneGap()){
 		console.log("is phonegap");
 		navigator.notification.alert(
@@ -128,45 +125,31 @@ $( ".flip-sound" ).change(function () {
 	$('.button-container').find('button').each(function(i){
 		$(this).html(task.answers[i]);
 	});
-	var displayQuestion = task.question;
+	
 	$(".answer-button").click(function(){
 		//problem, always sets 2 questions_answered when one is answered? -Bogezu
-		console.log(back.questions_answered);
-		console.log(back.bonusIsAvailable());
+		//getAnswer is called twice per question. Once in helperfile, once here. -Neko
+		console.log("total questions:"+back.questions_answered);
+		console.log("bonus available: "+back.bonusIsAvailable());
 		var answer = $(this).html();
 		var correctAnswer = back.getAnswer();
 		if( guessAnswer(answer) ){
 			$(this).addClass("guessed-answer correct-answer");
-			//$("#correct-wrong").text("Du svarade rätt!");
-			//$("#correct-answer-number").text(answer);
-			
-			$(".wrong-answer-icon").hide();
-			$(".right-answer-icon").show();
-	
-			displayQuestion=displayQuestion.toString();
-			displayQuestion = displayQuestion.replace(",", " ");
-			displayQuestion = displayQuestion.replace(",", " ");
-			$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
+			$("#correct-wrong").text("Du svarade rätt!");
+			$("#correct-answer-number").text(answer);
 		} else {
 			$(this).addClass("guessed-answer wrong-answer");
-			//$("#correct-wrong").text("Du svarade fel.");
-			//$("#correct-answer-number").text(correctAnswer);
-								
-			$(".right-answer-icon").hide();
-			$(".wrong-answer-icon").show();
+			$("#correct-wrong").text("Du svarade fel.");
+			$("#correct-answer-number").text(correctAnswer);
 			
-			displayQuestion=displayQuestion.toString();
-			displayQuestion = displayQuestion.replace(",", " ");
-			displayQuestion = displayQuestion.replace(",", " ");
-			$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
+			
 		}
 		$("#response-popup").popup("open");
 	});
 	
 		$(".next-button").click(function(){
 		
-		var nextTask = getQuestion();		
-		displayQuestion = nextTask.question;
+		var nextTask = getQuestion();
 		$('#question-holder').html(nextTask.question);
 		$('.button-container').find('button').each(function(i){
 		$(this).html(nextTask.answers[i]);
@@ -183,7 +166,6 @@ $( ".flip-sound" ).change(function () {
 		}else{
 		//Next question
 		var nextTask = getQuestion();
-		displayQuestion = nextTask.question;
 		$('#question-holder').html(nextTask.question);
 		$('.button-container').find('button').each(function(i){
 		$(this).html(nextTask.answers[i]);
