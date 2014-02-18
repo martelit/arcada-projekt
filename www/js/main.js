@@ -8,6 +8,7 @@ require.config({
 		back:		'back/Backend',
 		sounds:		'front/sounds',
 		helper:		'front/helper',
+		stats:		'front/stats',
 		front:		'front/main'
 	},
 	shim: {
@@ -17,8 +18,8 @@ require.config({
 		'helper': ['back']
 	}
 });
-require(['jquery', 'jqm', 'back', 'generator', 'store', 'helper', 'front', 'sounds' ],
-function($,        jqm,   back,   generator,   store,   helper,   front,   sounds){
+require(['jquery', 'jqm', 'back', 'generator', 'store', 'helper', 'stats', 'front', 'sounds' ],
+function($,         jqm,   back,   generator,   store,   helper,   stats,   front,   sounds){
 	$(function(){
 	});
 

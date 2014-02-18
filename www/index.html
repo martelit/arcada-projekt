@@ -28,6 +28,7 @@
 		<link rel="stylesheet" type="text/css" href="css/buttons.css" />
 		<link rel="stylesheet" type="text/css" href="css/gradients.css" />
 		<link rel="stylesheet" type="text/css" href="css/settings.css" />
+		<link rel="stylesheet" type="text/css" href="css/stats.css" />
 		<script data-main="js/main.js" src="js/require.js"></script>
 		<title>Snille</title>
     </head>
@@ -94,6 +95,7 @@
 		</div>
 		<div data-role="content">
 			<div id="settings-container">
+			<a href="#statistics">Stats</a>
 				<div data-role="rangeslider">
 					<label for="min">Lowest and highest possible numbers</label>
 					<input type="range" name="min" id="min" value="0" min="0" max="100" />
@@ -134,6 +136,11 @@
 		<div data-role="header"></div>
 		<div data-role="content">
 		<p><img src="img/reward.png"></p>
+		</div>
+	</div>
+	<div data-role="page" id="statistics">
+		<div data-role="content">
+			<div class="stats-draw"></div>
 		</div>
 	</div>
        <!-- <div class="app">

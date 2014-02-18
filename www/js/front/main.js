@@ -60,7 +60,15 @@ function setSettings(){
 function notifyCallback(){
 
 }
+
+function drawStatistics(){
+	if($.mobile.activePage.attr('id') == 'statistics'){
+		drawStats();
+	}
+}
+
 $(document).on('pageshow', function(){
+	drawStatistics();
 	if(isPhoneGap()){
 		console.log("is phonegap");
 		navigator.notification.alert(
