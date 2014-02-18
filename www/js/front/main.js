@@ -128,7 +128,7 @@ $( ".flip-sound" ).change(function () {
 	$('.button-container').find('button').each(function(i){
 		$(this).html(task.answers[i]);
 	});
-	
+	var displayQuestion = task.question;
 	$(".answer-button").click(function(){
 		//problem, always sets 2 questions_answered when one is answered? -Bogezu
 		console.log(back.questions_answered);
@@ -137,21 +137,36 @@ $( ".flip-sound" ).change(function () {
 		var correctAnswer = back.getAnswer();
 		if( guessAnswer(answer) ){
 			$(this).addClass("guessed-answer correct-answer");
-			$("#correct-wrong").text("Du svarade rätt!");
-			$("#correct-answer-number").text(answer);
+			//$("#correct-wrong").text("Du svarade rätt!");
+			//$("#correct-answer-number").text(answer);
+			
+			$(".wrong-answer-icon").hide();
+			$(".right-answer-icon").show();
+	
+			displayQuestion=displayQuestion.toString();
+			displayQuestion = displayQuestion.replace(",", " ");
+			displayQuestion = displayQuestion.replace(",", " ");
+			$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
 		} else {
 			$(this).addClass("guessed-answer wrong-answer");
-			$("#correct-wrong").text("Du svarade fel.");
-			$("#correct-answer-number").text(correctAnswer);
+			//$("#correct-wrong").text("Du svarade fel.");
+			//$("#correct-answer-number").text(correctAnswer);
+								
+			$(".right-answer-icon").hide();
+			$(".wrong-answer-icon").show();
 			
-			
+			displayQuestion=displayQuestion.toString();
+			displayQuestion = displayQuestion.replace(",", " ");
+			displayQuestion = displayQuestion.replace(",", " ");
+			$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
 		}
 		$("#response-popup").popup("open");
 	});
 	
 		$(".next-button").click(function(){
 		
-		var nextTask = getQuestion();
+		var nextTask = getQuestion();		
+		displayQuestion = nextTask.question;
 		$('#question-holder').html(nextTask.question);
 		$('.button-container').find('button').each(function(i){
 		$(this).html(nextTask.answers[i]);
@@ -168,6 +183,7 @@ $( ".flip-sound" ).change(function () {
 		}else{
 		//Next question
 		var nextTask = getQuestion();
+		displayQuestion = nextTask.question;
 		$('#question-holder').html(nextTask.question);
 		$('.button-container').find('button').each(function(i){
 		$(this).html(nextTask.answers[i]);
