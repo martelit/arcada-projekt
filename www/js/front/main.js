@@ -33,7 +33,9 @@ function getSettings(){
 		addition: store.addition,
 		subtraction: store.subtraction,
 		multiplication: store.multiplication,
-		division: store.division
+		division: store.division,
+		symbols: store.symbols,
+		bonus: store.bonus
 	};
 	return settings;
 }
@@ -48,7 +50,9 @@ function setSettings(){
 		addition: true,
 		subtraction: false,
 		multiplication: false,
-		division: false
+		division: false,
+		symbols: false,
+		bonus: 10
 	};
 	return settings;
 }
@@ -82,9 +86,9 @@ $( ".flip-music" ).change(function () {
 	}
 });
 			
-var Sound;
+	var Sound;
 $( ".flip-sound" ).change(function () {
-if(this.value=="on")
+	if(this.value=="on")
 	{
 		Sound=true;
 	}
@@ -118,8 +122,9 @@ if(this.value=="on")
 	});
 	
 	$(".answer-button").click(function(){
-		console.log(back.questions_answered);		//problem, always sets 2 questions_answered when one is answered? -Bogezu
-		console.log(back.bonusIsAvailable());		//Works, becomes true after 10 questions. -Bogezu
+		//problem, always sets 2 questions_answered when one is answered? -Bogezu
+		console.log(back.questions_answered);
+		console.log(back.bonusIsAvailable());
 		var answer = $(this).html();
 		var correctAnswer = back.getAnswer();
 		if( guessAnswer(answer) ){
@@ -146,7 +151,7 @@ if(this.value=="on")
 		$("#response-popup").popup("close");
 		});
 		
-		//Should not be activated/visible before back.bonusIsAvailable returns true? -Bogezu
+		
 		$(".bonus-button").click(function(){
 		if(back.bonusIsAvailable() == true){
 		//start bonus game
@@ -208,6 +213,8 @@ if(this.value=="on")
 		$('#multiplication').attr('value',settings.multiplication);
 		$('#division').attr('value',settings.disivion);
 		$('#symbols').attr('value', settings.symbols);
+		$('#bonus').attr('value', settings.bonus);
+		// TODO Backend needs to take in the new values (symbols & bonus) and set the amount of questions needed answered before bonusIsAvailable() becomes true to the new value. -Bogezu
 		// TODO change the rest of the settings page to what the settings are
 	});
 	
