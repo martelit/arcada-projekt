@@ -191,7 +191,8 @@ $(".next-button").click(function(){
 		});
 	$("#response-popup").popup("close");
 });
-		
+
+var bonusGame = false;
 $(".bonus-button").click(function(){
 		if(back.bonusIsAvailable() == true){
 			//start bonus game
@@ -213,7 +214,25 @@ $(".bonus-button").click(function(){
                 }
             });
             bonusGame.start();
-
+/*
+            if (!bonusGame) {
+                var Bonus = require('bonus');
+                var bonusGame = new Bonus({
+                    parent: 'bonus-game-container',
+                    basePath: 'js/bonus-game/src/',
+                    inputDiameter: back.getLampSize() * 20,
+                    newTargetsCount: 5,
+                    musicEnabled: false,
+                    sfxEnabled: true,
+                    onFinish: function(bonusFound) {
+                        back.bonusPlayed(bonusFound);
+                        bonusGame.pause();
+                        $.mobile.changePage("#questions");
+                    }
+                });
+            }
+            bonusGame.play();
+*/
         }
 		else
 		{
