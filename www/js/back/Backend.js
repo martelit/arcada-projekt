@@ -58,9 +58,13 @@ define([], function() {
 	};
 	
 	Backend.prototype.getQuestion = function() {
-		return this.questions.getQuestion();
+
+		//console.log(this.getMin(), this.getMax());
+		//4== how many possible answers are generated
+		return this.questions.getQuestion(3, this.getMin(), this.getMax(), this.getOperator()); 
 	};
 	
+
 	Backend.prototype.getGenerator = function() {
 		return this.questions;
 	};
@@ -81,7 +85,15 @@ define([], function() {
 	Backend.prototype.getQuestionsBeforeBonus = function(){
 		return this.getSettings().questionsBeforeBonus;
 	}
+
+	Backend.prototype.getOperator = function() {
+		//TODO: only return an operator that are in the settings
+		return this.questions.rn(0,4);
+	}
 	
+
+
+
 	// Helperfile is breaking this logic, this function is called more than once per question.
 	// Parameter 'a' is not passed correctly. currently undefined.
 	/* Param 'a' = guessed answer. Increments total questions and correctly answered questions */

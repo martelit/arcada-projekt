@@ -21,10 +21,11 @@ function QuestionGenerator () {
 	 * 	e.g.:	{ [1+1], [0,1,2,3], [2] }
 	 * 			{[Question], [Answer alternatives], [Operation]}
 	 */
-	this.getQuestion = function(){
+	this.getQuestion = function(howMany, minValue, maxValue, operation){
 		
+		console.log(howMany, minValue, maxValue, operation);
 		//TODO: here should come som function about how to generate next question
-		var arrayObj = new Array(this.generateQuestion(4, 0 , 20,0));
+		var arrayObj = new Array(this.generateQuestion(howMany, minValue, maxValue, operation));
 		return arrayObj;
 	}
 
