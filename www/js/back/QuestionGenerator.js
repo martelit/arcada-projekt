@@ -137,6 +137,7 @@ function QuestionGenerator () {
 		
 		//Create Array to send to frontend
 		var arrayObject = new Array(question,alternativ,operation);
+		console.log(arrayObject);
 		return arrayObject;
 	}
 

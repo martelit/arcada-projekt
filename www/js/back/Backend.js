@@ -61,7 +61,7 @@ define([], function() {
 
 		//console.log(this.getMin(), this.getMax());
 		//4== how many possible answers are generated
-		return this.questions.getQuestion(3, this.getMin(), this.getMax(), this.getOperator()); 
+		return this.questions.getQuestion(4, this.getMin(), this.getMax(), this.getOperator()); 
 	};
 	
 
