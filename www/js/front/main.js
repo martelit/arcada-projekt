@@ -26,6 +26,7 @@ return back.getLampSize();
 }
 
 function getSettings(){
+	/*
 	var store = Backend.settings.get("Settings");
 	var settings = {
 		smallestNumber: store.smallestNumber,
@@ -37,24 +38,26 @@ function getSettings(){
 		symbols: store.symbols,
 		bonus: store.bonus
 	};
-	return settings;
+	*/
+	//return back.store.get("snille"); ..or
+	return back.getSettings();
 }
 function setSettings(){
-	var store = Backend.settings.set("Settings", settings);
+	//var store = Backend.settings.set("Settings", settings);
 	
 	
 	//TODO implement back/Store.js // should be Backend.Store.get("settings")
 	var settings = {
-		smallestNumber: 10,
-		greatestNumber: 50,
+		minNumber: 10,
+		maxNumber: 50,
 		addition: true,
 		subtraction: false,
 		multiplication: false,
 		division: false,
 		symbols: false,
-		bonus: 10
+		questionsBeforeBonus: 7
 	};
-	return settings;
+	back.store.set("snille", settings);
 }
 
 function notifyCallback(){
@@ -131,8 +134,9 @@ $( ".flip-sound" ).change(function () {
 	var displayQuestion = task.question;
 	$(".answer-button").click(function(){
 		//problem, always sets 2 questions_answered when one is answered? -Bogezu
-		console.log(back.questions_answered);
-		console.log(back.bonusIsAvailable());
+		//getAnswer is called twice. once here, once in helper. -Neko
+		console.log("total questions:"+back.questions_answered);
+		console.log("bonus available: "+back.bonusIsAvailable());
 		var answer = $(this).html();
 		var correctAnswer = back.getAnswer();
 		if( guessAnswer(answer) ){
