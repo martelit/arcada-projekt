@@ -199,8 +199,8 @@ $(".bonus-button").click(function(){
 			$("#response-popup").popup("close");
 
             // TODO: why executed twice?
-            var Bonus = require('bonus');
-            var bonusGame = new Bonus({
+//            var Bonus = require('bonus');
+	var bonusGame = Bonus({
                 parent: 'bonus-game-container',
                 basePath: 'js/bonus-game/src/',
                 inputDiameter: back.getLampSize() * 20,
