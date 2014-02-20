@@ -13,7 +13,7 @@ require.config({
         phaser:     'bonus-game/src/js/lib/phaser',
 /*        pixi:       'bonus-game/src/js/lib/pixi',
         p2:         'bonus-game/src/js/lib/p2',*/
-        bonus:      'bonus-game/src/js/bonus'
+        bonus:      'bonus-game/src/js/Bonus'
 	},
 	shim: {
 		'jqm': ['jquery'],
