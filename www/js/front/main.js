@@ -47,7 +47,8 @@ function getSettings(){
 function setSettings(){
 	//var store = Backend.settings.set("Settings", settings);
 	//TODO implement back/Store.js // should be Backend.Store.get("settings")
-	var settings = {
+
+	/*var settings {
 		minNumber: 10,
 		maxNumber: 50,
 		addition: true,
@@ -56,9 +57,19 @@ function setSettings(){
 		division: false,
 		symbols: false,
 		questionsBeforeBonus: 7
-	};
-	settings.minNumber = $('#min').attr('value');
+		};*/
+		
+	var settings = {
+	settings.minNumber = $('#min').val();
+	settings.maxNumber = $('#max').val();
 	settings.addition: $('#addition').is(':checked');
+	settings.subtraction: $('#subtraction').is(':checked');
+	settings.multiplication: $('#multiplication').is(':checked');
+	settings.division: $('#division').is(':checked');
+	settings.symbols: $('#symbols').is(':checked');
+	settings.questionsBeforeBonus: $('#bonus').val();	
+		};
+	
 	back.store.set("snille", settings);
 }
 
