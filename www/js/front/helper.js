@@ -10,7 +10,7 @@ function isPhoneGap() {
 function getBackend(){
 	if(typeof(back) === 'undefined'){
 		console.log("init backend");
-		return new Backend();
+		return new backend();
 	} else {
 		return back;
 	}
