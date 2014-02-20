@@ -41,7 +41,7 @@ define([], function() {
 		};
 		
 		// check if we have any settings
-		if (this.store.get("settings") === undefined){
+		if (typeof(this.store.get("settings")) === 'undefined'){
 			// store the default settings
 			this.store.set("settings", this.defaults);
 		}
