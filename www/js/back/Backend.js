@@ -99,13 +99,31 @@ define([], function() {
 	/* Param 'a' = guessed answer. Increments total questions and correctly answered questions */
 	Backend.prototype.getAnswer = function(a)
 	{
-		if(parseInt(a) == this.questions.answer){ this.correct_answers++; }
+		var correct = false;
+		if(parseInt(a) == this.questions.answer){ this.correct_answers++; correct=true;}
 		this.questions_answered++;
 		// debug:
 		//console.log("questions answered:"+this.questions_answered+" caller: "+arguments.callee.caller.toString());
 		console.log("guessed: "+a+"\ncorrect: "+this.questions.answer+"\ncorrect answers: "+this.correct_answers);
 		// /debug
+		this.saveQuestion(correct);
 		return this.questions.answer;
+	};
+	
+	/*stores the question array and whether it was right or wrong to the localstorage in an array*/
+	Backend.prototype.saveQuestion= function(correct)
+	{
+		var question = this.questions.globalQuestion;		
+		var history = this.store.get("history");
+		if(history === undefined) {
+			history = new Array();
+		}
+		var newEntry = {
+			question: question,
+			correct: correct
+		};
+		history.push(newEntry);		
+		this.store.set("history", history);		
 	};
 
 	/* returns true for every getQuestionsBeforeBonus()'th question answered */
