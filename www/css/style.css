@@ -122,7 +122,7 @@ h1 {
 
  #question-holder {
  	width: 20em;
- 	height:2em;
+ 	height:100%;
  	background-color:#FFF;
  	border: solid 0.05em #000;
  	border-radius: 20px;
