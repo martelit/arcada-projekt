@@ -135,6 +135,104 @@ define([], function() {
 		history.push(newEntry);		
 		this.store.set("history", history);		
 	};
+	
+	/*
+	* 	----------------------NOT DONE------------------------------------
+	*	Method for counting right answers for each operator and storing each 
+	*	numerical value to an array of respective operator used.
+	*	back.store.remove('history');
+	*/
+	Backend.prototype.countStatistics = function() {
+	
+	var questionArr = new Array();
+	questionArr = this.store.get("history");
+	
+	if(questionArr === undefined)
+	{
+		
+		console.log('No history');
+		return questionArr;
+	}
+	//console.log(' Array length is: ' + questionArr.length);
+	console.log(questionArr);
+
+		var addition = 0;
+		var subtraction = 0;
+		var multiplication = 0;
+		var division = 0;
+		var additionArr = new Array();
+		var subtractionArr = new Array();
+		var multiplicationArr = new Array();
+		var divisionArr = new Array();
+		var corrects = 0;
+		var totals = 0;
+		
+		//should check for true also uncommented for testing
+		//questionArr[i].correct == true
+	for(var i = 0; i < questionArr.length; i++)
+	{
+		//console.log('Operator #' + i + ':  ' + questionArr[i].question[1]);
+	
+		if(questionArr[i].question[1] == 0  /*&& questionArr[i].correct == true*/) {
+				addition++;
+				additionArr.push(questionArr[i].question[0], questionArr[i].question[2]);
+				}
+		else if(questionArr[i].question[1] == 1  /*&& questionArr[i].correct == true*/) {
+				subtraction++;
+				subtractionArr.push(questionArr[i].question[0], questionArr[i].question[2]);
+				}
+		else if(questionArr[i].question[1] == 2  /*&& questionArr[i].correct == true*/) {
+				multiplication++;
+				multiplicationArr.push(questionArr[i].question[0], questionArr[i].question[2]);
+				}
+		else if(questionArr[i].question[1] == 3  /*&& questionArr[i].correct == true*/) {
+				division++;
+				divisionArr.push(questionArr[i].question[0], questionArr[i].question[2]);
+				}
+		else
+			console.log('error');
+
+			
+			if(questionArr[i].correct == true)
+			{
+				corrects++;
+				totals++;
+			}
+			else
+				totals++;
+
+	}
+		
+		console.log('+: ' + addition + ', -: ' + subtraction + ', *: ' + multiplication + ', /: ' + division + ', rightanswears:' + corrects);
+		
+		var procentualaddition = addition/totals;
+		var procentualsubtraction = subtraction/totals;
+		var procentualmultiplication = multiplication/totals;
+		var procentualdivision = division/totals;
+		
+		var procentualcorrects = corrects/totals;
+		
+		console.log('total answers: ' + totals);
+		console.log('answer %: ' + procentualcorrects);
+		console.log('addition:% ' + procentualaddition);
+		console.log('subtraction:% ' + procentualsubtraction);
+		console.log('multiplication:% ' + procentualmultiplication);
+		console.log('division:% ' + procentualdivision);
+		
+		for(var j=0; j < addition*2; j++) {
+		console.log('additionarray: ' + additionArr[j]);
+		}
+		for(var j=0; j < subtraction*2; j++) {
+		console.log('subtractionarray: ' + subtractionArr[j]);
+		}
+		for(var j=0; j < multiplication*2; j++) {
+		console.log('multiplicationnarray: ' + multiplicationArr[j]);
+		}
+		for(var j=0; j < division*2; j++) {
+		console.log('divisionarray: ' + divisionArr[j]);
+		}
+			
+	};
 
 	/* returns true for every getQuestionsBeforeBonus()'th question answered */
 	Backend.prototype.bonusIsAvailable = function()
