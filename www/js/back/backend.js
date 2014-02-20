@@ -93,6 +93,10 @@ define([], function() {
 	/* Returns a random operator based on user settings */
 	Backend.prototype.getRndOperator = function() {
 		var stored = this.store.get("settings");
+		
+		if (typeof(stored) === 'undefined')
+			return 4;
+		
 		var available = new Array();
 		
 		stored.addition 	&& available.push(0);
