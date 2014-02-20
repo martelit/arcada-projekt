@@ -102,7 +102,7 @@ function QuestionGenerator () {
 			break;
 
 		case 4: // Picture question //hardcoded to 0-10, the programmers supreme power.
-			this.answer = this.rn(1,10);
+			this.answer = rn(1,10);
 			question[0] = this.answer;
 		}
 		

@@ -103,9 +103,6 @@ define([], function() {
 		stored.subtraction 	&& available.push(1);
 		stored.multiplication	&& available.push(2);
 		stored.division 	&& available.push(3);
-		if(available.length == 0){
-			return 4;
-		}
 		
 		return available[this.questions.rn(0, available.length)];
 	};

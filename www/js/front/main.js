@@ -41,7 +41,8 @@ function getSettings(){
 	};
 	*/
 	//return back.store.get("snille"); ..or
-	return back.getSettings();
+	//return back.getSettings();
+	return back.store.get("settings");
 }
 
 function setSettings(){
@@ -102,7 +103,7 @@ $(document).on('pageshow', function(){
 	
 $( "#save" ).click(function () {
 	setSettings();
-	$.mobile.changePage("");
+	//$.mobile.changePage("");
 });	
 
 //Starts and stops music
@@ -302,17 +303,19 @@ $('#arithmetic-settings input[type="checkbox"]:not("#symbols")').click(function(
 	
 	
 	// TODO doesn't get settings on second click, check why and fix or make this happen on settings page load
-$("#settingsBtn").click(function(){
+});
+$("#settings").on('pageshow',function(){
+	console.log("settings button clicked");
 	var settings = getSettings();
-	$('#min').attr('value',settings.smallestNumber);
-	$('#max').attr('value',settings.greatestNumber);
-	$('#addition').attr('value',settings.addition);
-	$('#subtraction').attr('value',settings.subtraction);
-	$('#multiplication').attr('value',settings.multiplication);
-	$('#division').attr('value',settings.disivion);
-	$('#symbols').attr('value', settings.symbols);
-	$('#bonus').attr('value', settings.bonus);
+	console.log(settings);
+	$('#min').val(settings.minNumber);
+	$('#max').val(settings.maxNumber);
+	$('#addition').prop('checked', settings.addition).checkboxradio('refresh');
+	$('#subtraction').prop('checked', settings.subtraction).checkboxradio('refresh');
+	$('#multiplication').prop('checked', settings.multiplication).checkboxradio('refresh');
+	$('#division').prop('checked', settings.division).checkboxradio('refresh');
+	$('#symbols').prop('checked', settings.symbols).checkboxradio('refresh');
+	$('#bonus').attr('value', settings.questionsBeforeBonus);
 	// TODO Backend needs to take in the new values (symbols & bonus) and set the amount of questions needed answered before bonusIsAvailable() becomes true to the new value. -Bogezu
 	// TODO change the rest of the settings page to what the settings are
 });	
-});
