@@ -6,7 +6,8 @@
  * Changelog :
  * - bollen :: 27.1.2014 :: added settings
  * - neko :: 30.1.2014 :: added game-logic
- * - bollen :: ?.2.2014 :: Fixed structure
+ * - bollen :: 11.2.2014 :: Fixed structure
+ * - bollen :: 20.2.2014 :: added getRndOperator.
  */
 
 /*
@@ -85,11 +86,20 @@ define([], function() {
 	Backend.prototype.getQuestionsBeforeBonus = function(){
 		return this.getSettings().questionsBeforeBonus;
 	}
+	
+	/* Returns a random operator based on user settings */
+	Backend.prototype.getRndOperator = function() {
+		var stored = this.store.get("settings");
+		var available = new Array();
+		
+		stored.addition 	&& available.push(0);
+		stored.subtraction 	&& available.push(1);
+		stored.multiplication	&& available.push(2);
+		stored.division 	&& available.push(3);
+		
+		return available[this.questions.rn(0, available.length)];
+	};
 
-	Backend.prototype.getOperator = function() {
-		//TODO: only return an operator that are in the settings
-		return this.questions.rn(0,4);
-	}
 	
 
 
