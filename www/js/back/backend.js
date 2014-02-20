@@ -40,9 +40,12 @@ define([], function() {
 			    symbols: false
 		};
 		
-		// store the default settings
-		this.store.set("snille", this.defaults);
-		
+		// check if we have any settings
+		if (this.store.get("settings") === undefined){
+			// store the default settings
+			this.store.set("settings", this.defaults);
+		}
+				
 		// setup some variables
 		this.questions_answered = 0;
 		this.correct_answers = 0;
