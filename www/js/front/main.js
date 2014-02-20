@@ -60,15 +60,17 @@ function setSettings(){
 		};*/
 		
 	var settings = {
-	settings.minNumber = $('#min').val();
-	settings.maxNumber = $('#max').val();
-	settings.addition: $('#addition').is(':checked');
-	settings.subtraction: $('#subtraction').is(':checked');
-	settings.multiplication: $('#multiplication').is(':checked');
-	settings.division: $('#division').is(':checked');
-	settings.symbols: $('#symbols').is(':checked');
-	settings.questionsBeforeBonus: $('#bonus').val();	
+		minNumber: parseInt($('#min').val()),
+		maxNumber: parseInt($('#max').val()),
+		addition: $('#addition').is(':checked'),
+		subtraction: $('#subtraction').is(':checked'),
+		multiplication: $('#multiplication').is(':checked'),
+		division: $('#division').is(':checked'),
+		symbols: $('#symbols').is(':checked'),
+		questionsBeforeBonus: parseInt($('#bonus').val())	
 		};
+	
+	console.log(settings);
 	
 	back.store.set("snille", settings);
 }
@@ -98,6 +100,11 @@ $(document).on('pageshow', function(){
 		console.log("Not phonegap");
 	}
 	
+$( "#save" ).click(function () {
+	setSettings();
+	$.mobile.changePage("");
+});	
+
 //Starts and stops music
 $( ".flip-music" ).change(function () {
 	if(this.value=="on")
