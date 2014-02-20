@@ -5,7 +5,7 @@ require.config({
 		jqm: 		'lib/jqm/jquery.mobile',
 		generator:	'back/QuestionGenerator',
 		store:		'back/Store',
-		back:		'back/Backend',
+		back:		'back/backend',
 		sounds:		'front/sounds',
 		helper:		'front/helper',
 		stats:		'front/stats',
