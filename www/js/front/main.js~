@@ -72,7 +72,7 @@ function setSettings(){
 	
 	console.log(settings);
 	
-	back.store.set("settings", settings);
+	back.store.set("snille", settings);
 }
 
 function notifyCallback(){
