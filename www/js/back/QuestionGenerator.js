@@ -12,6 +12,8 @@ function QuestionGenerator () {
 
 	//The answer that is expected:
 	this.answer = undefined;
+	//global variable for the question array, quickfix
+	this.globalQuestion= new Array();
 
 	/*
 	 * Returns a Question object.
@@ -103,6 +105,8 @@ function QuestionGenerator () {
 			this.answer = rn(1,10);
 			question[0] = this.answer;
 		}
+		
+		this.globalQuestion = question;
 			
 		//Create question Array
 		//var question = new Array(x,operation,y);
