@@ -167,11 +167,13 @@ $('.button-container').find('button').each(function(i){
 $(".answer-button").click(function(){
 	//problem, always sets 2 questions_answered when one is answered? -Bogezu
 	//getAnswer is called twice. once here, once in helper. -Neko
+	//This was getting really annoying so I did a quickfix (that made the guessAnswer function redundant, which it bloody well was to begin with?), revert it and make a better fix if you feel like it -rasmus
 	console.log("total questions:"+back.questions_answered);
 	console.log("bonus available: "+back.bonusIsAvailable());
+	
 	var answer = $(this).html();
-	var correctAnswer = back.getAnswer();
-		if( guessAnswer(answer) ){
+	var correctAnswer = back.getAnswer(answer);
+		if( answer == correctAnswer ){
 			$(this).addClass("guessed-answer correct-answer");
 			//$("#correct-wrong").text("Du svarade rätt!");
 			//$("#correct-answer-number").text(answer);

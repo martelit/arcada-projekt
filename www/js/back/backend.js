@@ -75,7 +75,7 @@ define([], function() {
 	
 	// return the settings object
 	Backend.prototype.getSettings = function() {
-		return this.store.get("snille");
+		return this.store.get("settings");
 	};
     
 	Backend.prototype.getMax = function(){
@@ -124,7 +124,7 @@ define([], function() {
 		this.questions_answered++;
 		// debug:
 		//console.log("questions answered:"+this.questions_answered+" caller: "+arguments.callee.caller.toString());
-		console.log("guessed: "+a+"\ncorrect: "+this.questions.answer+"\ncorrect answers: "+this.correct_answers);
+		console.log("This was question number"+this.questions_answered+"\n\tThe guess was: "+a+"\n\tThe correctanswer is: "+this.questions.answer+"\n\tTotal correct answers this far: "+this.correct_answers);
 		// /debug
 		this.saveQuestion(correct);
 		return this.questions.answer;
@@ -144,7 +144,88 @@ define([], function() {
 		};
 		history.push(newEntry);		
 		this.store.set("history", history);		
+		console.log("History updated");
 	};
+	
+	/* 
+	* ---------- GET STATS ----------
+	* Alternative #1 for the countStatistics function below
+	*/
+
+	Backend.prototype.getStats = function() 
+	{
+		var dummy = false;
+		var qArr;
+		if(dummy){
+		//populating a dummy array with questions and results
+			qArr = new Array();
+			qArr.push ( { question:new Array(1,0,1), correct:true } );
+			qArr.push ( { question:new Array(2,2,23), correct:false } );
+			qArr.push ( { question:new Array(10,0,5), correct:true } );
+			qArr.push ( { question:new Array(1,0,5), correct:false } );
+			qArr.push ( { question:new Array(10,0,1), correct:false } );
+		}
+		else{
+			qArr = this.store.get("history");
+			if(qArr === undefined){
+				console.log("No question history found in localstorage. Answer a few questions to populate it or consider activating the dummy functionality above");
+				return qArr;
+			}
+		}
+		
+		//creating array for counting the occurence of each number and the amount of correct answers , for each operator
+		var occurences = new Array();
+		for(i=0;i<4;i++){
+			//0 is +, 1 is -, 2 is * and 3 is /
+			occurences[i] = new Array();
+		}
+
+		//counting the occurence of numbers mentioned above
+		for(i=0;i<qArr.length;i++) {
+			var operator = qArr[i].question[1];
+			this.countOccurences( occurences[operator] , qArr[i] );
+		}
+
+		//calculating the percentage of correct answers for each number, for each operator
+		var result = new Array();
+		for(i=0;i<4;i++){
+			result[i] = this.calcPercent( occurences[i] );
+		}
+
+		//to view the resulting array;
+		console.log(result);
+		return result;
+	}
+
+	/*Calculates the percentage of correct answers for each number in the specified operator-array (arr) and returns the results in a new array  (result) */
+	Backend.prototype.calcPercent = function( arr ) {
+		var result = new Array();
+		for ( var key in arr) {
+			if(this.arrayHasOwnIndex(arr, key)){
+				//console.log(arr[key].corrects + " / " + arr[key]. total +" = " +(arr[key].corrects/arr[key].total));
+				result[key] = (arr[key] .corrects / arr[key] .total);
+			}		
+		}
+		return result;
+	}
+
+	/* Simply checks if the current property (prop) of the array object (arr)  is a valid key, also that it's a number no greater than the maximum allowed number for a index */
+	Backend.prototype.arrayHasOwnIndex = function(array, prop) {
+		return array.hasOwnProperty(prop) && /^0$|^[1-9]\d*$/.test(prop) && prop <= 4294967294; // 2^32 - 2
+	}
+
+	/*Adds the occurence of the numbers in the question array ( in qObj ) to the array for the appropriate operator (opArray) */
+	Backend.prototype.countOccurences = function( opArray, qObj ) {
+	incr = (qObj.correct == true ? 1 : 0);
+	for(j=0;j<qObj.question.length;j+=2)
+		(opArray[qObj.question[j]] === undefined ? opArray[qObj.question[j]] = {  corrects:incr, total:1 } : opArray[qObj.question[j]] = { corrects:(opArray[qObj.question[j]].corrects+incr), total: (opArray[qObj.question[j]].total+1)  } );
+}
+	
+	
+	/*
+	* End of  ----------GET STATS ---------
+	*/
+	
 	
 	/*
 	* 	----------------------NOT DONE------------------------------------
