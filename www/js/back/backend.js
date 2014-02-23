@@ -175,20 +175,20 @@ define([], function() {
 		
 		//creating array for counting the occurence of each number and the amount of correct answers , for each operator
 		var occurences = new Array();
-		for(i=0;i<4;i++){
-			//0 is +, 1 is -, 2 is * and 3 is /
+		for(i=0;i<=4;i++){
+			//0 is +, 1 is -, 2 is * and 3 is /. And 4 is for symbols
 			occurences[i] = new Array();
 		}
 
 		//counting the occurence of numbers mentioned above
 		for(i=0;i<qArr.length;i++) {
-			var operator = qArr[i].question[1];
+			var operator = (qArr[i].question.length > 1 ? qArr[i].question[1] : 4);
 			this.countOccurences( occurences[operator] , qArr[i] );
 		}
 
 		//calculating the percentage of correct answers for each number, for each operator
 		var result = new Array();
-		for(i=0;i<4;i++){
+		for(i=0;i<=4;i++){
 			result[i] = this.calcPercent( occurences[i] );
 		}
 
@@ -216,10 +216,10 @@ define([], function() {
 
 	/*Adds the occurence of the numbers in the question array ( in qObj ) to the array for the appropriate operator (opArray) */
 	Backend.prototype.countOccurences = function( opArray, qObj ) {
-	incr = (qObj.correct == true ? 1 : 0);
-	for(j=0;j<qObj.question.length;j+=2)
-		(opArray[qObj.question[j]] === undefined ? opArray[qObj.question[j]] = {  corrects:incr, total:1 } : opArray[qObj.question[j]] = { corrects:(opArray[qObj.question[j]].corrects+incr), total: (opArray[qObj.question[j]].total+1)  } );
-}
+		var incr = (qObj.correct == true ? 1 : 0);
+		for(j=0;j<qObj.question.length;j+=2)
+			(opArray[qObj.question[j]] === undefined ? opArray[qObj.question[j]] = {  corrects:incr, total:1 } : opArray[qObj.question[j]] = { corrects:(opArray[qObj.question[j]].corrects+incr), total: (opArray[qObj.question[j]].total+1)  } );
+	}
 	
 	
 	/*
