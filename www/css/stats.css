@@ -1,9 +1,27 @@
+#statistics {
+	background: url(../img/gamescreen_background.jpg) no-repeat center center fixed; 
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+}
+
 .stats-row {
-	height: 10%;
+	height: 9%;
 }
 
 .stats-col {
 	float:left;
-	width:25%;
+	width:20%;
 	
+}
+#arithmetic-row {
+	width: 100%;
+	align-items: stretch;
+	display: flex;
+	
+}
+#arith-item {
+	width: 20%;
+	font: 2em "Arial";
 }
