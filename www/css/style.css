@@ -160,3 +160,6 @@ h1 {
 	font: 4em "Arial Black";
 }
 
+#object-canvas{
+	display:block;
+}

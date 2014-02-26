@@ -22,6 +22,54 @@ function guessAnswer(guess){
 	}
 }
 
+function setCanvas(){
+	var h = $("#question-holder").height();
+	var w = $("#question-holder").width();
+	$('#question-holder').html('<canvas id="object-canvas" width="900" height="400"></canvas>');
+}
+
+function drawCanvasObjects(numberOfObjects){
+		
+	var originalImgHeight = 129;
+	var originalImgWidth = 	142;
+	
+	//Function defaults
+	var x = 20;
+	var y = 20;
+	var scale = 0.8;
+	var scaledx = x;
+	var scaledy = y;
+	
+	var width =  originalImgWidth * scale;
+	var height = originalImgHeight * scale;
+	
+	for(var i = 0; i < numberOfObjects; i++){
+		draw(scaledx,scaledy,width, height);
+		if(numberOfObjects < 6){
+			scaledx += 150;
+		}
+		if(numberOfObjects >= 6 && numberOfObjects <= 10){
+			scaledx += 150;
+			if(i == 5){
+				scaledx = 20;
+				scaledy += 100;
+			}
+		}
+	};
+
+}
+
+function draw(x,y,width,height) {
+	var ctx = document.getElementById('object-canvas').getContext('2d');
+	ctx.clearRect(0, 0, $('#object-canvas').width(), $('#object-canvas').height());
+	ctx.mozImageSmoothingEnabled = false;
+	var bolt = new Image();
+	bolt.src = "img/apple.png";
+	bolt.onload = function() {
+		ctx.drawImage(bolt, x, y, width, height);
+	};
+}
+
 function getLamp(){
 	return back.getLampSize();
 }
@@ -156,8 +204,13 @@ $(".stop-music").click(function(){
 });
 	
 	var task = getQuestion();
-	
-$('#question-holder').html(task.question);
+	if(task.question[1] != ""){
+		$('#question-holder').html(task.question);
+	}
+	else{
+		setCanvas();
+		drawCanvasObjects(task.question[0]);
+	}
 
 $('.button-container').find('button').each(function(i){
 	$(this).html(task.answers[i]);
@@ -206,7 +259,13 @@ $(".answer-button").click(function(){
 $(".next-button").click(function(){		
 	var nextTask = getQuestion();		
 	displayQuestion = nextTask.question;
-	$('#question-holder').html(nextTask.question);
+	if(nextTask.question[1] != ""){
+		$('#question-holder').html(nextTask.question);
+	}
+	else{
+		setCanvas();
+		drawCanvasObjects(nextTask.question[0]);
+	}
 		$('.button-container').find('button').each(function(i){
 			$(this).html(nextTask.answers[i]);
 		});
@@ -260,10 +319,13 @@ $(".bonus-button").click(function(){
 			//Next question
 			var nextTask = getQuestion();
 			displayQuestion = nextTask.question;
-			$('#question-holder').html(nextTask.question);
-				$('.button-container').find('button').each(function(i){
-					$(this).html(nextTask.answers[i]);
-				});
+			if(displayQuestion[1] != ""){
+				$('#question-holder').html(displayQuestion);
+			}
+			else{
+				setCanvas();
+				drawCanvasObjects(displayQuestion[0]);
+			}
 		$("#response-popup").popup("close");
 		}
 });
@@ -290,19 +352,24 @@ $(".bonus-button").click(function(){
 	} );
 	*/
 	
-	//Deselects all other arithmetic options if symbols are selected (counting without arithmetic)
+//Deselects all other arithmetic options if symbols are selected (counting without arithmetic)
+//and sets new defaults on the range slider
 $("#symbols").click(function(){
 	$(this).closest('#arithmetic-settings').find('input[type="checkbox"]:not("#symbols")').prop('checked', false).checkboxradio( "refresh" );
+	$("#min").val(0).slider("disable").slider("refresh");
+	$("#max").val(10).slider("disable").slider("refresh");
 });
 	
 //Deselects symbols (counting without arithmetic) if any other arithmetic setting is clicked
+//and enables the range slider
 $('#arithmetic-settings input[type="checkbox"]:not("#symbols")').click(function(){
 		if($('#symbols').prop('checked', true)){
 			$("#symbols").prop('checked', false).checkboxradio( "refresh" );
+			$("#min").slider("enable").slider("refresh");
+			$("#max").slider("enable").slider("refresh");
 		}
 });
-	
-	
+
 	
 	// TODO doesn't get settings on second click, check why and fix or make this happen on settings page load
 });
@@ -310,14 +377,14 @@ $("#settings").on('pageshow',function(){
 	console.log("settings button clicked");
 	var settings = getSettings();
 	console.log(settings);
-	$('#min').val(settings.minNumber);
-	$('#max').val(settings.maxNumber);
+	$('#min').val(settings.minNumber).slider("refresh");
+	$('#max').val(settings.maxNumber).slider("refresh");
 	$('#addition').prop('checked', settings.addition).checkboxradio('refresh');
 	$('#subtraction').prop('checked', settings.subtraction).checkboxradio('refresh');
 	$('#multiplication').prop('checked', settings.multiplication).checkboxradio('refresh');
 	$('#division').prop('checked', settings.division).checkboxradio('refresh');
 	$('#symbols').prop('checked', settings.symbols).checkboxradio('refresh');
-	$('#bonus').attr('value', settings.questionsBeforeBonus);
+	$('#bonus').attr('value', settings.questionsBeforeBonus).slider("refresh");
 	// TODO Backend needs to take in the new values (symbols & bonus) and set the amount of questions needed answered before bonusIsAvailable() becomes true to the new value. -Bogezu
 	// TODO change the rest of the settings page to what the settings are
 });	
