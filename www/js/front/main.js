@@ -280,27 +280,12 @@ $(".bonus-button").click(function(){
 			$("#response-popup").popup("close");
 
             // TODO: why executed twice?
-/*
-//            var Bonus = require('bonus');
-	var bonusGame = Bonus({
-                parent: 'bonus-game-container',
-                basePath: 'js/bonus-game/src/',
-                inputDiameter: back.getLampSize() * 20,
-                newTargetsCount: 5,
-                musicEnabled: false,
-                sfxEnabled: true,
-                onFinish: function(bonusFound) {
-                    console.log('foo');
-                    back.bonusPlayed(bonusFound);
-                }
-            });
-            bonusGame.start();
-*/
+
             if (!bonusGame) {
-//                var Bonus = require('bonus');
-                var bonusGame = Bonus({
+                var Bonus = require('bonus');
+                bonusGame = new Bonus({
                     parent: 'bonus-game-container',
-                    basePath: 'js/bonus-game/src/',
+                    basePath: 'js/bonus/',
                     inputDiameter: back.getLampSize() * 20,
                     newTargetsCount: 5,
                     musicEnabled: false,

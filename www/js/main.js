@@ -10,25 +10,22 @@ require.config({
 		helper:		'front/helper',
 		stats:		'front/stats',
 		front:		'front/main',
-        phaser:     'bonus-game/src/js/lib/phaser',
-/*        pixi:       'bonus-game/src/js/lib/pixi',
-        p2:         'bonus-game/src/js/lib/p2',*/
-        bonus:      'bonus-game/src/js/Bonus'
+        phaser:     'bonus/js/lib/phaser',
+        pixi:       'bonus/js/lib/pixi',
+        p2:         'bonus/js/lib/p2',
+        bonus:      'bonus/js/bonus'
 	},
 	shim: {
 		'jqm': ['jquery'],
-		'front': ['back','sounds','helper','bonus', 'phaser'],
+		'front': ['back','sounds','helper','bonus'],
 		'back': ['generator', 'store'],
-		'helper': ['back'],
-		'bonus':['phaser']
+		'helper': ['back']
 	}
 });
 require(['jquery', 'jqm', 'back', 'generator', 'store',
-	'helper', 'stats', 'front', 'sounds',
-	'phaser', /*'pixi', 'p2',*/'bonus' ],
+	'helper', 'stats', 'front', 'sounds', 'bonus' ],
 function($,         jqm,   back,   generator,   store,   
-	 helper,   stats,   front,   sounds,
-	phaser,   /* pixi,   p2,*/  bonus
+	 helper,   stats,   front,   sounds,  bonus
 	){
 	$(function(){
 	});

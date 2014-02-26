@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ﻿<!DOCTYPE html>
 <!--
     Licensed to the Apache Software Foundation (ASF) under one
@@ -160,3 +161,173 @@
         </script>
     </body>
 </html>
+=======
+﻿<!DOCTYPE html>
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+     KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />      
+		<link rel="stylesheet" type="text/css" href="js/lib/jqm/jquery.mobile.css" />
+		<link rel="stylesheet" type="text/css" href="css/style.css" />
+		<link rel="stylesheet" type="text/css" href="css/buttons.css" />
+		<link rel="stylesheet" type="text/css" href="css/gradients.css" />
+		<link rel="stylesheet" type="text/css" href="css/settings.css" />
+		<link rel="stylesheet" type="text/css" href="css/stats.css" />
+		<script data-main="js/main.js" src="js/require.js"></script>
+		<title>Snille</title>
+    </head>
+    <body>
+		<audio class="sound" hidden="hidden">
+			<source src="res/sounds/click.mp3" type="audio/mpeg" >
+		</audio>
+		<audio class="music1" hidden="hidden">
+			<source src="res/sounds/music.mp3" type="audio/mpeg" >
+		</audio>
+	<div data-role="page" id="front" >
+		<!--
+		<div data-role="header" data-position="fixed">
+			<h1>Snille</h1>
+			<a href="#settings" id="settingsBtn" data-icon="gear" class="ui-btn-right play-click">Settings</a>
+		</div>
+		-->
+		<div data-role="content" class="front-content">
+			<a href="#settings" data-icon="gear" class="ui-btn-right settings-button play-click"><img src="img/options.png"></a>
+			<a href="#questions" data-role="button" class="start-button button">START</a>
+		</div>
+		</div>
+	</div>
+	<div data-role="page" id="questions">
+		<!-- 
+		<div data-role="header">
+			<a href="#settings" data-icon="gear" class="ui-btn-right play-click"><img src="img/options.png"></a>
+		</div>
+		 -->
+		<div data-role="content">
+			<!--
+			TODO images for question when only one term present
+			TODO bigger font for question (not in px, needs to scale well)
+			 -->
+			<div id="question-holder"><p>questions</p></div>
+			<div class="ui-grid-c button-container">
+				<div class="ui-block-a">
+					<button type="button" class="play-click answer-button">A</button>
+				</div>
+				<div class="ui-block-b">
+					<button type="button" class="play-click answer-button">B</button>
+				</div>
+				<div class="ui-block-c">
+					<button type="button" class="play-click answer-button">C</button>
+				</div>
+				<div class="ui-block-d">
+					<button type="button" class="play-click answer-button">D</button>
+				</div>
+			</div>
+		</div>
+		<div id="response-popup" data-position-to="window" data-dismissible="false" data-role="popup">
+			<span id="correct-wrong" class="answer-string"></span><br/>
+			<!--<span class="answer-string">Rätta svaret var</span><br/> -->
+			<div class = "wrong-answer-icon"><img class = "answer-icon" src="img/sad.png" align="middle"></div>
+			<div class = "right-answer-icon"><img class = "answer-icon" src="img/smile.png" align="middle"></div>
+			<span id="correct-answer-number" class=""></span>
+			<button type="button" data-inline="true" id="next-question" class="next-button">Nästa fråga</button>
+			<button type="button" data-inline="true" id="play-bonus-game" class="bonus-button">Spela bonus-spelet</button>
+		</div>
+	</div>
+	<div data-role="page" id="settings">
+		<div data-role="header">
+			<a href="#front" class="ui-btn-left play-click" id="save">Save</a>
+			<a href="#front" class="ui-btn-right play-click" id="cancel">Cancel</a>
+		</div>
+		<div data-role="content">
+			<div id="settings-container">
+			<a href="#statistics"><img src="img/stats.png"></a>
+			<img src="img/reset.png">
+				<div data-role="rangeslider">
+					<label for="min">Lowest and highest possible numbers</label>
+					<input type="range" name="min" id="min" value="0" min="0" max="100" />
+					<input type="range" name="max" id="max" value="50" min="0" max="100" />
+				</div>
+				<fieldset data-role="controlgroup" id="arithmetic-settings" data-type="horizontal">
+					<legend>Select arithmetic</legend>
+					<label for="addition"  class="play-click">+</label>
+					<input type="checkbox" name="addition" id="addition">
+					<label for="subtraction"  class="play-click">−</label>
+					<input type="checkbox" name="subtraction" id="subtraction">
+					<label for="multiplication"  class="play-click">×</label>
+					<input type="checkbox" name="multiplication" id="multiplication">
+					<label for="division"  class="play-click">÷</label>
+					<input type="checkbox" name="division" id="division">
+					<label for="symbols" class="play-click">Symbols</label>
+					<input type="checkbox" name="symbols" id="symbols">
+				</fieldset>
+				<label for="flip-sound">Sound</label>
+				<select class="flip-sound" name="flip-sound" data-role="slider">
+					<option value="off">Off</option>
+					<option value="on">On</option>
+				</select>
+				<label for="flip-music">Music</label>
+				<select class="flip-music" name="flip-music" data-role="slider">
+					<option value="off" >Off</option>
+					<option value="on">On</option>
+				</select>
+				<div data-role="bonusslider">
+					<label for="bonus">Number of questions before Bonus Game(0 = No Bonus Game)</label>
+					<input type="range" name="bonus" id="bonus" value="10" min="0" max="10" />
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- TODO add rewards page -->
+	<div data-role="page" id="rewards">
+		<div data-role="header"></div>
+		<div data-role="content">
+		<div id="bonus-game-container"></div>
+		</div>
+	</div>
+	<div data-role="page" id="statistics">
+		<div data-role="content">
+		<div id="arithmetic-row">
+				<div id="arith-item">Symbols</div>
+				<div id="arith-item">+ Addition</div>
+				<div id="arith-item">- Subtraction</div>
+				<div id="arith-item">* Multiplication</div>
+				<div id="arith-item">/ Division</div>
+		</div>
+		<div class="stats-draw"></div>
+		</div>
+	</div>
+       <!-- <div class="app">
+            <h1>PhoneGap</h1>
+            <div id="deviceready" class="blink">
+                <p class="event listening">Connecting to Device</p>
+                <p class="event received">Device is Ready</p>
+            </div>
+        </div> -->
+        <script type="text/javascript" src="phonegap.js"></script><!-- needed by phonegap, do not delete this line -->
+        <script type="text/javascript" src="js/index.js"></script>
+        <script type="text/javascript">
+            app.initialize();
+        </script>
+    </body>
+</html>
+>>>>>>> 37e939be4f3d1e2c951fd3ceb82026dcba6f0917
