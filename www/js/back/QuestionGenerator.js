@@ -70,22 +70,12 @@ function QuestionGenerator () {
 			break;
 		case 2:	// *
 			var newMax = Math.pow(maxValue,0.5).toFixed();
-			var newMin = Math.pow(minValue,0.5).toFixed();
-			 
-			if (newMax*newMax > 1+ maxValue){
+			if (newMax*newMax > maxValue){
 				newMax --;
 			}
-
-			//console.log("Max and min: " + newMax, newMin);
-			x = this.rn(newMin,newMax);
+			x = this.rn(minValue,newMax);
 			//Can't divide with 0, must be able to create max Answer
-			newMax = maxValue*(((x+2)/(x+1))/(x+1));
-			if (newMax>maxValue){
-				newMax= maxValue;
-			}
-			y = this.rn(newMin, newMax);
-
-			//y = this.rn(newMin,newMax);
+			y = this.rn(minValue,((maxValue+x)/(x+1)).toFixed());
 			this.answer = x * y;
 			question[0] = x;
 			question[1] = operation;
@@ -151,8 +141,7 @@ function QuestionGenerator () {
 		
 		//Create Array to send to frontend
 		var arrayObject = new Array(question,alternativ,operation);
-		//console.log(arrayObject);
-
+		console.log(arrayObject);
 		return arrayObject;
 	}
 
@@ -162,11 +151,7 @@ function QuestionGenerator () {
 	 */
 	this.rn = function(min, max)
 	{
-
-		max = parseInt(max, 10);
-		min = parseInt(min, 10);
 		var randomNumber = Math.floor(Math.random() * (max-min)) + min;
-		//console.log("rand min , max " + randomNumber ,min, max);
 		return randomNumber; 
 	}
 }
