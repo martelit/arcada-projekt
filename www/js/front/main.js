@@ -200,6 +200,20 @@ $(".answer-button").click(function(){
 			displayQuestion = displayQuestion.replace(",", " ");
 			$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
 		}
+				
+		//show bonus button only when bonus is available
+		if(back.bonusIsAvailable())
+		{
+			$("#next-question").hide();
+			$("#play-bonus-game").show();
+		}
+		//else shows next question button
+		else
+		{
+			$("#next-question").show();
+			$("#play-bonus-game").hide();
+		}
+	
 	$("#response-popup").popup("open");
 });
 	
