@@ -237,6 +237,7 @@ $(".bonus-button").click(function(){
             // TODO: why executed twice?
 
             if (!bonusGame) {
+                var Bonus = require('bonus');
                 bonusGame = new Bonus({
                     parent: 'bonus-game-container',
                     basePath: 'js/bonus/',

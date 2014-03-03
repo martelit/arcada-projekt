@@ -1,12 +1,4 @@
-!function(root, factory) {
-  if (typeof define === "function" && define.amd) {
-    define(factory);
-  } else if (typeof exports === "object") {
-      module.exports = factory();
-  } else {
-    root.Phaser = factory();
-  }
-}(this, function() {
+define(['pixi', 'p2'], function(PIXI, p2) {
 /**
 * @author       Richard Davey <rich@photonstorm.com>
 * @copyright    2014 Photon Storm Ltd.
@@ -18,7 +10,7 @@
 *
 * Phaser - http://www.phaser.io
 *
-* v1.1.6 - Built at: Mon Mar 03 2014 23:28:29
+* v1.1.5 - Built at: Tue Feb 11 2014 17:07:25
 *
 * By Richard Davey http://www.photonstorm.com @photonstorm
 *
@@ -38,15 +30,6 @@
 */
 
 /**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-/**
- * @module PIXI
- */
-var PIXI = PIXI || {};
-
-/**
 * @author       Richard Davey <rich@photonstorm.com>
 * @copyright    2014 Photon Storm Ltd.
 * @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
@@ -57,8 +40,8 @@ var PIXI = PIXI || {};
 */
 var Phaser = Phaser || {
 
-	VERSION: '1.1.6',
-	DEV_VERSION: '1.1.6',
+	VERSION: '1.1.5',
+	DEV_VERSION: '1.2',
 	GAMES: [],
 
 	AUTO: 0,
@@ -68,7 +51,7 @@ var Phaser = Phaser || {
 
 	SPRITE: 0,
 	BUTTON: 1,
-	BULLET: 2,
+	IMAGE: 2,
 	GRAPHICS: 3,
 	TEXT: 4,
 	TILESPRITE: 5,
@@ -82,6 +65,7 @@ var Phaser = Phaser || {
 	BITMAPDATA: 13,
 	CANVAS_FILTER: 14,
 	WEBGL_FILTER: 15,
+	ELLIPSE: 16,
 
 	NONE: 0,
 	LEFT: 1,
@@ -89,10 +73,14 @@ var Phaser = Phaser || {
 	UP: 3,
 	DOWN: 4,
 
+	DYNAMIC: 1,
+	STATIC: 2,
+	KINEMATIC: 4,
+
 	CANVAS_PX_ROUND: false,
 	CANVAS_CLEAR_RECT: true
 
- };
+};
 
 PIXI.InteractionManager = function (dummy) {
 	//	We don't need this in Pixi, so we've removed it to save space
@@ -298,12 +286,64 @@ Phaser.Utils = {
 
 };
 
-function HEXtoRGB(hex) {
+/**
+ * Converts a hex color number to an [R, G, B] array
+ *
+ * @method hex2rgb
+ * @param hex {Number}
+ */
+PIXI.hex2rgb = function(hex) {
     return [(hex >> 16 & 0xFF) / 255, ( hex >> 8 & 0xFF) / 255, (hex & 0xFF)/ 255];
-}
+};
 
-PIXI.hex2rgb = function hex2rgb(hex) {
-    return [(hex >> 16 & 0xFF) / 255, ( hex >> 8 & 0xFF) / 255, (hex & 0xFF)/ 255];
+/**
+ * Converts a color as an [R, G, B] array to a hex number
+ *
+ * @method rgb2hex
+ * @param rgb {Array}
+ */
+PIXI.rgb2hex = function(rgb) {
+    return ((rgb[0]*255 << 16) + (rgb[1]*255 << 8) + rgb[2]*255);
+};
+
+/**
+ * Checks whether the Canvas BlendModes are supported by the current browser
+ *
+ * @method canUseNewCanvasBlendModes
+ * @return {Boolean} whether they are supported
+ */
+PIXI.canUseNewCanvasBlendModes = function()
+{
+    var canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    var context = canvas.getContext('2d');
+    context.fillStyle = '#000';
+    context.fillRect(0,0,1,1);
+    context.globalCompositeOperation = 'multiply';
+    context.fillStyle = '#fff';
+    context.fillRect(0,0,1,1);
+    return context.getImageData(0,0,1,1).data[0] === 0;
+};
+
+/**
+ * Given a number, this function returns the closest number that is a power of two
+ * this function is taken from Starling Framework as its pretty neat ;)
+ *
+ * @method getNextPowerOfTwo
+ * @param number {Number}
+ * @return {Number} the closest number that is a power of two
+ */
+PIXI.getNextPowerOfTwo = function(number)
+{
+    if (number > 0 && (number & (number - 1)) === 0) // see: http://goo.gl/D9kPj
+        return number;
+    else
+    {
+        var result = 1;
+        while (result < number) result <<= 1;
+        return result;
+    }
 };
 
 /**
@@ -353,7970 +393,2452 @@ if (!Array.isArray) {
 }
 
 
+/**
+* @author       Richard Davey <rich@photonstorm.com>
+* @copyright    2014 Photon Storm Ltd.
+* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
+*/
 
+/**
+* Creates a new Circle object with the center coordinate specified by the x and y parameters and the diameter specified by the diameter parameter. If you call this function without parameters, a circle with x, y, diameter and radius properties set to 0 is created.
+* @class Circle
+* @classdesc Phaser - Circle
+* @constructor
+* @param {number} [x=0] - The x coordinate of the center of the circle.
+* @param {number} [y=0] - The y coordinate of the center of the circle.
+* @param {number} [diameter=0] - The diameter of the circle.
+* @return {Phaser.Circle} This circle object
+*/
+Phaser.Circle = function (x, y, diameter) {
 
-/*
- * A lighter version of the rad gl-matrix created by Brandon Jones, Colin MacKenzie IV
- * you both rock!
- */
+    x = x || 0;
+    y = y || 0;
+    diameter = diameter || 0;
 
-function determineMatrixArrayType() {
-    PIXI.Matrix = (typeof Float32Array !== 'undefined') ? Float32Array : Array;
-    return PIXI.Matrix;
-}
+    /**
+    * @property {number} x - The x coordinate of the center of the circle.
+    */
+    this.x = x;
 
-determineMatrixArrayType();
+    /**
+    * @property {number} y - The y coordinate of the center of the circle.
+    */
+    this.y = y;
 
-PIXI.mat3 = {};
+    /**
+    * @property {number} _diameter - The diameter of the circle.
+    * @private
+    */
+    this._diameter = diameter;
 
-PIXI.mat3.create = function()
-{
-    var matrix = new PIXI.Matrix(9);
-
-    matrix[0] = 1;
-    matrix[1] = 0;
-    matrix[2] = 0;
-    matrix[3] = 0;
-    matrix[4] = 1;
-    matrix[5] = 0;
-    matrix[6] = 0;
-    matrix[7] = 0;
-    matrix[8] = 1;
-
-    return matrix;
-};
-
-
-PIXI.mat3.identity = function(matrix)
-{
-    matrix[0] = 1;
-    matrix[1] = 0;
-    matrix[2] = 0;
-    matrix[3] = 0;
-    matrix[4] = 1;
-    matrix[5] = 0;
-    matrix[6] = 0;
-    matrix[7] = 0;
-    matrix[8] = 1;
-
-    return matrix;
-};
-
-
-PIXI.mat4 = {};
-
-PIXI.mat4.create = function()
-{
-    var matrix = new PIXI.Matrix(16);
-
-    matrix[0] = 1;
-    matrix[1] = 0;
-    matrix[2] = 0;
-    matrix[3] = 0;
-    matrix[4] = 0;
-    matrix[5] = 1;
-    matrix[6] = 0;
-    matrix[7] = 0;
-    matrix[8] = 0;
-    matrix[9] = 0;
-    matrix[10] = 1;
-    matrix[11] = 0;
-    matrix[12] = 0;
-    matrix[13] = 0;
-    matrix[14] = 0;
-    matrix[15] = 1;
-
-    return matrix;
-};
-
-PIXI.mat3.multiply = function (mat, mat2, dest)
-{
-    if (!dest) { dest = mat; }
-
-    // Cache the matrix values (makes for huge speed increases!)
-    var a00 = mat[0], a01 = mat[1], a02 = mat[2],
-        a10 = mat[3], a11 = mat[4], a12 = mat[5],
-        a20 = mat[6], a21 = mat[7], a22 = mat[8],
-
-        b00 = mat2[0], b01 = mat2[1], b02 = mat2[2],
-        b10 = mat2[3], b11 = mat2[4], b12 = mat2[5],
-        b20 = mat2[6], b21 = mat2[7], b22 = mat2[8];
-
-    dest[0] = b00 * a00 + b01 * a10 + b02 * a20;
-    dest[1] = b00 * a01 + b01 * a11 + b02 * a21;
-    dest[2] = b00 * a02 + b01 * a12 + b02 * a22;
-
-    dest[3] = b10 * a00 + b11 * a10 + b12 * a20;
-    dest[4] = b10 * a01 + b11 * a11 + b12 * a21;
-    dest[5] = b10 * a02 + b11 * a12 + b12 * a22;
-
-    dest[6] = b20 * a00 + b21 * a10 + b22 * a20;
-    dest[7] = b20 * a01 + b21 * a11 + b22 * a21;
-    dest[8] = b20 * a02 + b21 * a12 + b22 * a22;
-
-    return dest;
-};
-
-PIXI.mat3.clone = function(mat)
-{
-    var matrix = new PIXI.Matrix(9);
-
-    matrix[0] = mat[0];
-    matrix[1] = mat[1];
-    matrix[2] = mat[2];
-    matrix[3] = mat[3];
-    matrix[4] = mat[4];
-    matrix[5] = mat[5];
-    matrix[6] = mat[6];
-    matrix[7] = mat[7];
-    matrix[8] = mat[8];
-
-    return matrix;
-};
-
-PIXI.mat3.transpose = function (mat, dest)
-{
-    // If we are transposing ourselves we can skip a few steps but have to cache some values
-    if (!dest || mat === dest) {
-        var a01 = mat[1], a02 = mat[2],
-            a12 = mat[5];
-
-        mat[1] = mat[3];
-        mat[2] = mat[6];
-        mat[3] = a01;
-        mat[5] = mat[7];
-        mat[6] = a02;
-        mat[7] = a12;
-        return mat;
+    if (diameter > 0)
+    {
+        /**
+       * @property {number} _radius - The radius of the circle.
+       * @private
+       */
+        this._radius = diameter * 0.5;
+    }
+    else
+    {
+        this._radius = 0;
     }
 
-    dest[0] = mat[0];
-    dest[1] = mat[3];
-    dest[2] = mat[6];
-    dest[3] = mat[1];
-    dest[4] = mat[4];
-    dest[5] = mat[7];
-    dest[6] = mat[2];
-    dest[7] = mat[5];
-    dest[8] = mat[8];
-    return dest;
 };
 
-PIXI.mat3.toMat4 = function (mat, dest)
-{
-    if (!dest) { dest = PIXI.mat4.create(); }
-
-    dest[15] = 1;
-    dest[14] = 0;
-    dest[13] = 0;
-    dest[12] = 0;
-
-    dest[11] = 0;
-    dest[10] = mat[8];
-    dest[9] = mat[7];
-    dest[8] = mat[6];
-
-    dest[7] = 0;
-    dest[6] = mat[5];
-    dest[5] = mat[4];
-    dest[4] = mat[3];
-
-    dest[3] = 0;
-    dest[2] = mat[2];
-    dest[1] = mat[1];
-    dest[0] = mat[0];
-
-    return dest;
-};
-
-
-/////
-
-
-PIXI.mat4.create = function()
-{
-    var matrix = new PIXI.Matrix(16);
-
-    matrix[0] = 1;
-    matrix[1] = 0;
-    matrix[2] = 0;
-    matrix[3] = 0;
-    matrix[4] = 0;
-    matrix[5] = 1;
-    matrix[6] = 0;
-    matrix[7] = 0;
-    matrix[8] = 0;
-    matrix[9] = 0;
-    matrix[10] = 1;
-    matrix[11] = 0;
-    matrix[12] = 0;
-    matrix[13] = 0;
-    matrix[14] = 0;
-    matrix[15] = 1;
-
-    return matrix;
-};
-
-PIXI.mat4.transpose = function (mat, dest)
-{
-    // If we are transposing ourselves we can skip a few steps but have to cache some values
-    if (!dest || mat === dest)
-    {
-        var a01 = mat[1], a02 = mat[2], a03 = mat[3],
-            a12 = mat[6], a13 = mat[7],
-            a23 = mat[11];
-
-        mat[1] = mat[4];
-        mat[2] = mat[8];
-        mat[3] = mat[12];
-        mat[4] = a01;
-        mat[6] = mat[9];
-        mat[7] = mat[13];
-        mat[8] = a02;
-        mat[9] = a12;
-        mat[11] = mat[14];
-        mat[12] = a03;
-        mat[13] = a13;
-        mat[14] = a23;
-        return mat;
-    }
-
-    dest[0] = mat[0];
-    dest[1] = mat[4];
-    dest[2] = mat[8];
-    dest[3] = mat[12];
-    dest[4] = mat[1];
-    dest[5] = mat[5];
-    dest[6] = mat[9];
-    dest[7] = mat[13];
-    dest[8] = mat[2];
-    dest[9] = mat[6];
-    dest[10] = mat[10];
-    dest[11] = mat[14];
-    dest[12] = mat[3];
-    dest[13] = mat[7];
-    dest[14] = mat[11];
-    dest[15] = mat[15];
-    return dest;
-};
-
-PIXI.mat4.multiply = function (mat, mat2, dest)
-{
-    if (!dest) { dest = mat; }
-
-    // Cache the matrix values (makes for huge speed increases!)
-    var a00 = mat[ 0], a01 = mat[ 1], a02 = mat[ 2], a03 = mat[3];
-    var a10 = mat[ 4], a11 = mat[ 5], a12 = mat[ 6], a13 = mat[7];
-    var a20 = mat[ 8], a21 = mat[ 9], a22 = mat[10], a23 = mat[11];
-    var a30 = mat[12], a31 = mat[13], a32 = mat[14], a33 = mat[15];
-
-    // Cache only the current line of the second matrix
-    var b0  = mat2[0], b1 = mat2[1], b2 = mat2[2], b3 = mat2[3];
-    dest[0] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-    dest[1] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-    dest[2] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-    dest[3] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-
-    b0 = mat2[4];
-    b1 = mat2[5];
-    b2 = mat2[6];
-    b3 = mat2[7];
-    dest[4] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-    dest[5] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-    dest[6] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-    dest[7] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-
-    b0 = mat2[8];
-    b1 = mat2[9];
-    b2 = mat2[10];
-    b3 = mat2[11];
-    dest[8] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-    dest[9] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-    dest[10] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-    dest[11] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-
-    b0 = mat2[12];
-    b1 = mat2[13];
-    b2 = mat2[14];
-    b3 = mat2[15];
-    dest[12] = b0*a00 + b1*a10 + b2*a20 + b3*a30;
-    dest[13] = b0*a01 + b1*a11 + b2*a21 + b3*a31;
-    dest[14] = b0*a02 + b1*a12 + b2*a22 + b3*a32;
-    dest[15] = b0*a03 + b1*a13 + b2*a23 + b3*a33;
-
-    return dest;
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-/**
- * The Point object represents a location in a two-dimensional coordinate system, where x represents the horizontal axis and y represents the vertical axis.
- *
- * @class Point
- * @constructor
- * @param x {Number} position of the point
- * @param y {Number} position of the point
- */
-PIXI.Point = function(x, y)
-{
-    /**
-     * @property x
-     * @type Number
-     * @default 0
-     */
-    this.x = x || 0;
+Phaser.Circle.prototype = {
 
     /**
-     * @property y
-     * @type Number
-     * @default 0
-     */
-    this.y = y || 0;
-};
-
-/**
- * Creates a clone of this point
- *
- * @method clone
- * @return {Point} a copy of the point
- */
-PIXI.Point.prototype.clone = function()
-{
-    return new PIXI.Point(this.x, this.y);
-};
-
-// constructor
-PIXI.Point.prototype.constructor = PIXI.Point;
-
-
-/**
- * @author Mat Groves http://matgroves.com/
- */
-
-/**
- * the Rectangle object is an area defined by its position, as indicated by its top-left corner point (x, y) and by its width and its height.
- *
- * @class Rectangle
- * @constructor
- * @param x {Number} The X coord of the upper-left corner of the rectangle
- * @param y {Number} The Y coord of the upper-left corner of the rectangle
- * @param width {Number} The overall width of this rectangle
- * @param height {Number} The overall height of this rectangle
- */
-PIXI.Rectangle = function(x, y, width, height)
-{
-    /**
-     * @property x
-     * @type Number
-     * @default 0
-     */
-    this.x = x || 0;
+    * The circumference of the circle.
+    * @method Phaser.Circle#circumference
+    * @return {number}
+    */
+    circumference: function () {
+        return 2 * (Math.PI * this._radius);
+    },
 
     /**
-     * @property y
-     * @type Number
-     * @default 0
-     */
-    this.y = y || 0;
+    * Sets the members of Circle to the specified values.
+    * @method Phaser.Circle#setTo
+    * @param {number} x - The x coordinate of the center of the circle.
+    * @param {number} y - The y coordinate of the center of the circle.
+    * @param {number} diameter - The diameter of the circle in pixels.
+    * @return {Circle} This circle object.
+    */
+    setTo: function (x, y, diameter) {
+
+        this.x = x;
+        this.y = y;
+        this._diameter = diameter;
+        this._radius = diameter * 0.5;
+
+        return this;
+
+    },
 
     /**
-     * @property width
-     * @type Number
-     * @default 0
-     */
-    this.width = width || 0;
+    * Copies the x, y and diameter properties from any given object to this Circle.
+    * @method Phaser.Circle#copyFrom
+    * @param {any} source - The object to copy from.
+    * @return {Circle} This Circle object.
+    */
+    copyFrom: function (source) {
+
+        return this.setTo(source.x, source.y, source.diameter);
+
+    },
 
     /**
-     * @property height
-     * @type Number
-     * @default 0
-     */
-    this.height = height || 0;
-};
+    * Copies the x, y and diameter properties from this Circle to any given object.
+    * @method Phaser.Circle#copyTo
+    * @param {any} dest - The object to copy to.
+    * @return {Object} This dest object.
+    */
+    copyTo: function (dest) {
 
-/**
- * Creates a clone of this Rectangle
- *
- * @method clone
- * @return {Rectangle} a copy of the rectangle
- */
-PIXI.Rectangle.prototype.clone = function()
-{
-    return new PIXI.Rectangle(this.x, this.y, this.width, this.height);
-};
+        dest.x = this.x;
+        dest.y = this.y;
+        dest.diameter = this._diameter;
 
-/**
- * Checks if the x, and y coords passed to this function are contained within this Rectangle
- *
- * @method contains
- * @param x {Number} The X coord of the point to test
- * @param y {Number} The Y coord of the point to test
- * @return {Boolean} if the x/y coords are within this Rectangle
- */
-PIXI.Rectangle.prototype.contains = function(x, y)
-{
-    if(this.width <= 0 || this.height <= 0)
-        return false;
+        return dest;
 
-    var x1 = this.x;
-    if(x >= x1 && x <= x1 + this.width)
-    {
-        var y1 = this.y;
+    },
 
-        if(y >= y1 && y <= y1 + this.height)
+    /**
+    * Returns the distance from the center of the Circle object to the given object
+    * (can be Circle, Point or anything with x/y properties)
+    * @method Phaser.Circle#distance
+    * @param {object} dest - The target object. Must have visible x and y properties that represent the center of the object.
+    * @param {boolean} [round] - Round the distance to the nearest integer (default false).
+    * @return {number} The distance between this Point object and the destination Point object.
+    */
+    distance: function (dest, round) {
+
+        if (typeof round === "undefined") { round = false }
+
+        if (round)
         {
-            return true;
+            return Phaser.Math.distanceRound(this.x, this.y, dest.x, dest.y);
+        }
+        else
+        {
+            return Phaser.Math.distance(this.x, this.y, dest.x, dest.y);
+        }
+
+    },
+
+    /**
+    * Returns a new Circle object with the same values for the x, y, width, and height properties as this Circle object.
+    * @method Phaser.Circle#clone
+    * @param {Phaser.Circle} out - Optional Circle object. If given the values will be set into the object, otherwise a brand new Circle object will be created and returned.
+    * @return {Phaser.Circle} The cloned Circle object.
+    */
+    clone: function (out) {
+
+        if (typeof out === "undefined")
+        {
+            out = new Phaser.Circle(this.x, this.y, this.diameter);
+        }
+        else
+        {
+            out.setTo(this.x, this.y, this.diameter);
+        }
+
+        return out;
+
+    },
+
+    /**
+    * Return true if the given x/y coordinates are within this Circle object.
+    * @method Phaser.Circle#contains
+    * @param {number} x - The X value of the coordinate to test.
+    * @param {number} y - The Y value of the coordinate to test.
+    * @return {boolean} True if the coordinates are within this circle, otherwise false.
+    */
+    contains: function (x, y) {
+
+        return Phaser.Circle.contains(this, x, y);
+
+    },
+
+    /**
+    * Returns a Point object containing the coordinates of a point on the circumference of the Circle based on the given angle.
+    * @method Phaser.Circle#circumferencePoint
+    * @param {number} angle - The angle in radians (unless asDegrees is true) to return the point from.
+    * @param {boolean} asDegrees - Is the given angle in radians (false) or degrees (true)?
+    * @param {Phaser.Point} [out] - An optional Point object to put the result in to. If none specified a new Point object will be created.
+    * @return {Phaser.Point} The Point object holding the result.
+    */
+    circumferencePoint: function (angle, asDegrees, out) {
+
+        return Phaser.Circle.circumferencePoint(this, angle, asDegrees, out);
+
+    },
+
+    /**
+    * Adjusts the location of the Circle object, as determined by its center coordinate, by the specified amounts.
+    * @method Phaser.Circle#offset
+    * @param {number} dx - Moves the x value of the Circle object by this amount.
+    * @param {number} dy - Moves the y value of the Circle object by this amount.
+    * @return {Circle} This Circle object.
+    */
+    offset: function (dx, dy) {
+
+        this.x += dx;
+        this.y += dy;
+
+        return this;
+
+    },
+
+    /**
+    * Adjusts the location of the Circle object using a Point object as a parameter. This method is similar to the Circle.offset() method, except that it takes a Point object as a parameter.
+    * @method Phaser.Circle#offsetPoint
+    * @param {Point} point A Point object to use to offset this Circle object (or any valid object with exposed x and y properties).
+    * @return {Circle} This Circle object.
+    */
+    offsetPoint: function (point) {
+        return this.offset(point.x, point.y);
+    },
+
+    /**
+    * Returns a string representation of this object.
+    * @method Phaser.Circle#toString
+    * @return {string} a string representation of the instance.
+    */
+    toString: function () {
+        return "[{Phaser.Circle (x=" + this.x + " y=" + this.y + " diameter=" + this.diameter + " radius=" + this.radius + ")}]";
+    }
+
+};
+
+Phaser.Circle.prototype.constructor = Phaser.Circle;
+
+/**
+* The largest distance between any two points on the circle. The same as the radius * 2.
+* @name Phaser.Circle#diameter
+* @property {number} diameter - Gets or sets the diameter of the circle.
+*/
+Object.defineProperty(Phaser.Circle.prototype, "diameter", {
+
+    get: function () {
+        return this._diameter;
+    },
+
+    set: function (value) {
+
+        if (value > 0)
+        {
+            this._diameter = value;
+            this._radius = value * 0.5;
         }
     }
 
-    return false;
+});
+
+/**
+* The length of a line extending from the center of the circle to any point on the circle itself. The same as half the diameter.
+* @name Phaser.Circle#radius
+* @property {number} radius - Gets or sets the radius of the circle.
+*/
+Object.defineProperty(Phaser.Circle.prototype, "radius", {
+    
+    get: function () {
+        return this._radius;
+    },
+
+    set: function (value) {
+
+        if (value > 0)
+        {
+            this._radius = value;
+            this._diameter = value * 2;
+        }
+
+    }
+
+});
+
+/**
+* The x coordinate of the leftmost point of the circle. Changing the left property of a Circle object has no effect on the x and y properties. However it does affect the diameter, whereas changing the x value does not affect the diameter property.
+* @name Phaser.Circle#left
+* @propety {number} left - Gets or sets the value of the leftmost point of the circle.
+*/
+Object.defineProperty(Phaser.Circle.prototype, "left", {
+    
+    get: function () {
+        return this.x - this._radius;
+    },
+
+    set: function (value) {
+
+        if (value > this.x)
+        {
+            this._radius = 0;
+            this._diameter = 0;
+        }
+        else
+        {
+            this.radius = this.x - value;
+        }
+
+    }
+
+});
+
+/**
+* The x coordinate of the rightmost point of the circle. Changing the right property of a Circle object has no effect on the x and y properties. However it does affect the diameter, whereas changing the x value does not affect the diameter property.
+* @name Phaser.Circle#right
+* @property {number} right - Gets or sets the value of the rightmost point of the circle.
+*/
+Object.defineProperty(Phaser.Circle.prototype, "right", {
+
+    get: function () {
+        return this.x + this._radius;
+    },
+
+    set: function (value) {
+
+        if (value < this.x)
+        {
+            this._radius = 0;
+            this._diameter = 0;
+        }
+        else
+        {
+            this.radius = value - this.x;
+        }
+
+    }
+
+});
+
+/**
+* The sum of the y minus the radius property. Changing the top property of a Circle object has no effect on the x and y properties, but does change the diameter.
+* @name Phaser.Circle#top
+* @property {number} top - Gets or sets the top of the circle.
+*/
+Object.defineProperty(Phaser.Circle.prototype, "top", {
+
+    get: function () {
+        return this.y - this._radius;
+    },
+    
+    set: function (value) {
+
+        if (value > this.y)
+        {
+            this._radius = 0;
+            this._diameter = 0;
+        }
+        else
+        {
+            this.radius = this.y - value;
+        }
+
+    }
+
+});
+
+/**
+* The sum of the y and radius properties. Changing the bottom property of a Circle object has no effect on the x and y properties, but does change the diameter.
+* @name Phaser.Circle#bottom
+* @property {number} bottom - Gets or sets the bottom of the circle.
+*/
+Object.defineProperty(Phaser.Circle.prototype, "bottom", {
+
+    get: function () {
+        return this.y + this._radius;
+    },
+
+    set: function (value) {
+
+        if (value < this.y)
+        {
+            this._radius = 0;
+            this._diameter = 0;
+        }
+        else
+        {
+            this.radius = value - this.y;
+        }
+
+    }
+
+});
+
+/**
+* The area of this Circle.
+* @name Phaser.Circle#area
+* @property {number} area - The area of this circle.
+* @readonly
+*/
+Object.defineProperty(Phaser.Circle.prototype, "area", {
+
+    get: function () {
+
+        if (this._radius > 0)
+        {
+            return Math.PI * this._radius * this._radius;
+        }
+        else
+        {
+            return 0;
+        }
+
+    }
+
+});
+
+/**
+* Determines whether or not this Circle object is empty. Will return a value of true if the Circle objects diameter is less than or equal to 0; otherwise false.
+* If set to true it will reset all of the Circle objects properties to 0. A Circle object is empty if its diameter is less than or equal to 0.
+* @name Phaser.Circle#empty
+* @property {boolean} empty - Gets or sets the empty state of the circle.
+*/
+Object.defineProperty(Phaser.Circle.prototype, "empty", {
+
+    get: function () {
+        return (this._diameter === 0);
+    },
+
+    set: function (value) {
+
+        if (value === true)
+        {
+            this.setTo(0, 0, 0);
+        }
+
+    }
+
+});
+
+/**
+* Return true if the given x/y coordinates are within the Circle object.
+* @method Phaser.Circle.contains
+* @param {Phaser.Circle} a - The Circle to be checked.
+* @param {number} x - The X value of the coordinate to test.
+* @param {number} y - The Y value of the coordinate to test.
+* @return {boolean} True if the coordinates are within this circle, otherwise false.
+*/
+Phaser.Circle.contains = function (a, x, y) {
+
+    //  Check if x/y are within the bounds first
+    if (a.radius > 0 && x >= a.left && x <= a.right && y >= a.top && y <= a.bottom)
+    {
+        var dx = (a.x - x) * (a.x - x);
+        var dy = (a.y - y) * (a.y - y);
+
+        return (dx + dy) <= (a.radius * a.radius);
+    }
+    else
+    {
+        return false;
+    }
+
 };
 
-// constructor
-PIXI.Rectangle.prototype.constructor = PIXI.Rectangle;
-
+/**
+* Determines whether the two Circle objects match. This method compares the x, y and diameter properties.
+* @method Phaser.Circle.equals
+* @param {Phaser.Circle} a - The first Circle object.
+* @param {Phaser.Circle} b - The second Circle object.
+* @return {boolean} A value of true if the object has exactly the same values for the x, y and diameter properties as this Circle object; otherwise false.
+*/
+Phaser.Circle.equals = function (a, b) {
+    return (a.x == b.x && a.y == b.y && a.diameter == b.diameter);
+};
 
 /**
- * @author Adrien Brault <adrien.brault@gmail.com>
- */
+* Determines whether the two Circle objects intersect.
+* This method checks the radius distances between the two Circle objects to see if they intersect.
+* @method Phaser.Circle.intersects
+* @param {Phaser.Circle} a - The first Circle object.
+* @param {Phaser.Circle} b - The second Circle object.
+* @return {boolean} A value of true if the specified object intersects with this Circle object; otherwise false.
+*/
+Phaser.Circle.intersects = function (a, b) {
+    return (Phaser.Math.distance(a.x, a.y, b.x, b.y) <= (a.radius + b.radius));
+};
 
 /**
- * @class Polygon
- * @constructor
- * @param points* {Array<Point>|Array<Number>|Point...|Number...} This can be an array of Points that form the polygon,
- *      a flat array of numbers that will be interpreted as [x,y, x,y, ...], or the arguments passed can be
- *      all the points of the polygon e.g. `new PIXI.Polygon(new PIXI.Point(), new PIXI.Point(), ...)`, or the
- *      arguments passed can be flat x,y values e.g. `new PIXI.Polygon(x,y, x,y, x,y, ...)` where `x` and `y` are
- *      Numbers.
- */
-PIXI.Polygon = function(points)
-{
+* Returns a Point object containing the coordinates of a point on the circumference of the Circle based on the given angle.
+* @method Phaser.Circle.circumferencePoint
+* @param {Phaser.Circle} a - The first Circle object.
+* @param {number} angle - The angle in radians (unless asDegrees is true) to return the point from.
+* @param {boolean} asDegrees - Is the given angle in radians (false) or degrees (true)?
+* @param {Phaser.Point} [out] - An optional Point object to put the result in to. If none specified a new Point object will be created.
+* @return {Phaser.Point} The Point object holding the result.
+*/
+Phaser.Circle.circumferencePoint = function (a, angle, asDegrees, out) {
+
+    if (typeof asDegrees === "undefined") { asDegrees = false; }
+    if (typeof out === "undefined") { out = new Phaser.Point(); }
+
+    if (asDegrees === true)
+    {
+        angle = Phaser.Math.radToDeg(angle);
+    }
+
+    out.x = a.x + a.radius * Math.cos(angle);
+    out.y = a.y + a.radius * Math.sin(angle);
+
+    return out;
+
+};
+
+/**
+* Checks if the given Circle and Rectangle objects intersect.
+* @method Phaser.Circle.intersectsRectangle
+* @param {Phaser.Circle} c - The Circle object to test.
+* @param {Phaser.Rectangle} r - The Rectangle object to test.
+* @return {boolean} True if the two objects intersect, otherwise false.
+*/
+Phaser.Circle.intersectsRectangle = function (c, r) {
+
+    var cx = Math.abs(c.x - r.x - r.halfWidth);
+    var xDist = r.halfWidth + c.radius;
+
+    if (cx > xDist)
+    {
+        return false;
+    }
+
+    var cy = Math.abs(c.y - r.y - r.halfHeight);
+    var yDist = r.halfHeight + c.radius;
+
+    if (cy > yDist)
+    {
+        return false;
+    }
+
+    if (cx <= r.halfWidth || cy <= r.halfHeight)
+    {
+        return true;
+    }
+
+    var xCornerDist = cx - r.halfWidth;
+    var yCornerDist = cy - r.halfHeight;
+    var xCornerDistSq = xCornerDist * xCornerDist;
+    var yCornerDistSq = yCornerDist * yCornerDist;
+    var maxCornerDistSq = c.radius * c.radius;
+
+    return xCornerDistSq + yCornerDistSq <= maxCornerDistSq;
+
+};
+
+//   Because PIXI uses its own Circle, we'll replace it with ours to avoid duplicating code or confusion.
+PIXI.Circle = Phaser.Circle;
+
+/**
+* @author       Richard Davey <rich@photonstorm.com>
+* @copyright    2014 Photon Storm Ltd.
+* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
+*/
+
+/**
+* Creates a new Point. If you pass no parameters a Point is created set to (0,0).
+* @class Phaser.Point
+* @classdesc The Point object represents a location in a two-dimensional coordinate system, where x represents the horizontal axis and y represents the vertical axis.
+* @constructor
+* @param {number} x The horizontal position of this Point (default 0)
+* @param {number} y The vertical position of this Point (default 0)
+*/
+Phaser.Point = function (x, y) {
+
+    x = x || 0;
+    y = y || 0;
+
+    /**
+    * @property {number} x - The x coordinate of the point.
+    */
+    this.x = x;
+    
+    /**
+    * @property {number} y - The y coordinate of the point.
+    */
+    this.y = y;
+
+};
+
+Phaser.Point.prototype = {
+
+    /**
+    * Copies the x and y properties from any given object to this Point.
+    * @method Phaser.Point#copyFrom
+    * @param {any} source - The object to copy from.
+    * @return {Point} This Point object.
+    */
+    copyFrom: function (source) {
+        return this.setTo(source.x, source.y);
+    },
+
+    /**
+    * Inverts the x and y values of this Point
+    * @method Phaser.Point#invert
+    * @return {Point} This Point object.
+    */
+    invert: function () {
+        return this.setTo(this.y, this.x);
+    },
+
+    /**
+    * Sets the x and y values of this Point object to the given coordinates.
+    * @method Phaser.Point#setTo
+    * @param {number} x - The horizontal position of this point.
+    * @param {number} y - The vertical position of this point.
+    * @return {Point} This Point object. Useful for chaining method calls.
+    */
+    setTo: function (x, y) {
+
+        this.x = x || 0;
+        this.y = y || ( (y !== 0) ? this.x : 0 );
+
+        return this;
+        
+    },
+
+    /**
+    * Sets the x and y values of this Point object to the given coordinates.
+    * @method Phaser.Point#set
+    * @param {number} x - The horizontal position of this point.
+    * @param {number} y - The vertical position of this point.
+    * @return {Point} This Point object. Useful for chaining method calls.
+    */
+    set: function (x, y) {
+
+        this.x = x || 0;
+        this.y = y || ( (y !== 0) ? this.x : 0 );
+
+        return this;
+        
+    },
+
+    /**
+    * Adds the given x and y values to this Point.
+    * @method Phaser.Point#add
+    * @param {number} x - The value to add to Point.x.
+    * @param {number} y - The value to add to Point.y.
+    * @return {Phaser.Point} This Point object. Useful for chaining method calls.
+    */
+    add: function (x, y) {
+
+        this.x += x;
+        this.y += y;
+        return this;
+
+    },
+
+    /**
+    * Subtracts the given x and y values from this Point.
+    * @method Phaser.Point#subtract
+    * @param {number} x - The value to subtract from Point.x.
+    * @param {number} y - The value to subtract from Point.y.
+    * @return {Phaser.Point} This Point object. Useful for chaining method calls.
+    */
+    subtract: function (x, y) {
+
+        this.x -= x;
+        this.y -= y;
+        return this;
+
+    },
+
+    /**
+    * Multiplies Point.x and Point.y by the given x and y values.
+    * @method Phaser.Point#multiply
+    * @param {number} x - The value to multiply Point.x by.
+    * @param {number} y - The value to multiply Point.x by.
+    * @return {Phaser.Point} This Point object. Useful for chaining method calls.
+    */
+    multiply: function (x, y) {
+
+        this.x *= x;
+        this.y *= y;
+        return this;
+
+    },
+
+    /**
+    * Divides Point.x and Point.y by the given x and y values.
+    * @method Phaser.Point#divide
+    * @param {number} x - The value to divide Point.x by.
+    * @param {number} y - The value to divide Point.x by.
+    * @return {Phaser.Point} This Point object. Useful for chaining method calls.
+    */
+    divide: function (x, y) {
+
+        this.x /= x;
+        this.y /= y;
+        return this;
+
+    },
+
+    /**
+    * Clamps the x value of this Point to be between the given min and max.
+    * @method Phaser.Point#clampX
+    * @param {number} min - The minimum value to clamp this Point to.
+    * @param {number} max - The maximum value to clamp this Point to.
+    * @return {Phaser.Point} This Point object.
+    */
+    clampX: function (min, max) {
+
+        this.x = Phaser.Math.clamp(this.x, min, max);
+        return this;
+        
+    },
+
+    /**
+    * Clamps the y value of this Point to be between the given min and max
+    * @method Phaser.Point#clampY
+    * @param {number} min - The minimum value to clamp this Point to.
+    * @param {number} max - The maximum value to clamp this Point to.
+    * @return {Phaser.Point} This Point object.
+    */
+    clampY: function (min, max) {
+
+        this.y = Phaser.Math.clamp(this.y, min, max);
+        return this;
+        
+    },
+
+    /**
+    * Clamps this Point object values to be between the given min and max.
+    * @method Phaser.Point#clamp
+    * @param {number} min - The minimum value to clamp this Point to.
+    * @param {number} max - The maximum value to clamp this Point to.
+    * @return {Phaser.Point} This Point object.
+    */
+    clamp: function (min, max) {
+
+        this.x = Phaser.Math.clamp(this.x, min, max);
+        this.y = Phaser.Math.clamp(this.y, min, max);
+        return this;
+
+    },
+
+    /**
+    * Creates a copy of the given Point.
+    * @method Phaser.Point#clone
+    * @param {Phaser.Point} [output] Optional Point object. If given the values will be set into this object, otherwise a brand new Point object will be created and returned.
+    * @return {Phaser.Point} The new Point object.
+    */
+    clone: function (output) {
+
+        if (typeof output === "undefined")
+        {
+            output = new Phaser.Point(this.x, this.y);
+        }
+        else
+        {
+            output.setTo(this.x, this.y);
+        }
+
+        return output;
+
+    },
+
+    /**
+    * Copies the x and y properties from this Point to any given object.
+    * @method Phaser.Point#copyTo
+    * @param {any} dest - The object to copy to.
+    * @return {Object} The dest object.
+    */
+    copyTo: function(dest) {
+
+        dest.x = this.x;
+        dest.y = this.y;
+
+        return dest;
+
+    },
+
+    /**
+    * Returns the distance of this Point object to the given object (can be a Circle, Point or anything with x/y properties)
+    * @method Phaser.Point#distance
+    * @param {object} dest - The target object. Must have visible x and y properties that represent the center of the object.
+    * @param {boolean} [round] - Round the distance to the nearest integer (default false).
+    * @return {number} The distance between this Point object and the destination Point object.
+    */
+    distance: function (dest, round) {
+        return Phaser.Point.distance(this, dest, round);
+    },
+
+    /**
+    * Determines whether the given objects x/y values are equal to this Point object.
+    * @method Phaser.Point#equals
+    * @param {Phaser.Point} a - The first object to compare.
+    * @return {boolean} A value of true if the Points are equal, otherwise false.
+    */
+    equals: function (a) {
+        return (a.x == this.x && a.y == this.y);
+    },
+
+    /**
+    * Rotates this Point around the x/y coordinates given to the desired angle.
+    * @method Phaser.Point#rotate
+    * @param {number} x - The x coordinate of the anchor point
+    * @param {number} y - The y coordinate of the anchor point
+    * @param {number} angle - The angle in radians (unless asDegrees is true) to rotate the Point to.
+    * @param {boolean} asDegrees - Is the given rotation in radians (false) or degrees (true)?
+    * @param {number} [distance] - An optional distance constraint between the Point and the anchor.
+    * @return {Phaser.Point} The modified point object.
+    */
+    rotate: function (x, y, angle, asDegrees, distance) {
+        return Phaser.Point.rotate(this, x, y, angle, asDegrees, distance);
+    },
+
+    /**
+    * Calculates the length of the vector
+    * @method Phaser.Point#getMagnitude
+    * @return {number} the length of the vector
+    */
+    getMagnitude: function() {
+        return Math.sqrt((this.x * this.x) + (this.y * this.y));
+    },
+
+    /**
+    * Alters the length of the vector without changing the direction
+    * @method Phaser.Point#getMagnitude
+    * @param {number} magnitude the desired magnitude of the resulting vector
+    * @return {Phaser.Point} the modified original vector
+    */
+    setMagnitude: function(magnitude) {
+        return this.normalize().multiply(magnitude, magnitude);
+    },
+
+    /**
+    * Alters the vector so that its length is 1, but it retains the same direction
+    * @method Phaser.Point#normalize
+    * @return {Phaser.Point} the modified original vector
+    */
+    normalize: function() {
+
+        if(!this.isZero()) {
+            var m = this.getMagnitude();
+            this.x /= m;
+            this.y /= m;
+        }
+
+        return this;
+
+    },
+
+    /**
+    * Determine if this point is at 0,0
+    * @method Phaser.Point#isZero
+    * @return {boolean} True if this Point is 0,0, otherwise false
+    */
+    isZero: function() {
+        return (this.x === 0 && this.y === 0);
+    },
+
+    /**
+    * Returns a string representation of this object.
+    * @method Phaser.Point#toString
+    * @return {string} A string representation of the instance.
+    */
+    toString: function () {
+        return '[{Point (x=' + this.x + ' y=' + this.y + ')}]';
+    }
+
+};
+
+Phaser.Point.prototype.constructor = Phaser.Point;
+
+/**
+* Adds the coordinates of two points together to create a new point.
+* @method Phaser.Point.add
+* @param {Phaser.Point} a - The first Point object.
+* @param {Phaser.Point} b - The second Point object.
+* @param {Phaser.Point} [out] - Optional Point to store the value in, if not supplied a new Point object will be created.
+* @return {Phaser.Point} The new Point object.
+*/
+Phaser.Point.add = function (a, b, out) {
+
+    if (typeof out === "undefined") { out = new Phaser.Point(); }
+
+    out.x = a.x + b.x;
+    out.y = a.y + b.y;
+
+    return out;
+
+};
+
+/**
+* Subtracts the coordinates of two points to create a new point.
+* @method Phaser.Point.subtract
+* @param {Phaser.Point} a - The first Point object.
+* @param {Phaser.Point} b - The second Point object.
+* @param {Phaser.Point} [out] - Optional Point to store the value in, if not supplied a new Point object will be created.
+* @return {Phaser.Point} The new Point object.
+*/
+Phaser.Point.subtract = function (a, b, out) {
+
+    if (typeof out === "undefined") { out = new Phaser.Point(); }
+
+    out.x = a.x - b.x;
+    out.y = a.y - b.y;
+
+    return out;
+
+};
+
+/**
+* Multiplies the coordinates of two points to create a new point.
+* @method Phaser.Point.multiply
+* @param {Phaser.Point} a - The first Point object.
+* @param {Phaser.Point} b - The second Point object.
+* @param {Phaser.Point} [out] - Optional Point to store the value in, if not supplied a new Point object will be created.
+* @return {Phaser.Point} The new Point object.
+*/
+Phaser.Point.multiply = function (a, b, out) {
+
+    if (typeof out === "undefined") { out = new Phaser.Point(); }
+
+    out.x = a.x * b.x;
+    out.y = a.y * b.y;
+
+    return out;
+
+};
+
+/**
+* Divides the coordinates of two points to create a new point.
+* @method Phaser.Point.divide
+* @param {Phaser.Point} a - The first Point object.
+* @param {Phaser.Point} b - The second Point object.
+* @param {Phaser.Point} [out] - Optional Point to store the value in, if not supplied a new Point object will be created.
+* @return {Phaser.Point} The new Point object.
+*/
+Phaser.Point.divide = function (a, b, out) {
+
+    if (typeof out === "undefined") { out = new Phaser.Point(); }
+
+    out.x = a.x / b.x;
+    out.y = a.y / b.y;
+
+    return out;
+
+};
+
+/**
+* Determines whether the two given Point objects are equal. They are considered equal if they have the same x and y values.
+* @method Phaser.Point.equals
+* @param {Phaser.Point} a - The first Point object.
+* @param {Phaser.Point} b - The second Point object.
+* @return {boolean} A value of true if the Points are equal, otherwise false.
+*/
+Phaser.Point.equals = function (a, b) {
+    return (a.x == b.x && a.y == b.y);
+};
+
+/**
+* Returns the distance of this Point object to the given object (can be a Circle, Point or anything with x/y properties).
+* @method Phaser.Point.distance
+* @param {object} a - The target object. Must have visible x and y properties that represent the center of the object.
+* @param {object} b - The target object. Must have visible x and y properties that represent the center of the object.
+* @param {boolean} [round] - Round the distance to the nearest integer (default false).
+* @return {number} The distance between this Point object and the destination Point object.
+*/
+Phaser.Point.distance = function (a, b, round) {
+
+    if (typeof round === "undefined") { round = false }
+
+    if (round)
+    {
+        return Phaser.Math.distanceRound(a.x, a.y, b.x, b.y);
+    }
+    else
+    {
+        return Phaser.Math.distance(a.x, a.y, b.x, b.y);
+    }
+
+};
+
+/**
+* Rotates a Point around the x/y coordinates given to the desired angle.
+* @method Phaser.Point.rotate
+* @param {Phaser.Point} a - The Point object to rotate.
+* @param {number} x - The x coordinate of the anchor point
+* @param {number} y - The y coordinate of the anchor point
+* @param {number} angle - The angle in radians (unless asDegrees is true) to rotate the Point to.
+* @param {boolean} asDegrees - Is the given rotation in radians (false) or degrees (true)?
+* @param {number} distance - An optional distance constraint between the Point and the anchor.
+* @return {Phaser.Point} The modified point object.
+*/
+Phaser.Point.rotate = function (a, x, y, angle, asDegrees, distance) {
+
+    asDegrees = asDegrees || false;
+    distance = distance || null;
+
+    if (asDegrees)
+    {
+        angle = Phaser.Math.degToRad(angle);
+    }
+
+    //  Get distance from origin (cx/cy) to this point
+    if (distance === null)
+    {
+        distance = Math.sqrt(((x - a.x) * (x - a.x)) + ((y - a.y) * (y - a.y)));
+    }
+
+    return a.setTo(x + distance * Math.cos(angle), y + distance * Math.sin(angle));
+
+};
+
+//   Because PIXI uses its own Point, we'll replace it with ours to avoid duplicating code or confusion.
+PIXI.Point = Phaser.Point;
+
+/**
+* @author       Richard Davey <rich@photonstorm.com>
+* @copyright    2014 Photon Storm Ltd.
+* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
+*/
+
+/**
+* Creates a new Rectangle object with the top-left corner specified by the x and y parameters and with the specified width and height parameters. If you call this function without parameters, a Rectangle with x, y, width, and height properties set to 0 is created.
+*
+* @class Phaser.Rectangle
+* @constructor
+* @param {number} x - The x coordinate of the top-left corner of the Rectangle.
+* @param {number} y - The y coordinate of the top-left corner of the Rectangle.
+* @param {number} width - The width of the Rectangle.
+* @param {number} height - The height of the Rectangle.
+* @return {Phaser.Rectangle} This Rectangle object.
+*/
+Phaser.Rectangle = function (x, y, width, height) {
+
+    x = x || 0;
+    y = y || 0;
+    width = width || 0;
+    height = height || 0;
+
+    /**
+    * @property {number} x - The x coordinate of the top-left corner of the Rectangle.
+    */
+    this.x = x;
+    
+    /**
+    * @property {number} y - The y coordinate of the top-left corner of the Rectangle.
+    */
+    this.y = y;
+    
+    /**
+    * @property {number} width - The width of the Rectangle.
+    */
+    this.width = width;
+    
+    /**
+    * @property {number} height - The height of the Rectangle.
+    */
+    this.height = height;
+
+};
+
+Phaser.Rectangle.prototype = {
+
+    /**
+    * Adjusts the location of the Rectangle object, as determined by its top-left corner, by the specified amounts.
+    * @method Phaser.Rectangle#offset
+    * @param {number} dx - Moves the x value of the Rectangle object by this amount.
+    * @param {number} dy - Moves the y value of the Rectangle object by this amount.
+    * @return {Phaser.Rectangle} This Rectangle object.
+    */
+    offset: function (dx, dy) {
+
+        this.x += dx;
+        this.y += dy;
+
+        return this;
+
+    },
+ 
+    /**
+    * Adjusts the location of the Rectangle object using a Point object as a parameter. This method is similar to the Rectangle.offset() method, except that it takes a Point object as a parameter.
+    * @method Phaser.Rectangle#offsetPoint
+    * @param {Phaser.Point} point - A Point object to use to offset this Rectangle object.
+    * @return {Phaser.Rectangle} This Rectangle object.
+    */
+    offsetPoint: function (point) {
+
+        return this.offset(point.x, point.y);
+
+    },
+ 
+    /**
+    * Sets the members of Rectangle to the specified values.
+    * @method Phaser.Rectangle#setTo
+    * @param {number} x - The x coordinate of the top-left corner of the Rectangle.
+    * @param {number} y - The y coordinate of the top-left corner of the Rectangle.
+    * @param {number} width - The width of the Rectangle in pixels.
+    * @param {number} height - The height of the Rectangle in pixels.
+    * @return {Phaser.Rectangle} This Rectangle object
+    */
+    setTo: function (x, y, width, height) {
+
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+
+        return this;
+
+    },
+
+    /**
+    * Runs Math.floor() on both the x and y values of this Rectangle.
+    * @method Phaser.Rectangle#floor
+    */
+    floor: function () {
+
+        this.x = Math.floor(this.x);
+        this.y = Math.floor(this.y);
+
+    },
+ 
+    /**
+    * Runs Math.floor() on the x, y, width and height values of this Rectangle.
+    * @method Phaser.Rectangle#floorAll
+    */
+    floorAll: function () {
+
+        this.x = Math.floor(this.x);
+        this.y = Math.floor(this.y);
+        this.width = Math.floor(this.width);
+        this.height = Math.floor(this.height);
+
+    },
+
+    /**
+    * Copies the x, y, width and height properties from any given object to this Rectangle.
+    * @method Phaser.Rectangle#copyFrom
+    * @param {any} source - The object to copy from.
+    * @return {Phaser.Rectangle} This Rectangle object.
+    */
+    copyFrom: function (source) {
+
+        return this.setTo(source.x, source.y, source.width, source.height);
+
+    },
+
+    /**
+    * Copies the x, y, width and height properties from this Rectangle to any given object.
+    * @method Phaser.Rectangle#copyTo
+    * @param {any} source - The object to copy to.
+    * @return {object} This object.
+    */
+    copyTo: function (dest) {
+
+        dest.x = this.x;
+        dest.y = this.y;
+        dest.width = this.width;
+        dest.height = this.height;
+
+        return dest;
+
+    },
+
+    /**
+    * Increases the size of the Rectangle object by the specified amounts. The center point of the Rectangle object stays the same, and its size increases to the left and right by the dx value, and to the top and the bottom by the dy value.
+    * @method Phaser.Rectangle#inflate
+    * @param {number} dx - The amount to be added to the left side of the Rectangle.
+    * @param {number} dy - The amount to be added to the bottom side of the Rectangle.
+    * @return {Phaser.Rectangle} This Rectangle object.
+    */
+    inflate: function (dx, dy) {
+
+        return Phaser.Rectangle.inflate(this, dx, dy);
+
+    },
+
+    /**
+    * The size of the Rectangle object, expressed as a Point object with the values of the width and height properties.
+    * @method Phaser.Rectangle#size
+    * @param {Phaser.Point} [output] - Optional Point object. If given the values will be set into the object, otherwise a brand new Point object will be created and returned.
+    * @return {Phaser.Point} The size of the Rectangle object.
+    */
+    size: function (output) {
+
+        return Phaser.Rectangle.size(this, output);
+
+    },
+
+    /**
+    * Returns a new Rectangle object with the same values for the x, y, width, and height properties as the original Rectangle object.
+    * @method Phaser.Rectangle#clone
+    * @param {Phaser.Rectangle} [output] - Optional Rectangle object. If given the values will be set into the object, otherwise a brand new Rectangle object will be created and returned.
+    * @return {Phaser.Rectangle} 
+    */
+    clone: function (output) {
+
+        return Phaser.Rectangle.clone(this, output);
+
+    },
+
+    /**
+    * Determines whether the specified coordinates are contained within the region defined by this Rectangle object.
+    * @method Phaser.Rectangle#contains
+    * @param {number} x - The x coordinate of the point to test.
+    * @param {number} y - The y coordinate of the point to test.
+    * @return {boolean} A value of true if the Rectangle object contains the specified point; otherwise false.
+    */
+    contains: function (x, y) {
+
+        return Phaser.Rectangle.contains(this, x, y);
+
+    },
+
+    /**
+    * Determines whether the first Rectangle object is fully contained within the second Rectangle object.
+    * A Rectangle object is said to contain another if the second Rectangle object falls entirely within the boundaries of the first.
+    * @method Phaser.Rectangle#containsRect
+    * @param {Phaser.Rectangle} b - The second Rectangle object.
+    * @return {boolean} A value of true if the Rectangle object contains the specified point; otherwise false.
+    */
+    containsRect: function (b) {
+
+        return Phaser.Rectangle.containsRect(this, b);
+
+    },
+
+    /**
+    * Determines whether the two Rectangles are equal.
+    * This method compares the x, y, width and height properties of each Rectangle.
+    * @method Phaser.Rectangle#equals
+    * @param {Phaser.Rectangle} b - The second Rectangle object.
+    * @return {boolean} A value of true if the two Rectangles have exactly the same values for the x, y, width and height properties; otherwise false.
+    */
+    equals: function (b) {
+
+        return Phaser.Rectangle.equals(this, b);
+
+    },
+
+    /**
+    * If the Rectangle object specified in the toIntersect parameter intersects with this Rectangle object, returns the area of intersection as a Rectangle object. If the Rectangles do not intersect, this method returns an empty Rectangle object with its properties set to 0.
+    * @method Phaser.Rectangle#intersection
+    * @param {Phaser.Rectangle} b - The second Rectangle object.
+    * @param {Phaser.Rectangle} out - Optional Rectangle object. If given the intersection values will be set into this object, otherwise a brand new Rectangle object will be created and returned.
+    * @return {Phaser.Rectangle} A Rectangle object that equals the area of intersection. If the Rectangles do not intersect, this method returns an empty Rectangle object; that is, a Rectangle with its x, y, width, and height properties set to 0.
+    */
+    intersection: function (b, out) {
+
+        return Phaser.Rectangle.intersection(this, b, out);
+
+    },
+
+    /**
+    * Determines whether the two Rectangles intersect with each other.
+    * This method checks the x, y, width, and height properties of the Rectangles.
+    * @method Phaser.Rectangle#intersects
+    * @param {Phaser.Rectangle} b - The second Rectangle object.
+    * @param {number} tolerance - A tolerance value to allow for an intersection test with padding, default to 0.
+    * @return {boolean} A value of true if the specified object intersects with this Rectangle object; otherwise false.
+    */
+    intersects: function (b, tolerance) {
+
+        return Phaser.Rectangle.intersects(this, b, tolerance);
+
+    },
+
+    /**
+    * Determines whether the object specified intersects (overlaps) with the given values.
+    * @method Phaser.Rectangle#intersectsRaw
+    * @param {number} left - Description.
+    * @param {number} right - Description.
+    * @param {number} top - Description.
+    * @param {number} bottomt - Description.
+    * @param {number} tolerance - A tolerance value to allow for an intersection test with padding, default to 0
+    * @return {boolean} A value of true if the specified object intersects with the Rectangle; otherwise false.
+    */
+    intersectsRaw: function (left, right, top, bottom, tolerance) {
+
+        return Phaser.Rectangle.intersectsRaw(this, left, right, top, bottom, tolerance);
+
+    },
+
+    /**
+    * Adds two Rectangles together to create a new Rectangle object, by filling in the horizontal and vertical space between the two Rectangles.
+    * @method Phaser.Rectangle#union
+    * @param {Phaser.Rectangle} b - The second Rectangle object.
+    * @param {Phaser.Rectangle} [out] - Optional Rectangle object. If given the new values will be set into this object, otherwise a brand new Rectangle object will be created and returned.
+    * @return {Phaser.Rectangle} A Rectangle object that is the union of the two Rectangles.
+    */
+    union: function (b, out) {
+
+        return Phaser.Rectangle.union(this, b, out);
+
+    },
+
+    /**
+    * Returns a string representation of this object.
+    * @method Phaser.Rectangle#toString
+    * @return {string} A string representation of the instance.
+    */
+    toString: function () {
+
+        return "[{Rectangle (x=" + this.x + " y=" + this.y + " width=" + this.width + " height=" + this.height + " empty=" + this.empty + ")}]";
+
+    },
+
+    /**
+    * @name Phaser.Rectangle#halfWidth
+    * @property {number} halfWidth - Half of the width of the Rectangle.
+    * @readonly
+    */
+    get halfWidth() {
+
+        return Math.round(this.width / 2);
+
+    },
+
+    /**
+    * @name Phaser.Rectangle#halfHeight
+    * @property {number} halfHeight - Half of the height of the Rectangle.
+    * @readonly
+    */
+    get halfHeight() {
+
+        return Math.round(this.height / 2);
+
+    },
+
+    /**
+    * The sum of the y and height properties. Changing the bottom property of a Rectangle object has no effect on the x, y and width properties, but does change the height property.
+    * @name Phaser.Rectangle#bottom
+    * @property {number} bottom - The sum of the y and height properties.
+    */
+    get bottom() {
+
+        return this.y + this.height;
+
+    },
+  
+    set bottom(value) {
+
+        if (value <= this.y)
+        {
+            this.height = 0;
+        }
+        else
+        {
+            this.height = (this.y - value);
+        }
+    },
+
+    /**
+    * The location of the Rectangles bottom right corner as a Point object.
+    * @name Phaser.Rectangle#bottomRight
+    * @property {Phaser.Point} bottomRight - Gets or sets the location of the Rectangles bottom right corner as a Point object.
+    */
+    get bottomRight() {
+
+        return new Phaser.Point(this.right, this.bottom);
+    },
+
+
+    set bottomRight(value) {
+
+        this.right = value.x;
+        this.bottom = value.y;
+
+    },
+
+    /**
+    * The x coordinate of the left of the Rectangle. Changing the left property of a Rectangle object has no effect on the y and height properties. However it does affect the width property, whereas changing the x value does not affect the width property.
+    * @name Phaser.Rectangle#left
+    * @property {number} left - The x coordinate of the left of the Rectangle.
+    */
+    get left() {
+
+        return this.x;
+
+    },
+
+    set left(value) {
+
+        if (value >= this.right)
+        {
+            this.width = 0;
+        }
+        else
+        {
+            this.width = this.right - value;
+        }
+
+        this.x = value;
+    },
+
+    /**
+    * The sum of the x and width properties. Changing the right property of a Rectangle object has no effect on the x, y and height properties, however it does affect the width property.
+    * @name Phaser.Rectangle#right
+    * @property {number} right - The sum of the x and width properties.
+    */
+    get right() {
+
+        return this.x + this.width;
+
+    },
+
+    set right(value) {
+
+        if (value <= this.x)
+        {
+            this.width = 0;
+        }
+        else
+        {
+            this.width = this.x + value;
+        }
+
+    },
+
+    /**
+    * The volume of the Rectangle derived from width * height.
+    * @name Phaser.Rectangle#volume
+    * @property {number} volume - The volume of the Rectangle derived from width * height.
+    * @readonly
+    */
+    get volume() {
+
+        return this.width * this.height;
+
+    },
+
+    /**
+    * The perimeter size of the Rectangle. This is the sum of all 4 sides.
+    * @name Phaser.Rectangle#perimeter
+    * @property {number} perimeter - The perimeter size of the Rectangle. This is the sum of all 4 sides.
+    * @readonly
+    */
+    get perimeter() {
+
+        return (this.width * 2) + (this.height * 2);
+
+    },
+
+    /**
+    * The x coordinate of the center of the Rectangle.
+    * @name Phaser.Rectangle#centerX
+    * @property {number} centerX - The x coordinate of the center of the Rectangle.
+    */
+    get centerX() {
+
+        return this.x + this.halfWidth;
+
+    },
+
+    set centerX(value) {
+
+        this.x = value - this.halfWidth;
+
+    },
+
+    /**
+    * The y coordinate of the center of the Rectangle.
+    * @name Phaser.Rectangle#centerY
+    * @property {number} centerY - The y coordinate of the center of the Rectangle.
+    */
+    get centerY() {
+
+        return this.y + this.halfHeight;
+
+    },
+
+    set centerY(value) {
+
+        this.y = value - this.halfHeight;
+
+    },
+
+    /**
+    * The y coordinate of the top of the Rectangle. Changing the top property of a Rectangle object has no effect on the x and width properties.
+    * However it does affect the height property, whereas changing the y value does not affect the height property.
+    * @name Phaser.Rectangle#top
+    * @property {number} top - The y coordinate of the top of the Rectangle.
+    */
+    get top() {
+
+        return this.y;
+
+    },
+
+    set top(value) {
+
+        if (value >= this.bottom)
+        {
+            this.height = 0;
+            this.y = value;
+        }
+        else
+        {
+            this.height = (this.bottom - value);
+        }
+
+    },
+
+    /**
+    * The location of the Rectangles top left corner as a Point object.
+    * @name Phaser.Rectangle#topLeft
+    * @property {Phaser.Point} topLeft - The location of the Rectangles top left corner as a Point object.
+    */
+    get topLeft() {
+
+        return new Phaser.Point(this.x, this.y);
+
+    },
+    
+    set topLeft(value) {
+
+        this.x = value.x;
+        this.y = value.y;
+
+    },
+
+    /**
+    * Determines whether or not this Rectangle object is empty. A Rectangle object is empty if its width or height is less than or equal to 0.
+    * If set to true then all of the Rectangle properties are set to 0. 
+    * @name Phaser.Rectangle#empty
+    * @property {boolean} empty - Gets or sets the Rectangles empty state.
+    */
+    get empty() {
+
+        return (!this.width || !this.height);
+
+    },
+
+    set empty(value) {
+
+        if (value === true)
+        {
+            this.setTo(0, 0, 0, 0);
+        }
+        
+    }
+
+};
+
+Phaser.Rectangle.prototype.constructor = Phaser.Rectangle;
+
+/**
+* Increases the size of the Rectangle object by the specified amounts. The center point of the Rectangle object stays the same, and its size increases to the left and right by the dx value, and to the top and the bottom by the dy value.
+* @method Phaser.Rectangle.inflate
+* @param {Phaser.Rectangle} a - The Rectangle object.
+* @param {number} dx - The amount to be added to the left side of the Rectangle.
+* @param {number} dy - The amount to be added to the bottom side of the Rectangle.
+* @return {Phaser.Rectangle} This Rectangle object.
+*/
+Phaser.Rectangle.inflate = function (a, dx, dy) {
+
+    a.x -= dx;
+    a.width += 2 * dx;
+    a.y -= dy;
+    a.height += 2 * dy;
+
+    return a;
+
+};
+
+/**
+* Increases the size of the Rectangle object. This method is similar to the Rectangle.inflate() method except it takes a Point object as a parameter.
+* @method Phaser.Rectangle.inflatePoint
+* @param {Phaser.Rectangle} a - The Rectangle object.
+* @param {Phaser.Point} point - The x property of this Point object is used to increase the horizontal dimension of the Rectangle object. The y property is used to increase the vertical dimension of the Rectangle object.
+* @return {Phaser.Rectangle} The Rectangle object.
+*/
+Phaser.Rectangle.inflatePoint = function (a, point) {
+
+    return Phaser.Rectangle.inflate(a, point.x, point.y);
+
+};
+
+/**
+* The size of the Rectangle object, expressed as a Point object with the values of the width and height properties.
+* @method Phaser.Rectangle.size
+* @param {Phaser.Rectangle} a - The Rectangle object.
+* @param {Phaser.Point} [output] - Optional Point object. If given the values will be set into the object, otherwise a brand new Point object will be created and returned.
+* @return {Phaser.Point} The size of the Rectangle object
+*/
+Phaser.Rectangle.size = function (a, output) {
+
+    if (typeof output === "undefined")
+    {
+        output = new Phaser.Point(a.width, a.height);
+    }
+    else
+    {
+        output.setTo(a.width, a.height);
+    }
+
+    return output;
+
+};
+
+/**
+* Returns a new Rectangle object with the same values for the x, y, width, and height properties as the original Rectangle object.
+* @method Phaser.Rectangle.clone
+* @param {Phaser.Rectangle} a - The Rectangle object.
+* @param {Phaser.Rectangle} [output] - Optional Rectangle object. If given the values will be set into the object, otherwise a brand new Rectangle object will be created and returned.
+* @return {Phaser.Rectangle}
+*/
+Phaser.Rectangle.clone = function (a, output) {
+
+    if (typeof output === "undefined")
+    {
+        output = new Phaser.Rectangle(a.x, a.y, a.width, a.height);
+    }
+    else
+    {
+        output.setTo(a.x, a.y, a.width, a.height);
+    }
+
+    return output;
+
+};
+
+/**
+* Determines whether the specified coordinates are contained within the region defined by this Rectangle object.
+* @method Phaser.Rectangle.contains
+* @param {Phaser.Rectangle} a - The Rectangle object.
+* @param {number} x - The x coordinate of the point to test.
+* @param {number} y - The y coordinate of the point to test.
+* @return {boolean} A value of true if the Rectangle object contains the specified point; otherwise false.
+*/
+Phaser.Rectangle.contains = function (a, x, y) {
+
+    if (a.width <= 0 || a.height <= 0)
+    {
+        return false;
+    }
+
+    return (x >= a.x && x <= a.right && y >= a.y && y <= a.bottom);
+
+};
+
+/**
+* Determines whether the specified coordinates are contained within the region defined by the given raw values.
+* @method Phaser.Rectangle.containsRaw
+* @param {number} rx - The x coordinate of the top left of the area.
+* @param {number} ry - The y coordinate of the top left of the area.
+* @param {number} rw - The width of the area.
+* @param {number} rh - The height of the area.
+* @param {number} x - The x coordinate of the point to test.
+* @param {number} y - The y coordinate of the point to test.
+* @return {boolean} A value of true if the Rectangle object contains the specified point; otherwise false.
+*/
+Phaser.Rectangle.containsRaw = function (rx, ry, rw, rh, x, y) {
+
+    return (x >= rx && x <= (rx + rw) && y >= ry && y <= (ry + rh));
+
+};
+
+/**
+* Determines whether the specified point is contained within the rectangular region defined by this Rectangle object. This method is similar to the Rectangle.contains() method, except that it takes a Point object as a parameter.
+* @method Phaser.Rectangle.containsPoint
+* @param {Phaser.Rectangle} a - The Rectangle object.
+* @param {Phaser.Point} point - The point object being checked. Can be Point or any object with .x and .y values.
+* @return {boolean} A value of true if the Rectangle object contains the specified point; otherwise false.
+*/
+Phaser.Rectangle.containsPoint = function (a, point) {
+
+    return Phaser.Rectangle.contains(a, point.x, point.y);
+
+};
+
+/**
+* Determines whether the first Rectangle object is fully contained within the second Rectangle object.
+* A Rectangle object is said to contain another if the second Rectangle object falls entirely within the boundaries of the first.
+* @method Phaser.Rectangle.containsRect
+* @param {Phaser.Rectangle} a - The first Rectangle object.
+* @param {Phaser.Rectangle} b - The second Rectangle object.
+* @return {boolean} A value of true if the Rectangle object contains the specified point; otherwise false.
+*/
+Phaser.Rectangle.containsRect = function (a, b) {
+
+    //  If the given rect has a larger volume than this one then it can never contain it
+    if (a.volume > b.volume)
+    {
+        return false;
+    }
+
+    return (a.x >= b.x && a.y >= b.y && a.right <= b.right && a.bottom <= b.bottom);
+
+};
+
+/**
+* Determines whether the two Rectangles are equal.
+* This method compares the x, y, width and height properties of each Rectangle.
+* @method Phaser.Rectangle.equals
+* @param {Phaser.Rectangle} a - The first Rectangle object.
+* @param {Phaser.Rectangle} b - The second Rectangle object.
+* @return {boolean} A value of true if the two Rectangles have exactly the same values for the x, y, width and height properties; otherwise false.
+*/
+Phaser.Rectangle.equals = function (a, b) {
+
+    return (a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height);
+
+};
+
+/**
+* If the Rectangle object specified in the toIntersect parameter intersects with this Rectangle object, returns the area of intersection as a Rectangle object. If the Rectangles do not intersect, this method returns an empty Rectangle object with its properties set to 0.
+* @method Phaser.Rectangle.intersection
+* @param {Phaser.Rectangle} a - The first Rectangle object.
+* @param {Phaser.Rectangle} b - The second Rectangle object.
+* @param {Phaser.Rectangle} [output] - Optional Rectangle object. If given the intersection values will be set into this object, otherwise a brand new Rectangle object will be created and returned.
+* @return {Phaser.Rectangle} A Rectangle object that equals the area of intersection. If the Rectangles do not intersect, this method returns an empty Rectangle object; that is, a Rectangle with its x, y, width, and height properties set to 0.
+*/
+Phaser.Rectangle.intersection = function (a, b, output) {
+
+    if (typeof output === "undefined")
+    {
+        output = new Phaser.Rectangle();
+    }
+
+    if (Phaser.Rectangle.intersects(a, b))
+    {
+        output.x = Math.max(a.x, b.x);
+        output.y = Math.max(a.y, b.y);
+        output.width = Math.min(a.right, b.right) - output.x;
+        output.height = Math.min(a.bottom, b.bottom) - output.y;
+    }
+
+    return output;
+
+};
+
+/**
+* Determines whether the two Rectangles intersect with each other.
+* This method checks the x, y, width, and height properties of the Rectangles.
+* @method Phaser.Rectangle.intersects
+* @param {Phaser.Rectangle} a - The first Rectangle object.
+* @param {Phaser.Rectangle} b - The second Rectangle object.
+* @return {boolean} A value of true if the specified object intersects with this Rectangle object; otherwise false.
+*/
+Phaser.Rectangle.intersects = function (a, b) {
+
+    if (a.width <= 0 || a.height <= 0 || b.width <= 0 || b.height <= 0)
+    {
+        return false;
+    }
+
+    return !(a.right < b.x || a.bottom < b.y || a.x > b.right || a.y > b.bottom);
+
+};
+
+/**
+* Determines whether the object specified intersects (overlaps) with the given values.
+* @method Phaser.Rectangle.intersectsRaw
+* @param {number} left - Description.
+* @param {number} right - Description.
+* @param {number} top - Description.
+* @param {number} bottom - Description.
+* @param {number} tolerance - A tolerance value to allow for an intersection test with padding, default to 0
+* @return {boolean} A value of true if the specified object intersects with the Rectangle; otherwise false.
+*/
+Phaser.Rectangle.intersectsRaw = function (a, left, right, top, bottom, tolerance) {
+
+    if (typeof tolerance === "undefined") { tolerance = 0; }
+
+    return !(left > a.right + tolerance || right < a.left - tolerance || top > a.bottom + tolerance || bottom < a.top - tolerance);
+
+};
+
+/**
+* Adds two Rectangles together to create a new Rectangle object, by filling in the horizontal and vertical space between the two Rectangles.
+* @method Phaser.Rectangle.union
+* @param {Phaser.Rectangle} a - The first Rectangle object.
+* @param {Phaser.Rectangle} b - The second Rectangle object.
+* @param {Phaser.Rectangle} [output] - Optional Rectangle object. If given the new values will be set into this object, otherwise a brand new Rectangle object will be created and returned.
+* @return {Phaser.Rectangle} A Rectangle object that is the union of the two Rectangles.
+*/
+Phaser.Rectangle.union = function (a, b, output) {
+
+    if (typeof output === "undefined")
+    {
+        output = new Phaser.Rectangle();
+    }
+
+    return output.setTo(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.max(a.right, b.right) - Math.min(a.left, b.left), Math.max(a.bottom, b.bottom) - Math.min(a.top, b.top));
+    
+};
+
+//   Because PIXI uses its own Rectangle, we'll replace it with ours to avoid duplicating code or confusion.
+PIXI.Rectangle = Phaser.Rectangle;
+PIXI.EmptyRectangle = new Phaser.Rectangle(0, 0, 0, 0);
+
+/**
+* @author       Richard Davey <rich@photonstorm.com>
+* @copyright    2014 Photon Storm Ltd.
+* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
+*/
+
+/**
+* Creates a new Line object with a start and an end point.
+* @class Line
+* @classdesc Phaser - Line
+* @constructor
+* @param {number} [x1=0] - The x coordinate of the start of the line.
+* @param {number} [y1=0] - The y coordinate of the start of the line.
+* @param {number} [x2=0] - The x coordinate of the end of the line.
+* @param {number} [y2=0] - The y coordinate of the end of the line.
+* @return {Phaser.Line} This line object
+*/
+Phaser.Line = function (x1, y1, x2, y2) {
+
+    x1 = x1 || 0;
+    y1 = y1 || 0;
+    x2 = x2 || 0;
+    y2 = y2 || 0;
+
+    /**
+    * @property {Phaser.Point} start - The start point of the line.
+    */
+    this.start = new Phaser.Point(x1, y1);
+
+    /**
+    * @property {Phaser.Point} end - The end point of the line.
+    */
+    this.end = new Phaser.Point(x2, y2);
+
+};
+
+Phaser.Line.prototype = {
+
+    /**
+    * Sets the components of the Line to the specified values.
+    * @method Phaser.Line#setTo
+    * @param {number} [x1=0] - The x coordinate of the start of the line.
+    * @param {number} [y1=0] - The y coordinate of the start of the line.
+    * @param {number} [x2=0] - The x coordinate of the end of the line.
+    * @param {number} [y2=0] - The y coordinate of the end of the line.
+    * @return {Phaser.Line} This line object
+    */
+    setTo: function (x1, y1, x2, y2) {
+
+        this.start.setTo(x1, y1);
+        this.end.setTo(x2, y2);
+
+        return this;
+
+    },
+
+    /**
+    * Sets the line to match the x/y coordinates of the two given sprites.
+    * Can optionally be calculated from their center coordinates.
+    * @method Phaser.Line#fromSprite
+    * @param {Phaser.Sprite} startSprite - The coordinates of this Sprite will be set to the Line.start point.
+    * @param {Phaser.Sprite} endSprite - The coordinates of this Sprite will be set to the Line.start point.
+    * @param {boolean} [useCenter=true] - If true it will use startSprite.center.x, if false startSprite.x.
+    * @return {Phaser.Line} This line object
+    */
+    fromSprite: function (startSprite, endSprite, useCenter) {
+
+        if (typeof useCenter === 'undefined') { useCenter = true; }
+
+        if (useCenter)
+        {
+            return this.setTo(startSprite.center.x, startSprite.center.y, endSprite.center.x, endSprite.center.y);
+        }
+        else
+        {
+            return this.setTo(startSprite.x, startSprite.y, endSprite.x, endSprite.y);
+        }
+
+    },
+
+    /**
+    * Checks for intersection between this line and another Line.
+    * If asSegment is true it will check for segment intersection. If asSegment is false it will check for line intersection.
+    * Returns the intersection segment of AB and EF as a Point, or null if there is no intersection.
+    *
+    * @method Phaser.Line#intersects
+    * @param {Phaser.Line} line - The line to check against this one.
+    * @param {boolean} [asSegment=true] - If true it will check for segment intersection, otherwise full line intersection.
+    * @param {Phaser.Point} [result] - A Point object to store the result in, if not given a new one will be created.
+    * @return {Phaser.Point} The intersection segment of the two lines as a Point, or null if there is no intersection.
+    */
+    intersects: function (line, asSegment, result) {
+
+        return Phaser.Line.intersectsPoints(this.start, this.end, line.start, line.end, asSegment, result);
+
+    },
+
+    /**
+    * Tests if the given coordinates fall on this line. See pointOnSegment to test against just the line segment.
+    * @method Phaser.Line#pointOnLine
+    * @param {number} x - The line to check against this one.
+    * @param {number} y - The line to check against this one.
+    * @return {boolean} True if the point is on the line, false if not.
+    */
+    pointOnLine: function (x, y) {
+
+        return ((x - this.start.x) * (this.end.y - this.end.y) === (this.end.x - this.start.x) * (y - this.end.y));
+
+    },
+
+    /**
+    * Tests if the given coordinates fall on this line and within the segment. See pointOnLine to test against just the line.
+    * @method Phaser.Line#pointOnSegment
+    * @param {number} x - The line to check against this one.
+    * @param {number} y - The line to check against this one.
+    * @return {boolean} True if the point is on the line and segment, false if not.
+    */
+    pointOnSegment: function (x, y) {
+
+        var xMin = Math.min(this.start.x, this.end.x);
+        var xMax = Math.max(this.start.x, this.end.x);
+        var yMin = Math.min(this.start.y, this.end.y);
+        var yMax = Math.max(this.start.y, this.end.y);
+
+        return (this.pointOnLine(x, y) && (x >= xMin && x <= xMax) && (y >= yMin && y <= yMax));
+
+    }
+
+};
+
+/**
+* @name Phaser.Line#length
+* @property {number} length - Gets the length of the line segment.
+* @readonly
+*/
+Object.defineProperty(Phaser.Line.prototype, "length", {
+
+    get: function () {
+        return Math.sqrt((this.end.x - this.start.x) * (this.end.x - this.start.x) + (this.end.y - this.start.y) * (this.end.y - this.start.y));
+    }
+
+});
+
+/**
+* @name Phaser.Line#angle
+* @property {number} angle - Gets the angle of the line.
+* @readonly
+*/
+Object.defineProperty(Phaser.Line.prototype, "angle", {
+
+    get: function () {
+        return Math.atan2(this.end.x - this.start.x, this.end.y - this.start.y);
+    }
+
+});
+
+/**
+* @name Phaser.Line#slope
+* @property {number} slope - Gets the slope of the line (y/x).
+* @readonly
+*/
+Object.defineProperty(Phaser.Line.prototype, "slope", {
+
+    get: function () {
+        return (this.end.y - this.start.y) / (this.end.x - this.start.x);
+    }
+
+});
+
+/**
+* @name Phaser.Line#perpSlope
+* @property {number} perpSlope - Gets the perpendicular slope of the line (x/y).
+* @readonly
+*/
+Object.defineProperty(Phaser.Line.prototype, "perpSlope", {
+
+    get: function () {
+        return -((this.end.x - this.start.x) / (this.end.y - this.start.y));
+    }
+
+});
+
+/**
+* Checks for intersection between two lines as defined by the given start and end points.
+* If asSegment is true it will check for line segment intersection. If asSegment is false it will check for line intersection.
+* Returns the intersection segment of AB and EF as a Point, or null if there is no intersection.
+* Adapted from code by Keith Hair
+*
+* @method Phaser.Line.intersects
+* @param {Phaser.Point} a - The start of the first Line to be checked.
+* @param {Phaser.Point} b - The end of the first line to be checked.
+* @param {Phaser.Point} e - The start of the second Line to be checked.
+* @param {Phaser.Point} f - The end of the second line to be checked.
+* @param {boolean} [asSegment=true] - If true it will check for segment intersection, otherwise full line intersection.
+* @param {Phaser.Point} [result] - A Point object to store the result in, if not given a new one will be created.
+* @return {Phaser.Point} The intersection segment of the two lines as a Point, or null if there is no intersection.
+*/
+Phaser.Line.intersectsPoints = function (a, b, e, f, asSegment, result) {
+
+    if (typeof asSegment === 'undefined') { asSegment = true; }
+    if (typeof result === 'undefined') { result = new Phaser.Point(); }
+
+    var a1 = b.y - a.y;
+    var a2 = f.y - e.y;
+    var b1 = a.x - b.x;
+    var b2 = e.x - f.x;
+    var c1 = (b.x * a.y) - (a.x * b.y);
+    var c2 = (f.x * e.y) - (e.x * f.y);
+    var denom = (a1 * b2) - (a2 * b1);
+
+    if (denom === 0)
+    {
+        return null;
+    }
+
+    result.x = ((b1 * c2) - (b2 * c1)) / denom;
+    result.y = ((a2 * c1) - (a1 * c2)) / denom;
+ 
+    if (asSegment)
+    {
+        if (Math.pow((result.x - b.x) + (result.y - b.y), 2) > Math.pow((a.x - b.x) + (a.y - b.y), 2))
+        {
+            return null;
+        }
+
+        if (Math.pow((result.x - a.x) + (result.y - a.y), 2) > Math.pow((a.x - b.x) + (a.y - b.y), 2))
+        {
+            return null;
+        }
+
+        if (Math.pow((result.x - f.x) + (result.y - f.y), 2) > Math.pow((e.x - f.x) + (e.y - f.y), 2))
+        {
+            return null;
+        }
+
+        if (Math.pow((result.x - e.x) + (result.y - e.y), 2) > Math.pow((e.x - f.x) + (e.y - f.y), 2))
+        {
+            return null;
+        }
+    }
+
+    return result;
+
+};
+
+/**
+* Checks for intersection between two lines.
+* If asSegment is true it will check for segment intersection.
+* If asSegment is false it will check for line intersection.
+* Returns the intersection segment of AB and EF as a Point, or null if there is no intersection.
+* Adapted from code by Keith Hair
+*
+* @method Phaser.Line.intersects
+* @param {Phaser.Line} a - The first Line to be checked.
+* @param {Phaser.Line} b - The second Line to be checked.
+* @param {boolean} [asSegment=true] - If true it will check for segment intersection, otherwise full line intersection.
+* @param {Phaser.Point} [result] - A Point object to store the result in, if not given a new one will be created.
+* @return {Phaser.Point} The intersection segment of the two lines as a Point, or null if there is no intersection.
+*/
+Phaser.Line.intersects = function (a, b, asSegment, result) {
+
+    return Phaser.Line.intersectsPoints(a.start, a.end, b.start, b.end, asSegment, result);
+
+};
+
+/**
+* @author       Richard Davey <rich@photonstorm.com>
+* @author       Chad Engler <chad@pantherdev.com>
+* @copyright    2014 Photon Storm Ltd.
+* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
+*/
+
+/**
+* Creates a Ellipse object. A curve on a plane surrounding two focal points.
+* @class Ellipse
+* @classdesc Phaser - Ellipse
+* @constructor
+* @param {number} [x=0] - The X coordinate of the upper-left corner of the framing rectangle of this ellipse.
+* @param {number} [y=0] - The Y coordinate of the upper-left corner of the framing rectangle of this ellipse.
+* @param {number} [width=0] - The overall width of this ellipse.
+* @param {number} [height=0] - The overall height of this ellipse.
+* @return {Phaser.Ellipse} This Ellipse object
+*/
+Phaser.Ellipse = function (x, y, width, height) {
+
+    this.type = Phaser.ELLIPSE;
+
+    x = x || 0;
+    y = y || 0;
+    width = width || 0;
+    height = height || 0;
+
+    /**
+    * @property {number} x - The X coordinate of the upper-left corner of the framing rectangle of this ellipse.
+    */
+    this.x = x;
+
+    /**
+    * @property {number} y - The Y coordinate of the upper-left corner of the framing rectangle of this ellipse.
+    */
+    this.y = y;
+
+    /**
+    * @property {number} width - The overall width of this ellipse.
+    */
+    this.width = width;
+
+    /**
+    * @property {number} height - The overall height of this ellipse.
+    */
+    this.height = height;
+
+};
+
+Phaser.Ellipse.prototype = {
+
+    /**
+    * Sets the members of the Ellipse to the specified values.
+    * @method Phaser.Ellipse#setTo
+    * @param {number} x - The X coordinate of the upper-left corner of the framing rectangle of this ellipse.
+    * @param {number} y - The Y coordinate of the upper-left corner of the framing rectangle of this ellipse.
+    * @param {number} width - The overall width of this ellipse.
+    * @param {number} height - The overall height of this ellipse.
+    * @return {Phaser.Ellipse} This Ellipse object.
+    */
+    setTo: function (x, y, width, height) {
+
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+
+        return this;
+
+    },
+
+    /**
+    * Copies the x, y, width and height properties from any given object to this Ellipse.
+    * @method Phaser.Ellipse#copyFrom
+    * @param {any} source - The object to copy from.
+    * @return {Phaser.Ellipse} This Ellipse object.
+    */
+    copyFrom: function (source) {
+
+        return this.setTo(source.x, source.y, source.width, source.height);
+
+    },
+
+    /**
+    * Copies the x, y and diameter properties from this Circle to any given object.
+    * @method Phaser.Ellipse#copyTo
+    * @param {any} dest - The object to copy to.
+    * @return {Object} This dest object.
+    */
+    copyTo: function(dest) {
+
+        dest.x = this.x;
+        dest.y = this.y;
+        dest.width = this.width;
+        dest.height = this.height;
+
+        return dest;
+
+    },
+
+    /**
+    * Returns a new Ellipse object with the same values for the x, y, width, and height properties as this Ellipse object.
+    * @method Phaser.Ellipse#clone
+    * @param {Phaser.Ellipse} out - Optional Ellipse object. If given the values will be set into the object, otherwise a brand new Ellipse object will be created and returned.
+    * @return {Phaser.Ellipse} The cloned Ellipse object.
+    */
+    clone: function(out) {
+
+        if (typeof out === "undefined")
+        {
+            out = new Phaser.Ellipse(this.x, this.y, this.width, this.height);
+        }
+        else
+        {
+            out.setTo(this.x, this.y, this.width, this.height);
+        }
+
+        return out;
+
+    },
+
+    /**
+    * Return true if the given x/y coordinates are within this Ellipse object.
+    * @method Phaser.Ellipse#contains
+    * @param {number} x - The X value of the coordinate to test.
+    * @param {number} y - The Y value of the coordinate to test.
+    * @return {boolean} True if the coordinates are within this ellipse, otherwise false.
+    */
+    contains: function (x, y) {
+
+        return Phaser.Ellipse.contains(this, x, y);
+
+    },
+
+    /**
+    * Returns a string representation of this object.
+    * @method Phaser.Ellipse#toString
+    * @return {string} A string representation of the instance.
+    */
+    toString: function () {
+        return "[{Phaser.Ellipse (x=" + this.x + " y=" + this.y + " width=" + this.width + " height=" + this.height + ")}]";
+    }
+
+};
+
+Phaser.Ellipse.prototype.constructor = Phaser.Ellipse;
+
+/**
+* The left coordinate of the Ellipse. The same as the X coordinate.
+* @name Phaser.Ellipse#left
+* @propety {number} left - Gets or sets the value of the leftmost point of the ellipse.
+*/
+Object.defineProperty(Phaser.Ellipse.prototype, "left", {
+    
+    get: function () {
+        return this.x;
+    },
+
+    set: function (value) {
+
+        this.x = value;
+
+    }
+
+});
+
+/**
+* The x coordinate of the rightmost point of the Ellipse. Changing the right property of an Ellipse object has no effect on the x property, but does adjust the width.
+* @name Phaser.Ellipse#right
+* @property {number} right - Gets or sets the value of the rightmost point of the ellipse.
+*/
+Object.defineProperty(Phaser.Ellipse.prototype, "right", {
+
+    get: function () {
+        return this.x + this.width;
+    },
+
+    set: function (value) {
+
+        if (value < this.x)
+        {
+            this.width = 0;
+        }
+        else
+        {
+            this.width = this.x + width;
+        }
+    }
+
+});
+
+/**
+* The top of the Ellipse. The same as its y property.
+* @name Phaser.Ellipse#top
+* @property {number} top - Gets or sets the top of the ellipse.
+*/
+Object.defineProperty(Phaser.Ellipse.prototype, "top", {
+
+    get: function () {
+        return this.y;
+    },
+    
+    set: function (value) {
+        this.y = value;
+    }
+
+});
+
+/**
+* The sum of the y and height properties. Changing the bottom property of an Ellipse doesn't adjust the y property, but does change the height.
+* @name Phaser.Ellipse#bottom
+* @property {number} bottom - Gets or sets the bottom of the ellipse.
+*/
+Object.defineProperty(Phaser.Ellipse.prototype, "bottom", {
+
+    get: function () {
+        return this.y + this.height;
+    },
+
+    set: function (value) {
+
+        if (value < this.y)
+        {
+            this.height = 0;
+        }
+        else
+        {
+            this.height = this.y + value;
+        }
+    }
+
+});
+
+/**
+* Determines whether or not this Ellipse object is empty. Will return a value of true if the Ellipse objects dimensions are less than or equal to 0; otherwise false.
+* If set to true it will reset all of the Ellipse objects properties to 0. An Ellipse object is empty if its width or height is less than or equal to 0.
+* @name Phaser.Ellipse#empty
+* @property {boolean} empty - Gets or sets the empty state of the ellipse.
+*/
+Object.defineProperty(Phaser.Ellipse.prototype, "empty", {
+
+    get: function () {
+        return (this.width === 0 || this.height === 0);
+    },
+
+    set: function (value) {
+
+        if (value === true)
+        {
+            this.setTo(0, 0, 0, 0);
+        }
+
+    }
+
+});
+
+/**
+* Return true if the given x/y coordinates are within the Ellipse object.
+* @method Phaser.Ellipse.contains
+* @param {Phaser.Ellipse} a - The Ellipse to be checked.
+* @param {number} x - The X value of the coordinate to test.
+* @param {number} y - The Y value of the coordinate to test.
+* @return {boolean} True if the coordinates are within this ellipse, otherwise false.
+*/
+Phaser.Ellipse.contains = function (a, x, y) {
+
+    if (a.width <= 0 || a.height <= 0)
+    {
+        return false;
+    }
+
+    //  Normalize the coords to an ellipse with center 0,0 and a radius of 0.5
+    var normx = ((x - a.x) / a.width) - 0.5;
+    var normy = ((y - a.y) / a.height) - 0.5;
+
+    normx *= normx;
+    normy *= normy;
+
+    return (normx + normy < 0.25);
+
+};
+
+/**
+* Returns the framing rectangle of the ellipse as a Phaser.Rectangle object.
+*
+* @method getBounds
+* @return {Phaser.Rectangle} The framing rectangle
+*/
+Phaser.Ellipse.prototype.getBounds = function() {
+
+    return new Phaser.Rectangle(this.x, this.y, this.width, this.height);
+
+};
+
+//   Because PIXI uses its own Ellipse, we'll replace it with ours to avoid duplicating code or confusion.
+PIXI.Ellipse = Phaser.Ellipse;
+
+/**
+* @author       Richard Davey <rich@photonstorm.com>
+* @author       Adrien Brault <adrien.brault@gmail.com>
+* @copyright    2014 Photon Storm Ltd.
+* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
+*/
+
+/**
+* Creates a new Polygon. You have to provide a list of points.
+* This can be an array of Points that form the polygon, a flat array of numbers that will be interpreted as [x,y, x,y, ...], 
+* or the arguments passed can be all the points of the polygon e.g. `new Phaser.Polygon(new Phaser.Point(), new Phaser.Point(), ...)`, or the
+* arguments passed can be flat x,y values e.g. `new Phaser.Polygon(x,y, x,y, x,y, ...)` where `x` and `y` are numbers.
+*
+* @class Phaser.Polygon
+* @classdesc The polygon represents a list of orderded points in space
+* @constructor
+* @param {Array<Phaser.Point>|Array<number>} points - The array of Points.
+*/
+Phaser.Polygon = function (points) {
+
+    /**
+    * @property {number} type - The base object type.
+    */
+    this.type = Phaser.POLYGON;
+
     //if points isn't an array, use arguments as the array
-    if(!(points instanceof Array))
+    if (!(points instanceof Array))
+    {
         points = Array.prototype.slice.call(arguments);
+    }
 
     //if this is a flat array of numbers, convert it to points
-    if(typeof points[0] === 'number') {
+    if (typeof points[0] === 'number')
+    {
         var p = [];
-        for(var i = 0, il = points.length; i < il; i+=2) {
-            p.push(
-                new PIXI.Point(points[i], points[i + 1])
-            );
+
+        for (var i = 0, len = points.length; i < len; i += 2)
+        {
+            p.push(new Phaser.Point(points[i], points[i + 1]));
         }
 
         points = p;
     }
 
-    this.points = points;
-};
-
-/**
- * Creates a clone of this polygon
- *
- * @method clone
- * @return {Polygon} a copy of the polygon
- */
-PIXI.Polygon.prototype.clone = function()
-{
-    var points = [];
-    for (var i=0; i<this.points.length; i++) {
-        points.push(this.points[i].clone());
-    }
-
-    return new PIXI.Polygon(points);
-};
-
-/**
- * Checks if the x, and y coords passed to this function are contained within this polygon
- *
- * @method contains
- * @param x {Number} The X coord of the point to test
- * @param y {Number} The Y coord of the point to test
- * @return {Boolean} if the x/y coords are within this polygon
- */
-PIXI.Polygon.prototype.contains = function(x, y)
-{
-    var inside = false;
-
-    // use some raycasting to test hits
-    // https://github.com/substack/point-in-polygon/blob/master/index.js
-    for(var i = 0, j = this.points.length - 1; i < this.points.length; j = i++) {
-        var xi = this.points[i].x, yi = this.points[i].y,
-            xj = this.points[j].x, yj = this.points[j].y,
-            intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-
-        if(intersect) inside = !inside;
-    }
-
-    return inside;
-};
-
-// constructor
-PIXI.Polygon.prototype.constructor = PIXI.Polygon;
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-/**
- * The base class for all objects that are rendered on the screen.
- *
- * @class DisplayObject
- * @constructor
- */
-PIXI.DisplayObject = function()
-{
-    this.last = this;
-    this.first = this;
     /**
-     * The coordinate of the object relative to the local coordinates of the parent.
-     *
-     * @property position
-     * @type Point
-     */
-    this.position = new PIXI.Point();
-
-    /**
-     * The scale factor of the object.
-     *
-     * @property scale
-     * @type Point
-     */
-    this.scale = new PIXI.Point(1,1);//{x:1, y:1};
-
-    /**
-     * The pivot point of the displayObject that it rotates around
-     *
-     * @property pivot
-     * @type Point
-     */
-    this.pivot = new PIXI.Point(0,0);
-
-    /**
-     * The rotation of the object in radians.
-     *
-     * @property rotation
-     * @type Number
-     */
-    this.rotation = 0;
-
-    /**
-     * The opacity of the object.
-     *
-     * @property alpha
-     * @type Number
-     */
-    this.alpha = 1;
-
-    /**
-     * The visibility of the object.
-     *
-     * @property visible
-     * @type Boolean
-     */
-    this.visible = true;
-
-    /**
-     * This is the defined area that will pick up mouse / touch events. It is null by default.
-     * Setting it is a neat way of optimising the hitTest function that the interactionManager will use (as it will not need to hit test all the children)
-     *
-     * @property hitArea
-     * @type Rectangle|Circle|Ellipse|Polygon
-     */
-    this.hitArea = null;
-
-    /**
-     * This is used to indicate if the displayObject should display a mouse hand cursor on rollover
-     *
-     * @property buttonMode
-     * @type Boolean
-     */
-    this.buttonMode = false;
-
-    /**
-     * Can this object be rendered
-     *
-     * @property renderable
-     * @type Boolean
-     */
-    this.renderable = false;
-
-    /**
-     * [read-only] The display object container that contains this display object.
-     *
-     * @property parent
-     * @type DisplayObjectContainer
-     * @readOnly
-     */
-    this.parent = null;
-
-    /**
-     * [read-only] The stage the display object is connected to, or undefined if it is not connected to the stage.
-     *
-     * @property stage
-     * @type Stage
-     * @readOnly
-     */
-    this.stage = null;
-
-    /**
-     * [read-only] The multiplied alpha of the displayobject
-     *
-     * @property worldAlpha
-     * @type Number
-     * @readOnly
-     */
-    this.worldAlpha = 1;
-
-    /**
-     * [read-only] Whether or not the object is interactive, do not toggle directly! use the `interactive` property
-     *
-     * @property _interactive
-     * @type Boolean
-     * @readOnly
-     * @private
-     */
-    this._interactive = false;
-
-    this.defaultCursor = 'pointer';
-
-    /**
-     * [read-only] Current transform of the object based on world (parent) factors
-     *
-     * @property worldTransform
-     * @type Mat3
-     * @readOnly
-     * @private
-     */
-    this.worldTransform = PIXI.mat3.create(); //mat3.identity();
-
-    /**
-     * [read-only] Current transform of the object locally
-     *
-     * @property localTransform
-     * @type Mat3
-     * @readOnly
-     * @private
-     */
-    this.localTransform = PIXI.mat3.create(); //mat3.identity();
-
-    /**
-     * [NYI] Unkown
-     *
-     * @property color
-     * @type Array<>
-     * @private
-     */
-    this.color = [];
-
-    /**
-     * [NYI] Holds whether or not this object is dynamic, for rendering optimization
-     *
-     * @property dynamic
-     * @type Boolean
-     * @private
-     */
-    this.dynamic = true;
-
-    // chach that puppy!
-    this._sr = 0;
-    this._cr = 1;
-
-
-    this.filterArea = new PIXI.Rectangle(0,0,1,1);
-
-    /*
-     * MOUSE Callbacks
-     */
-
-    /**
-     * A callback that is used when the users clicks on the displayObject with their mouse
-     * @method click
-     * @param interactionData {InteractionData}
-     */
-
-    /**
-     * A callback that is used when the user clicks the mouse down over the sprite
-     * @method mousedown
-     * @param interactionData {InteractionData}
-     */
-
-    /**
-     * A callback that is used when the user releases the mouse that was over the displayObject
-     * for this callback to be fired the mouse must have been pressed down over the displayObject
-     * @method mouseup
-     * @param interactionData {InteractionData}
-     */
-
-    /**
-     * A callback that is used when the user releases the mouse that was over the displayObject but is no longer over the displayObject
-     * for this callback to be fired, The touch must have started over the displayObject
-     * @method mouseupoutside
-     * @param interactionData {InteractionData}
-     */
-
-    /**
-     * A callback that is used when the users mouse rolls over the displayObject
-     * @method mouseover
-     * @param interactionData {InteractionData}
-     */
-
-    /**
-     * A callback that is used when the users mouse leaves the displayObject
-     * @method mouseout
-     * @param interactionData {InteractionData}
-     */
-
-
-    /*
-     * TOUCH Callbacks
-     */
-
-    /**
-     * A callback that is used when the users taps on the sprite with their finger
-     * basically a touch version of click
-     * @method tap
-     * @param interactionData {InteractionData}
-     */
-
-    /**
-     * A callback that is used when the user touch's over the displayObject
-     * @method touchstart
-     * @param interactionData {InteractionData}
-     */
-
-    /**
-     * A callback that is used when the user releases a touch over the displayObject
-     * @method touchend
-     * @param interactionData {InteractionData}
-     */
-
-    /**
-     * A callback that is used when the user releases the touch that was over the displayObject
-     * for this callback to be fired, The touch must have started over the sprite
-     * @method touchendoutside
-     * @param interactionData {InteractionData}
-     */
-};
-
-// constructor
-PIXI.DisplayObject.prototype.constructor = PIXI.DisplayObject;
-
-/**
- * [Deprecated] Indicates if the sprite will have touch and mouse interactivity. It is false by default
- * Instead of using this function you can now simply set the interactive property to true or false
- *
- * @method setInteractive
- * @param interactive {Boolean}
- * @deprecated Simply set the `interactive` property directly
- */
-PIXI.DisplayObject.prototype.setInteractive = function(interactive)
-{
-    this.interactive = interactive;
-};
-
-/**
- * Indicates if the sprite will have touch and mouse interactivity. It is false by default
- *
- * @property interactive
- * @type Boolean
- * @default false
- */
-Object.defineProperty(PIXI.DisplayObject.prototype, 'interactive', {
-    get: function() {
-        return this._interactive;
-    },
-    set: function(value) {
-        this._interactive = value;
-
-        // TODO more to be done here..
-        // need to sort out a re-crawl!
-        if(this.stage)this.stage.dirty = true;
-    }
-});
-
-/**
- * Sets a mask for the displayObject. A mask is an object that limits the visibility of an object to the shape of the mask applied to it.
- * In PIXI a regular mask must be a PIXI.Ggraphics object. This allows for much faster masking in canvas as it utilises shape clipping.
- * To remove a mask, set this property to null.
- *
- * @property mask
- * @type Graphics
- */
-Object.defineProperty(PIXI.DisplayObject.prototype, 'mask', {
-    get: function() {
-        return this._mask;
-    },
-    set: function(value) {
-
-
-        if(value)
-        {
-            if(this._mask)
-            {
-                value.start = this._mask.start;
-                value.end = this._mask.end;
-            }
-            else
-            {
-                this.addFilter(value);
-                value.renderable = false;
-            }
-        }
-        else
-        {
-            this.removeFilter(this._mask);
-            this._mask.renderable = true;
-        }
-
-        this._mask = value;
-    }
-});
-
-/**
- * Sets the filters for the displayObject.
- * * IMPORTANT: This is a webGL only feature and will be ignored by the canvas renderer.
- * To remove filters simply set this property to 'null'
- * @property filters
- * @type Array An array of filters
- */
-Object.defineProperty(PIXI.DisplayObject.prototype, 'filters', {
-    get: function() {
-        return this._filters;
-    },
-    set: function(value) {
-
-        if(value)
-        {
-            if(this._filters)this.removeFilter(this._filters);
-            this.addFilter(value);
-
-            // now put all the passes in one place..
-            var passes = [];
-            for (var i = 0; i < value.length; i++)
-            {
-                var filterPasses = value[i].passes;
-                for (var j = 0; j < filterPasses.length; j++)
-                {
-                    passes.push(filterPasses[j]);
-                }
-            }
-
-            value.start.filterPasses = passes;
-        }
-        else
-        {
-            if(this._filters) {
-                this.removeFilter(this._filters);
-            }
-        }
-
-        this._filters = value;
-    }
-});
-
-/*
- * Adds a filter to this displayObject
- *
- * @method addFilter
- * @param mask {Graphics} the graphics object to use as a filter
- * @private
- */
-PIXI.DisplayObject.prototype.addFilter = function(data)
-{
-    //if(this.filter)return;
-    //this.filter = true;
-//  data[0].target = this;
-
-
-    // insert a filter block..
-    // TODO Onject pool thease bad boys..
-    var start = new PIXI.FilterBlock();
-    var end = new PIXI.FilterBlock();
-
-    data.start = start;
-    data.end = end;
-
-    start.data = data;
-    end.data = data;
-
-    start.first = start.last =  this;
-    end.first = end.last = this;
-
-    start.open = true;
-
-    start.target = this;
-
-    /*
-     * insert start
-     */
-
-    var childFirst = start;
-    var childLast = start;
-    var nextObject;
-    var previousObject;
-
-    previousObject = this.first._iPrev;
-
-    if(previousObject)
-    {
-        nextObject = previousObject._iNext;
-        childFirst._iPrev = previousObject;
-        previousObject._iNext = childFirst;
-    }
-    else
-    {
-        nextObject = this;
-    }
-
-    if(nextObject)
-    {
-        nextObject._iPrev = childLast;
-        childLast._iNext = nextObject;
-    }
-
-    // now insert the end filter block..
-
-    /*
-     * insert end filter
-     */
-    childFirst = end;
-    childLast = end;
-    nextObject = null;
-    previousObject = null;
-
-    previousObject = this.last;
-    nextObject = previousObject._iNext;
-
-    if(nextObject)
-    {
-        nextObject._iPrev = childLast;
-        childLast._iNext = nextObject;
-    }
-
-    childFirst._iPrev = previousObject;
-    previousObject._iNext = childFirst;
-
-    var updateLast = this;
-
-    var prevLast = this.last;
-    while(updateLast)
-    {
-        if(updateLast.last === prevLast)
-        {
-            updateLast.last = end;
-        }
-        updateLast = updateLast.parent;
-    }
-
-    this.first = start;
-
-    // if webGL...
-    if(this.__renderGroup)
-    {
-        this.__renderGroup.addFilterBlocks(start, end);
-    }
-};
-
-/*
- * Removes the filter to this displayObject
- *
- * @method removeFilter
- * @private
- */
-PIXI.DisplayObject.prototype.removeFilter = function(data)
-{
-    //if(!this.filter)return;
-    //this.filter = false;
-    // console.log('YUOIO')
-    // modify the list..
-    var startBlock = data.start;
-
-
-    var nextObject = startBlock._iNext;
-    var previousObject = startBlock._iPrev;
-
-    if(nextObject)nextObject._iPrev = previousObject;
-    if(previousObject)previousObject._iNext = nextObject;
-
-    this.first = startBlock._iNext;
-
-    // remove the end filter
-    var lastBlock = data.end;
-
-    nextObject = lastBlock._iNext;
-    previousObject = lastBlock._iPrev;
-
-    if(nextObject)nextObject._iPrev = previousObject;
-    previousObject._iNext = nextObject;
-
-    // this is always true too!
-    var tempLast =  lastBlock._iPrev;
-    // need to make sure the parents last is updated too
-    var updateLast = this;
-    while(updateLast.last === lastBlock)
-    {
-        updateLast.last = tempLast;
-        updateLast = updateLast.parent;
-        if(!updateLast)break;
-    }
-
-    // if webGL...
-    if(this.__renderGroup)
-    {
-        this.__renderGroup.removeFilterBlocks(startBlock, lastBlock);
-    }
-};
-
-/*
- * Updates the object transform for rendering
- *
- * @method updateTransform
- * @private
- */
-PIXI.DisplayObject.prototype.updateTransform = function()
-{
-    // TODO OPTIMIZE THIS!! with dirty
-    if(this.rotation !== this.rotationCache)
-    {
-        this.rotationCache = this.rotation;
-        this._sr =  Math.sin(this.rotation);
-        this._cr =  Math.cos(this.rotation);
-    }
-
-    var localTransform = this.localTransform;
-    var parentTransform = this.parent.worldTransform;
-    var worldTransform = this.worldTransform;
-    //console.log(localTransform)
-    localTransform[0] = this._cr * this.scale.x;
-    localTransform[1] = -this._sr * this.scale.y;
-    localTransform[3] = this._sr * this.scale.x;
-    localTransform[4] = this._cr * this.scale.y;
-
-    // TODO --> do we even need a local matrix???
-
-    var px = this.pivot.x;
-    var py = this.pivot.y;
-
-    // Cache the matrix values (makes for huge speed increases!)
-    var a00 = localTransform[0], a01 = localTransform[1], a02 = this.position.x - localTransform[0] * px - py * localTransform[1],
-        a10 = localTransform[3], a11 = localTransform[4], a12 = this.position.y - localTransform[4] * py - px * localTransform[3],
-
-        b00 = parentTransform[0], b01 = parentTransform[1], b02 = parentTransform[2],
-        b10 = parentTransform[3], b11 = parentTransform[4], b12 = parentTransform[5];
-
-    localTransform[2] = a02;
-    localTransform[5] = a12;
-
-    worldTransform[0] = b00 * a00 + b01 * a10;
-    worldTransform[1] = b00 * a01 + b01 * a11;
-    worldTransform[2] = b00 * a02 + b01 * a12 + b02;
-
-    worldTransform[3] = b10 * a00 + b11 * a10;
-    worldTransform[4] = b10 * a01 + b11 * a11;
-    worldTransform[5] = b10 * a02 + b11 * a12 + b12;
-
-    // because we are using affine transformation, we can optimise the matrix concatenation process.. wooo!
-    // mat3.multiply(this.localTransform, this.parent.worldTransform, this.worldTransform);
-    this.worldAlpha = this.alpha * this.parent.worldAlpha;
-
-    this.vcount = PIXI.visibleCount;
-};
-
-PIXI.visibleCount = 0;
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-
-/**
- * A DisplayObjectContainer represents a collection of display objects.
- * It is the base class of all display objects that act as a container for other objects.
- *
- * @class DisplayObjectContainer
- * @extends DisplayObject
- * @constructor
- */
-PIXI.DisplayObjectContainer = function()
-{
-    PIXI.DisplayObject.call( this );
-
-    /**
-     * [read-only] The of children of this container.
-     *
-     * @property children
-     * @type Array<DisplayObject>
-     * @readOnly
-     */
-    this.children = [];
-};
-
-// constructor
-PIXI.DisplayObjectContainer.prototype = Object.create( PIXI.DisplayObject.prototype );
-PIXI.DisplayObjectContainer.prototype.constructor = PIXI.DisplayObjectContainer;
-
-/**
- * Adds a child to the container.
- *
- * @method addChild
- * @param child {DisplayObject} The DisplayObject to add to the container
- */
-PIXI.DisplayObjectContainer.prototype.addChild = function(child)
-{
-    if(child.parent && child.parent !== this)
-    {
-        //// COULD BE THIS???
-        child.parent.removeChild(child);
-    //  return;
-    }
-
-    child.parent = this;
-
-    this.children.push(child);
-
-    // update the stage refference..
-
-    if(this.stage)
-    {
-        var tmpChild = child;
-        do
-        {
-            if(tmpChild.interactive)this.stage.dirty = true;
-            tmpChild.stage = this.stage;
-            tmpChild = tmpChild._iNext;
-        }
-        while(tmpChild);
-    }
-
-    // LINKED LIST //
-
-    // modify the list..
-    var childFirst = child.first;
-    var childLast = child.last;
-    var nextObject;
-    var previousObject;
-
-    // this could be wrong if there is a filter??
-    if(this._filters || this._mask)
-    {
-        previousObject =  this.last._iPrev;
-    }
-    else
-    {
-        previousObject = this.last;
-    }
-
-    nextObject = previousObject._iNext;
-
-    // always true in this case
-    // need to make sure the parents last is updated too
-    var updateLast = this;
-    var prevLast = previousObject;
-
-    while(updateLast)
-    {
-        if(updateLast.last === prevLast)
-        {
-            updateLast.last = child.last;
-        }
-        updateLast = updateLast.parent;
-    }
-
-    if(nextObject)
-    {
-        nextObject._iPrev = childLast;
-        childLast._iNext = nextObject;
-    }
-
-    childFirst._iPrev = previousObject;
-    previousObject._iNext = childFirst;
-
-    // need to remove any render groups..
-    if(this.__renderGroup)
-    {
-        // being used by a renderTexture.. if it exists then it must be from a render texture;
-        if(child.__renderGroup)child.__renderGroup.removeDisplayObjectAndChildren(child);
-        // add them to the new render group..
-        this.__renderGroup.addDisplayObjectAndChildren(child);
-    }
-};
-
-/**
- * Adds a child to the container at a specified index. If the index is out of bounds an error will be thrown
- *
- * @method addChildAt
- * @param child {DisplayObject} The child to add
- * @param index {Number} The index to place the child in
- */
-PIXI.DisplayObjectContainer.prototype.addChildAt = function(child, index)
-{
-    if(index >= 0 && index <= this.children.length)
-    {
-        if(child.parent !== undefined)
-        {
-            child.parent.removeChild(child);
-        }
-
-        child.parent = this;
-
-        if(this.stage)
-        {
-            var tmpChild = child;
-            do
-            {
-                if(tmpChild.interactive)this.stage.dirty = true;
-                tmpChild.stage = this.stage;
-                tmpChild = tmpChild._iNext;
-            }
-            while(tmpChild);
-        }
-
-        // modify the list..
-        var childFirst = child.first;
-        var childLast = child.last;
-        var nextObject;
-        var previousObject;
-
-        if(index === this.children.length)
-        {
-            previousObject =  this.last;
-            var updateLast = this;
-            var prevLast = this.last;
-            while(updateLast)
-            {
-                if(updateLast.last === prevLast)
-                {
-                    updateLast.last = child.last;
-                }
-                updateLast = updateLast.parent;
-            }
-        }
-        else if(index === 0)
-        {
-            previousObject = this;
-        }
-        else
-        {
-            previousObject = this.children[index-1].last;
-        }
-
-        nextObject = previousObject._iNext;
-
-        // always true in this case
-        if(nextObject)
-        {
-            nextObject._iPrev = childLast;
-            childLast._iNext = nextObject;
-        }
-
-        childFirst._iPrev = previousObject;
-        previousObject._iNext = childFirst;
-
-        this.children.splice(index, 0, child);
-        // need to remove any render groups..
-        if(this.__renderGroup)
-        {
-            // being used by a renderTexture.. if it exists then it must be from a render texture;
-            if(child.__renderGroup)child.__renderGroup.removeDisplayObjectAndChildren(child);
-            // add them to the new render group..
-            this.__renderGroup.addDisplayObjectAndChildren(child);
-        }
-
-    }
-    else
-    {
-        throw new Error(child + ' The index '+ index +' supplied is out of bounds ' + this.children.length);
-    }
-};
-
-/**
- * [NYI] Swaps the depth of 2 displayObjects
- *
- * @method swapChildren
- * @param child {DisplayObject}
- * @param child2 {DisplayObject}
- * @private
- */
-PIXI.DisplayObjectContainer.prototype.swapChildren = function(child, child2)
-{
-    if(child === child2) {
-        return;
-    }
-
-    var index1 = this.children.indexOf(child);
-    var index2 = this.children.indexOf(child2);
-
-    if(index1 < 0 || index2 < 0) {
-        throw new Error('swapChildren: Both the supplied DisplayObjects must be a child of the caller.');
-    }
-
-    this.removeChild(child);
-    this.removeChild(child2);
-
-    if(index1 < index2)
-    {
-        this.addChildAt(child2, index1);
-        this.addChildAt(child, index2);
-    }
-    else
-    {
-        this.addChildAt(child, index2);
-        this.addChildAt(child2, index1);
-    }
-};
-
-/**
- * Returns the Child at the specified index
- *
- * @method getChildAt
- * @param index {Number} The index to get the child from
- */
-PIXI.DisplayObjectContainer.prototype.getChildAt = function(index)
-{
-    if(index >= 0 && index < this.children.length)
-    {
-        return this.children[index];
-    }
-    else
-    {
-        throw new Error('Both the supplied DisplayObjects must be a child of the caller ' + this);
-    }
-};
-
-/**
- * Removes a child from the container.
- *
- * @method removeChild
- * @param child {DisplayObject} The DisplayObject to remove
- */
-PIXI.DisplayObjectContainer.prototype.removeChild = function(child)
-{
-    var index = this.children.indexOf( child );
-    if ( index !== -1 )
-    {
-        // unlink //
-        // modify the list..
-        var childFirst = child.first;
-        var childLast = child.last;
-
-        var nextObject = childLast._iNext;
-        var previousObject = childFirst._iPrev;
-
-        if(nextObject)nextObject._iPrev = previousObject;
-        previousObject._iNext = nextObject;
-
-        if(this.last === childLast)
-        {
-            var tempLast = childFirst._iPrev;
-            // need to make sure the parents last is updated too
-            var updateLast = this;
-
-            while(updateLast.last === childLast)
-            {
-                updateLast.last = tempLast;
-                updateLast = updateLast.parent;
-                if(!updateLast)break;
-
-            }
-        }
-
-        childLast._iNext = null;
-        childFirst._iPrev = null;
-
-        // update the stage reference..
-        if(this.stage)
-        {
-            var tmpChild = child;
-            do
-            {
-                if(tmpChild.interactive)this.stage.dirty = true;
-                tmpChild.stage = null;
-                tmpChild = tmpChild._iNext;
-            }
-            while(tmpChild);
-        }
-
-        // webGL trim
-        if(child.__renderGroup)
-        {
-            child.__renderGroup.removeDisplayObjectAndChildren(child);
-        }
-
-        child.parent = undefined;
-        this.children.splice( index, 1 );
-    }
-    else
-    {
-        throw new Error(child + ' The supplied DisplayObject must be a child of the caller ' + this);
-    }
-};
-
-/*
- * Updates the container's children's transform for rendering
- *
- * @method updateTransform
- * @private
- */
-PIXI.DisplayObjectContainer.prototype.updateTransform = function()
-{
-    if(!this.visible)return;
-
-    PIXI.DisplayObject.prototype.updateTransform.call( this );
-
-    for(var i=0,j=this.children.length; i<j; i++)
-    {
-        this.children[i].updateTransform();
-    }
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-PIXI.blendModes = {};
-PIXI.blendModes.NORMAL = 0;
-PIXI.blendModes.SCREEN = 1;
-
-
-/**
- * The SPrite object is the base for all textured objects that are rendered to the screen
- *
- * @class Sprite
- * @extends DisplayObjectContainer
- * @constructor
- * @param texture {Texture} The texture for this sprite
- * @type String
- */
-PIXI.Sprite = function(texture)
-{
-    PIXI.DisplayObjectContainer.call( this );
-
-    /**
-     * The anchor sets the origin point of the texture.
-     * The default is 0,0 this means the textures origin is the top left
-     * Setting than anchor to 0.5,0.5 means the textures origin is centered
-     * Setting the anchor to 1,1 would mean the textures origin points will be the bottom right
-     *
-     * @property anchor
-     * @type Point
-     */
-    this.anchor = new PIXI.Point();
-
-    /**
-     * The texture that the sprite is using
-     *
-     * @property texture
-     * @type Texture
-     */
-    this.texture = texture;
-
-    /**
-     * The blend mode of sprite.
-     * currently supports PIXI.blendModes.NORMAL and PIXI.blendModes.SCREEN
-     *
-     * @property blendMode
-     * @type Number
-     */
-    this.blendMode = PIXI.blendModes.NORMAL;
-
-    /**
-     * The width of the sprite (this is initially set by the texture)
-     *
-     * @property _width
-     * @type Number
-     * @private
-     */
-    this._width = 0;
-
-    /**
-     * The height of the sprite (this is initially set by the texture)
-     *
-     * @property _height
-     * @type Number
-     * @private
-     */
-    this._height = 0;
-
-    if(texture.baseTexture.hasLoaded)
-    {
-        this.updateFrame = true;
-    }
-    else
-    {
-        this.onTextureUpdateBind = this.onTextureUpdate.bind(this);
-        this.texture.addEventListener( 'update', this.onTextureUpdateBind );
-    }
-
-    this.renderable = true;
-};
-
-// constructor
-PIXI.Sprite.prototype = Object.create( PIXI.DisplayObjectContainer.prototype );
-PIXI.Sprite.prototype.constructor = PIXI.Sprite;
-
-/**
- * The width of the sprite, setting this will actually modify the scale to acheive the value set
- *
- * @property width
- * @type Number
- */
-Object.defineProperty(PIXI.Sprite.prototype, 'width', {
-    get: function() {
-        return this.scale.x * this.texture.frame.width;
-    },
-    set: function(value) {
-        this.scale.x = value / this.texture.frame.width;
-        this._width = value;
-    }
-});
-
-/**
- * The height of the sprite, setting this will actually modify the scale to acheive the value set
- *
- * @property height
- * @type Number
- */
-Object.defineProperty(PIXI.Sprite.prototype, 'height', {
-    get: function() {
-        return  this.scale.y * this.texture.frame.height;
-    },
-    set: function(value) {
-        this.scale.y = value / this.texture.frame.height;
-        this._height = value;
-    }
-});
-
-/**
- * Sets the texture of the sprite
- *
- * @method setTexture
- * @param texture {Texture} The PIXI texture that is displayed by the sprite
- */
-PIXI.Sprite.prototype.setTexture = function(texture)
-{
-    // stop current texture;
-    if(this.texture.baseTexture !== texture.baseTexture)
-    {
-        this.textureChange = true;
-        this.texture = texture;
-
-        if(this.__renderGroup)
-        {
-            this.__renderGroup.updateTexture(this);
-        }
-    }
-    else
-    {
-        this.texture = texture;
-    }
-
-    this.updateFrame = true;
-};
-
-/**
- * When the texture is updated, this event will fire to update the scale and frame
- *
- * @method onTextureUpdate
- * @param event
- * @private
- */
-PIXI.Sprite.prototype.onTextureUpdate = function()
-{
-    //this.texture.removeEventListener( 'update', this.onTextureUpdateBind );
-
-    // so if _width is 0 then width was not set..
-    if(this._width)this.scale.x = this._width / this.texture.frame.width;
-    if(this._height)this.scale.y = this._height / this.texture.frame.height;
-
-    this.updateFrame = true;
-};
-
-// some helper functions..
-
-/**
- *
- * Helper function that creates a sprite that will contain a texture from the TextureCache based on the frameId
- * The frame ids are created when a Texture packer file has been loaded
- *
- * @method fromFrame
- * @static
- * @param frameId {String} The frame Id of the texture in the cache
- * @return {Sprite} A new Sprite using a texture from the texture cache matching the frameId
- */
-PIXI.Sprite.fromFrame = function(frameId)
-{
-    var texture = PIXI.TextureCache[frameId];
-    if(!texture) throw new Error('The frameId "' + frameId + '" does not exist in the texture cache' + this);
-    return new PIXI.Sprite(texture);
-};
-
-/**
- *
- * Helper function that creates a sprite that will contain a texture based on an image url
- * If the image is not in the texture cache it will be loaded
- *
- * @method fromImage
- * @static
- * @param imageId {String} The image url of the texture
- * @return {Sprite} A new Sprite using a texture from the texture cache matching the image id
- */
-PIXI.Sprite.fromImage = function(imageId)
-{
-    var texture = PIXI.Texture.fromImage(imageId);
-    return new PIXI.Sprite(texture);
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-/**
- * A Stage represents the root of the display tree. Everything connected to the stage is rendered
- *
- * @class Stage
- * @extends DisplayObjectContainer
- * @constructor
- * @param backgroundColor {Number} the background color of the stage, easiest way to pass this in is in hex format
- *      like: 0xFFFFFF for white
- */
-PIXI.Stage = function(backgroundColor)
-{
-    PIXI.DisplayObjectContainer.call( this );
-
-    /**
-     * [read-only] Current transform of the object based on world (parent) factors
-     *
-     * @property worldTransform
-     * @type Mat3
-     * @readOnly
-     * @private
-     */
-    this.worldTransform = PIXI.mat3.create();
-
-    /**
-     * Whether or not the stage is interactive
-     *
-     * @property interactive
-     * @type Boolean
-     */
-    this.interactive = true;
-
-    /**
-     * The interaction manage for this stage, manages all interactive activity on the stage
-     *
-     * @property interactive
-     * @type InteractionManager
-     */
-    this.interactionManager = new PIXI.InteractionManager(this);
-
-    /**
-     * Whether the stage is dirty and needs to have interactions updated
-     *
-     * @property dirty
-     * @type Boolean
-     * @private
-     */
-    this.dirty = true;
-
-    this.__childrenAdded = [];
-    this.__childrenRemoved = [];
-
-    //the stage is it's own stage
-    this.stage = this;
-
-    //optimize hit detection a bit
-    this.stage.hitArea = new PIXI.Rectangle(0,0,100000, 100000);
-
-    this.setBackgroundColor(backgroundColor);
-    this.worldVisible = true;
-};
-
-// constructor
-PIXI.Stage.prototype = Object.create( PIXI.DisplayObjectContainer.prototype );
-PIXI.Stage.prototype.constructor = PIXI.Stage;
-
-/**
- * Sets another DOM element which can receive mouse/touch interactions instead of the default Canvas element.
- * This is useful for when you have other DOM elements ontop of the Canvas element.
- *
- * @method setInteractionDelegate
- * @param domElement {DOMElement} This new domElement which will receive mouse/touch events
- */
-PIXI.Stage.prototype.setInteractionDelegate = function(domElement)
-{
-    this.interactionManager.setTargetDomElement( domElement );
-};
-
-/*
- * Updates the object transform for rendering
- *
- * @method updateTransform
- * @private
- */
-PIXI.Stage.prototype.updateTransform = function()
-{
-    this.worldAlpha = 1;
-    this.vcount = PIXI.visibleCount;
-
-    for(var i=0,j=this.children.length; i<j; i++)
-    {
-        this.children[i].updateTransform();
-    }
-
-    if(this.dirty)
-    {
-        this.dirty = false;
-        // update interactive!
-        this.interactionManager.dirty = true;
-    }
-
-
-    if(this.interactive)this.interactionManager.update();
-};
-
-/**
- * Sets the background color for the stage
- *
- * @method setBackgroundColor
- * @param backgroundColor {Number} the color of the background, easiest way to pass this in is in hex format
- *      like: 0xFFFFFF for white
- */
-PIXI.Stage.prototype.setBackgroundColor = function(backgroundColor)
-{
-    this.backgroundColor = backgroundColor || 0x000000;
-    this.backgroundColorSplit = PIXI.hex2rgb(this.backgroundColor);
-    var hex = this.backgroundColor.toString(16);
-    hex = '000000'.substr(0, 6 - hex.length) + hex;
-    this.backgroundColorString = '#' + hex;
-};
-
-/**
- * This will return the point containing global coords of the mouse.
- *
- * @method getMousePosition
- * @return {Point} The point containing the coords of the global InteractionData position.
- */
-PIXI.Stage.prototype.getMousePosition = function()
-{
-    return this.interactionManager.mouse.global;
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-
-/**
- * This object is one that will allow you to specify custom rendering functions based on render type
- *
- * @class CustomRenderable
- * @extends DisplayObject
- * @constructor
- */
-PIXI.CustomRenderable = function()
-{
-    PIXI.DisplayObject.call( this );
-
-    this.renderable = true;
-};
-
-// constructor
-PIXI.CustomRenderable.prototype = Object.create( PIXI.DisplayObject.prototype );
-PIXI.CustomRenderable.prototype.constructor = PIXI.CustomRenderable;
-
-/**
- * If this object is being rendered by a CanvasRenderer it will call this callback
- *
- * @method renderCanvas
- * @param renderer {CanvasRenderer} The renderer instance
- */
-PIXI.CustomRenderable.prototype.renderCanvas = function()
-{
-    // override!
-};
-
-/**
- * If this object is being rendered by a WebGLRenderer it will call this callback to initialize
- *
- * @method initWebGL
- * @param renderer {WebGLRenderer} The renderer instance
- */
-PIXI.CustomRenderable.prototype.initWebGL = function()
-{
-    // override!
-};
-
-/**
- * If this object is being rendered by a WebGLRenderer it will call this callback
- *
- * @method renderWebGL
- * @param rendererGroup {WebGLRenderGroup} The renderer group instance
- * @param projectionMatrix {Matrix} The object's projection matrix
- */
-PIXI.CustomRenderable.prototype.renderWebGL = function()
-{
-    // not sure if both needed? but ya have for now!
-    // override!
-};
-
-
-/**
- * @author Mat Groves http://matgroves.com/
- */
-
-PIXI.Strip = function(texture, width, height)
-{
-    PIXI.DisplayObjectContainer.call( this );
-    this.texture = texture;
-    this.blendMode = PIXI.blendModes.NORMAL;
-
-    try
-    {
-        this.uvs = new Float32Array([0, 1,
-                1, 1,
-                1, 0, 0,1]);
-
-        this.verticies = new Float32Array([0, 0,
-                          0,0,
-                          0,0, 0,
-                          0, 0]);
-
-        this.colors = new Float32Array([1, 1, 1, 1]);
-
-        this.indices = new Uint16Array([0, 1, 2, 3]);
-    }
-    catch(error)
-    {
-        this.uvs = [0, 1,
-                1, 1,
-                1, 0, 0,1];
-
-        this.verticies = [0, 0,
-                          0,0,
-                          0,0, 0,
-                          0, 0];
-
-        this.colors = [1, 1, 1, 1];
-
-        this.indices = [0, 1, 2, 3];
-    }
-
-
-    /*
-    this.uvs = new Float32Array()
-    this.verticies = new Float32Array()
-    this.colors = new Float32Array()
-    this.indices = new Uint16Array()
+    * @property {array<Phaser.Point>|array<number>} points - The array of Points.
     */
-    this.width = width;
-    this.height = height;
-
-    // load the texture!
-    if(texture.baseTexture.hasLoaded)
-    {
-        this.width   = this.texture.frame.width;
-        this.height  = this.texture.frame.height;
-        this.updateFrame = true;
-    }
-    else
-    {
-        this.onTextureUpdateBind = this.onTextureUpdate.bind(this);
-        this.texture.addEventListener( 'update', this.onTextureUpdateBind );
-    }
-
-    this.renderable = true;
-};
-
-// constructor
-PIXI.Strip.prototype = Object.create( PIXI.DisplayObjectContainer.prototype );
-PIXI.Strip.prototype.constructor = PIXI.Strip;
-
-PIXI.Strip.prototype.setTexture = function(texture)
-{
-    //TODO SET THE TEXTURES
-    //TODO VISIBILITY
-
-    // stop current texture
-    this.texture = texture;
-    this.width   = texture.frame.width;
-    this.height  = texture.frame.height;
-    this.updateFrame = true;
-};
-
-PIXI.Strip.prototype.onTextureUpdate = function()
-{
-    this.updateFrame = true;
-};
-// some helper functions..
-
-/**
- * @author Mat Groves http://matgroves.com/
- */
-
-PIXI.Rope = function(texture, points)
-{
-    PIXI.Strip.call( this, texture );
     this.points = points;
 
-    try
-    {
-        this.verticies = new Float32Array(points.length * 4);
-        this.uvs = new Float32Array(points.length * 4);
-        this.colors = new Float32Array(points.length * 2);
-        this.indices = new Uint16Array(points.length * 2);
-    }
-    catch(error)
-    {
-        this.verticies = new Array(points.length * 4);
-        this.uvs = new Array(points.length * 4);
-        this.colors = new Array(points.length * 2);
-        this.indices = new Array(points.length * 2);
-    }
-
-    this.refresh();
 };
 
-
-// constructor
-PIXI.Rope.prototype = Object.create( PIXI.Strip.prototype );
-PIXI.Rope.prototype.constructor = PIXI.Rope;
-
-PIXI.Rope.prototype.refresh = function()
-{
-    var points = this.points;
-    if(points.length < 1) return;
-
-    var uvs = this.uvs;
-
-    var lastPoint = points[0];
-    var indices = this.indices;
-    var colors = this.colors;
-
-    this.count-=0.2;
-
-
-    uvs[0] = 0;
-    uvs[1] = 1;
-    uvs[2] = 0;
-    uvs[3] = 1;
-
-    colors[0] = 1;
-    colors[1] = 1;
-
-    indices[0] = 0;
-    indices[1] = 1;
-
-    var total = points.length,
-        point, index, amount;
-
-    for (var i = 1; i < total; i++)
-    {
-
-        point = points[i];
-        index = i * 4;
-        // time to do some smart drawing!
-        amount = i / (total-1);
-
-        if(i%2)
-        {
-            uvs[index] = amount;
-            uvs[index+1] = 0;
-
-            uvs[index+2] = amount;
-            uvs[index+3] = 1;
-
-        }
-        else
-        {
-            uvs[index] = amount;
-            uvs[index+1] = 0;
-
-            uvs[index+2] = amount;
-            uvs[index+3] = 1;
-        }
-
-        index = i * 2;
-        colors[index] = 1;
-        colors[index+1] = 1;
-
-        index = i * 2;
-        indices[index] = index;
-        indices[index + 1] = index + 1;
-
-        lastPoint = point;
-    }
-};
-
-PIXI.Rope.prototype.updateTransform = function()
-{
-
-    var points = this.points;
-    if(points.length < 1)return;
-
-    var lastPoint = points[0];
-    var nextPoint;
-    var perp = {x:0, y:0};
-
-    this.count-=0.2;
-
-    var verticies = this.verticies;
-    verticies[0] = lastPoint.x + perp.x;
-    verticies[1] = lastPoint.y + perp.y; //+ 200
-    verticies[2] = lastPoint.x - perp.x;
-    verticies[3] = lastPoint.y - perp.y;//+200
-    // time to do some smart drawing!
-
-    var total = points.length,
-        point, index, ratio, perpLength, num;
-
-    for (var i = 1; i < total; i++)
-    {
-        point = points[i];
-        index = i * 4;
-
-        if(i < points.length-1)
-        {
-            nextPoint = points[i+1];
-        }
-        else
-        {
-            nextPoint = point;
-        }
-
-        perp.y = -(nextPoint.x - lastPoint.x);
-        perp.x = nextPoint.y - lastPoint.y;
-
-        ratio = (1 - (i / (total-1))) * 10;
-
-        if(ratio > 1) ratio = 1;
-
-        perpLength = Math.sqrt(perp.x * perp.x + perp.y * perp.y);
-        num = this.texture.height / 2; //(20 + Math.abs(Math.sin((i + this.count) * 0.3) * 50) )* ratio;
-        perp.x /= perpLength;
-        perp.y /= perpLength;
-
-        perp.x *= num;
-        perp.y *= num;
-
-        verticies[index] = point.x + perp.x;
-        verticies[index+1] = point.y + perp.y;
-        verticies[index+2] = point.x - perp.x;
-        verticies[index+3] = point.y - perp.y;
-
-        lastPoint = point;
-    }
-
-    PIXI.DisplayObjectContainer.prototype.updateTransform.call( this );
-};
-
-PIXI.Rope.prototype.setTexture = function(texture)
-{
-    // stop current texture
-    this.texture = texture;
-    this.updateFrame = true;
-};
-
-/**
- * @author Mat Groves http://matgroves.com/
- */
-
-/**
- * A tiling sprite is a fast way of rendering a tiling image
- *
- * @class TilingSprite
- * @extends DisplayObjectContainer
- * @constructor
- * @param texture {Texture} the texture of the tiling sprite
- * @param width {Number}  the width of the tiling sprite
- * @param height {Number} the height of the tiling sprite
- */
-PIXI.TilingSprite = function(texture, width, height)
-{
-    PIXI.DisplayObjectContainer.call( this );
+Phaser.Polygon.prototype = {
 
     /**
-     * The texture that the sprite is using
-     *
-     * @property texture
-     * @type Texture
-     */
-    this.texture = texture;
-
-    /**
-     * The width of the tiling sprite
-     *
-     * @property width
-     * @type Number
-     */
-    this.width = width;
-
-    /**
-     * The height of the tiling sprite
-     *
-     * @property height
-     * @type Number
-     */
-    this.height = height;
-
-    /**
-     * The scaling of the image that is being tiled
-     *
-     * @property tileScale
-     * @type Point
-     */
-    this.tileScale = new PIXI.Point(1,1);
-
-    /**
-     * The offset position of the image that is being tiled
-     *
-     * @property tilePosition
-     * @type Point
-     */
-    this.tilePosition = new PIXI.Point(0,0);
-
-    this.renderable = true;
-
-    this.blendMode = PIXI.blendModes.NORMAL;
-};
-
-// constructor
-PIXI.TilingSprite.prototype = Object.create( PIXI.DisplayObjectContainer.prototype );
-PIXI.TilingSprite.prototype.constructor = PIXI.TilingSprite;
-
-/**
- * Sets the texture of the tiling sprite
- *
- * @method setTexture
- * @param texture {Texture} The PIXI texture that is displayed by the sprite
- */
-PIXI.TilingSprite.prototype.setTexture = function(texture)
-{
-    //TODO SET THE TEXTURES
-    //TODO VISIBILITY
-
-    // stop current texture
-    this.texture = texture;
-    this.updateFrame = true;
-};
-
-/**
- * When the texture is updated, this event will fire to update the frame
- *
- * @method onTextureUpdate
- * @param event
- * @private
- */
-PIXI.TilingSprite.prototype.onTextureUpdate = function()
-{
-    this.updateFrame = true;
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-/**
- * This is the base class for  creating a pixi.js filter. Currently only webGL supports filters.
- * If you want to make a custom filter this should be your base class.
- * @class AbstractFilter
- * @constructor
- * @param fragmentSrc
- * @param uniforms
- */
-PIXI.AbstractFilter = function(fragmentSrc, uniforms)
-{
-    /**
-    * An array of passes - some filters contain a few steps this array simply stores the steps in a liniear fashion.
-    * For example the blur filter has two passes blurX and blurY.
-    * @property passes
-    * @type Array an array of filter objects
-    * @private
+    * Creates a clone of this polygon.
+    *
+    * @method Phaser.Polygon#clone
+    * @return {Phaser.Polygon} A copy of the polygon.
     */
-    this.passes = [this];
+    clone: function () {
 
+        var points = [];
 
-    this.dirty = true;
-    this.padding = 0;
+        for (var i=0; i < this.points.length; i++)
+        {
+            points.push(this.points[i].clone());
+        }
+
+        return new Phaser.Polygon(points);
+
+    },
 
     /**
-    @property uniforms
-    @private
+    * Checks whether the x and y coordinates are contained within this polygon.
+    *
+    * @method Phaser.Polygon#contains
+    * @param {number} x - The X value of the coordinate to test.
+    * @param {number} y - The Y value of the coordinate to test.
+    * @return {boolean} True if the coordinates are within this polygon, otherwise false.
     */
-    this.uniforms = uniforms || {};
+    contains: function (x, y) {
 
-    this.fragmentSrc = fragmentSrc || [];
-};
+        var inside = false;
 
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
+        // use some raycasting to test hits https://github.com/substack/point-in-polygon/blob/master/index.js
+        for (var i = 0, j = this.points.length - 1; i < this.points.length; j = i++)
+        {
+            var xi = this.points[i].x;
+            var yi = this.points[i].y;
+            var xj = this.points[j].x;
+            var yj = this.points[j].y;
 
+            var intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
 
-
-PIXI.FilterBlock = function()
-{
-    this.visible = true;
-    this.renderable = true;
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-
-/**
- * The Graphics class contains a set of methods that you can use to create primitive shapes and lines.
- * It is important to know that with the webGL renderer only simple polys can be filled at this stage
- * Complex polys will not be filled. Heres an example of a complex poly: http://www.goodboydigital.com/wp-content/uploads/2013/06/complexPolygon.png
- *
- * @class Graphics
- * @extends DisplayObjectContainer
- * @constructor
- */
-PIXI.Graphics = function()
-{
-    PIXI.DisplayObjectContainer.call( this );
-
-    this.renderable = true;
-
-    /**
-     * The alpha of the fill of this graphics object
-     *
-     * @property fillAlpha
-     * @type Number
-     */
-    this.fillAlpha = 1;
-
-    /**
-     * The width of any lines drawn
-     *
-     * @property lineWidth
-     * @type Number
-     */
-    this.lineWidth = 0;
-
-    /**
-     * The color of any lines drawn
-     *
-     * @property lineColor
-     * @type String
-     */
-    this.lineColor = "black";
-
-    /**
-     * Graphics data
-     *
-     * @property graphicsData
-     * @type Array
-     * @private
-     */
-    this.graphicsData = [];
-
-    /**
-     * Current path
-     *
-     * @property currentPath
-     * @type Object
-     * @private
-     */
-    this.currentPath = {points:[]};
-};
-
-// constructor
-PIXI.Graphics.prototype = Object.create( PIXI.DisplayObjectContainer.prototype );
-PIXI.Graphics.prototype.constructor = PIXI.Graphics;
-
-/**
- * Specifies a line style used for subsequent calls to Graphics methods such as the lineTo() method or the drawCircle() method.
- *
- * @method lineStyle
- * @param lineWidth {Number} width of the line to draw, will update the object's stored style
- * @param color {Number} color of the line to draw, will update the object's stored style
- * @param alpha {Number} alpha of the line to draw, will update the object's stored style
- */
-PIXI.Graphics.prototype.lineStyle = function(lineWidth, color, alpha)
-{
-    if (!this.currentPath.points.length) this.graphicsData.pop();
-
-    this.lineWidth = lineWidth || 0;
-    this.lineColor = color || 0;
-    this.lineAlpha = (arguments.length < 3) ? 1 : alpha;
-
-    this.currentPath = {lineWidth:this.lineWidth, lineColor:this.lineColor, lineAlpha:this.lineAlpha,
-                        fillColor:this.fillColor, fillAlpha:this.fillAlpha, fill:this.filling, points:[], type:PIXI.Graphics.POLY};
-
-    this.graphicsData.push(this.currentPath);
-};
-
-/**
- * Moves the current drawing position to (x, y).
- *
- * @method moveTo
- * @param x {Number} the X coord to move to
- * @param y {Number} the Y coord to move to
- */
-PIXI.Graphics.prototype.moveTo = function(x, y)
-{
-    if (!this.currentPath.points.length) this.graphicsData.pop();
-
-    this.currentPath = this.currentPath = {lineWidth:this.lineWidth, lineColor:this.lineColor, lineAlpha:this.lineAlpha,
-                        fillColor:this.fillColor, fillAlpha:this.fillAlpha, fill:this.filling, points:[], type:PIXI.Graphics.POLY};
-
-    this.currentPath.points.push(x, y);
-
-    this.graphicsData.push(this.currentPath);
-};
-
-/**
- * Draws a line using the current line style from the current drawing position to (x, y);
- * the current drawing position is then set to (x, y).
- *
- * @method lineTo
- * @param x {Number} the X coord to draw to
- * @param y {Number} the Y coord to draw to
- */
-PIXI.Graphics.prototype.lineTo = function(x, y)
-{
-    this.currentPath.points.push(x, y);
-    this.dirty = true;
-};
-
-/**
- * Specifies a simple one-color fill that subsequent calls to other Graphics methods
- * (such as lineTo() or drawCircle()) use when drawing.
- *
- * @method beginFill
- * @param color {uint} the color of the fill
- * @param alpha {Number} the alpha
- */
-PIXI.Graphics.prototype.beginFill = function(color, alpha)
-{
-    this.filling = true;
-    this.fillColor = color || 0;
-    this.fillAlpha = (arguments.length < 2) ? 1 : alpha;
-};
-
-/**
- * Applies a fill to the lines and shapes that were added since the last call to the beginFill() method.
- *
- * @method endFill
- */
-PIXI.Graphics.prototype.endFill = function()
-{
-    this.filling = false;
-    this.fillColor = null;
-    this.fillAlpha = 1;
-};
-
-/**
- * @method drawRect
- *
- * @param x {Number} The X coord of the top-left of the rectangle
- * @param y {Number} The Y coord of the top-left of the rectangle
- * @param width {Number} The width of the rectangle
- * @param height {Number} The height of the rectangle
- */
-PIXI.Graphics.prototype.drawRect = function( x, y, width, height )
-{
-    if (!this.currentPath.points.length) this.graphicsData.pop();
-
-    this.currentPath = {lineWidth:this.lineWidth, lineColor:this.lineColor, lineAlpha:this.lineAlpha,
-                        fillColor:this.fillColor, fillAlpha:this.fillAlpha, fill:this.filling,
-                        points:[x, y, width, height], type:PIXI.Graphics.RECT};
-
-    this.graphicsData.push(this.currentPath);
-    this.dirty = true;
-};
-
-/**
- * Draws a circle.
- *
- * @method drawCircle
- * @param x {Number} The X coord of the center of the circle
- * @param y {Number} The Y coord of the center of the circle
- * @param radius {Number} The radius of the circle
- */
-PIXI.Graphics.prototype.drawCircle = function( x, y, radius)
-{
-    if (!this.currentPath.points.length) this.graphicsData.pop();
-
-    this.currentPath = {lineWidth:this.lineWidth, lineColor:this.lineColor, lineAlpha:this.lineAlpha,
-                        fillColor:this.fillColor, fillAlpha:this.fillAlpha, fill:this.filling,
-                        points:[x, y, radius, radius], type:PIXI.Graphics.CIRC};
-
-    this.graphicsData.push(this.currentPath);
-    this.dirty = true;
-};
-
-/**
- * Draws an ellipse.
- *
- * @method drawEllipse
- * @param x {Number}
- * @param y {Number}
- * @param width {Number}
- * @param height {Number}
- */
-PIXI.Graphics.prototype.drawEllipse = function( x, y, width, height)
-{
-    if (!this.currentPath.points.length) this.graphicsData.pop();
-
-    this.currentPath = {lineWidth:this.lineWidth, lineColor:this.lineColor, lineAlpha:this.lineAlpha,
-                        fillColor:this.fillColor, fillAlpha:this.fillAlpha, fill:this.filling,
-                        points:[x, y, width, height], type:PIXI.Graphics.ELIP};
-
-    this.graphicsData.push(this.currentPath);
-    this.dirty = true;
-};
-
-/**
- * Clears the graphics that were drawn to this Graphics object, and resets fill and line style settings.
- *
- * @method clear
- */
-PIXI.Graphics.prototype.clear = function()
-{
-    this.lineWidth = 0;
-    this.filling = false;
-
-    this.dirty = true;
-    this.clearDirty = true;
-    this.graphicsData = [];
-
-    this.bounds = null; //new PIXI.Rectangle();
-};
-
-
-PIXI.Graphics.prototype.updateFilterBounds = function()
-{
-    if(!this.bounds)
-    {
-        var minX = Infinity;
-        var maxX = -Infinity;
-
-        var minY = Infinity;
-        var maxY = -Infinity;
-
-        var points, x, y;
-
-        for (var i = 0; i < this.graphicsData.length; i++) {
-            var data = this.graphicsData[i];
-            var type = data.type;
-            var lineWidth = data.lineWidth;
-
-            points = data.points;
-
-            if(type === PIXI.Graphics.RECT)
+            if (intersect)
             {
-                x = points.x - lineWidth/2;
-                y = points.y - lineWidth/2;
-                var width = points.width + lineWidth;
-                var height = points.height + lineWidth;
-
-                minX = x < minX ? x : minX;
-                maxX = x + width > maxX ? x + width : maxX;
-
-                minY = y < minY ? x : minY;
-                maxY = y + height > maxY ? y + height : maxY;
-            }
-            else if(type === PIXI.Graphics.CIRC || type === PIXI.Graphics.ELIP)
-            {
-                x = points.x;
-                y = points.y;
-                var radius = points.radius + lineWidth/2;
-
-                minX = x - radius < minX ? x - radius : minX;
-                maxX = x + radius > maxX ? x + radius : maxX;
-
-                minY = y - radius < minY ? y - radius : minY;
-                maxY = y + radius > maxY ? y + radius : maxY;
-            }
-            else
-            {
-                // POLY
-                for (var j = 0; j < points.length; j+=2)
-                {
-
-                    x = points[j];
-                    y = points[j+1];
-
-                    minX = x-lineWidth < minX ? x-lineWidth : minX;
-                    maxX = x+lineWidth > maxX ? x+lineWidth : maxX;
-
-                    minY = y-lineWidth < minY ? y-lineWidth : minY;
-                    maxY = y+lineWidth > maxY ? y+lineWidth : maxY;
-                }
+                inside = true;
             }
         }
 
-        this.bounds = new PIXI.Rectangle(minX, minY, maxX - minX, maxY - minY);
-    }
-//  console.log(this.bounds);
-};
-
-// SOME TYPES:
-PIXI.Graphics.POLY = 0;
-PIXI.Graphics.RECT = 1;
-PIXI.Graphics.CIRC = 2;
-PIXI.Graphics.ELIP = 3;
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-
-/**
- * A set of functions used by the canvas renderer to draw the primitive graphics data
- *
- * @class CanvasGraphics
- */
-PIXI.CanvasGraphics = function()
-{
-
-};
-
-
-/*
- * Renders the graphics object
- *
- * @static
- * @private
- * @method renderGraphics
- * @param graphics {Graphics}
- * @param context {Context2D}
- */
-PIXI.CanvasGraphics.renderGraphics = function(graphics, context)
-{
-    var worldAlpha = graphics.worldAlpha;
-    var color = '';
-
-    for (var i = 0; i < graphics.graphicsData.length; i++)
-    {
-        var data = graphics.graphicsData[i];
-        var points = data.points;
-
-        context.strokeStyle = color = '#' + ('00000' + ( data.lineColor | 0).toString(16)).substr(-6);
-
-        context.lineWidth = data.lineWidth;
-
-        if(data.type === PIXI.Graphics.POLY)
-        {
-            context.beginPath();
-
-            context.moveTo(points[0], points[1]);
-
-            for (var j=1; j < points.length/2; j++)
-            {
-                context.lineTo(points[j * 2], points[j * 2 + 1]);
-            }
-
-            // if the first and last point are the same close the path - much neater :)
-            if(points[0] === points[points.length-2] && points[1] === points[points.length-1])
-            {
-                context.closePath();
-            }
-
-            if(data.fill)
-            {
-                context.globalAlpha = data.fillAlpha * worldAlpha;
-                context.fillStyle = color = '#' + ('00000' + ( data.fillColor | 0).toString(16)).substr(-6);
-                context.fill();
-            }
-            if(data.lineWidth)
-            {
-                context.globalAlpha = data.lineAlpha * worldAlpha;
-                context.stroke();
-            }
-        }
-        else if(data.type === PIXI.Graphics.RECT)
-        {
-
-            if(data.fillColor || data.fillColor === 0)
-            {
-                context.globalAlpha = data.fillAlpha * worldAlpha;
-                context.fillStyle = color = '#' + ('00000' + ( data.fillColor | 0).toString(16)).substr(-6);
-                context.fillRect(points[0], points[1], points[2], points[3]);
-
-            }
-            if(data.lineWidth)
-            {
-                context.globalAlpha = data.lineAlpha * worldAlpha;
-                context.strokeRect(points[0], points[1], points[2], points[3]);
-            }
-
-        }
-        else if(data.type === PIXI.Graphics.CIRC)
-        {
-            // TODO - need to be Undefined!
-            context.beginPath();
-            context.arc(points[0], points[1], points[2],0,2*Math.PI);
-            context.closePath();
-
-            if(data.fill)
-            {
-                context.globalAlpha = data.fillAlpha * worldAlpha;
-                context.fillStyle = color = '#' + ('00000' + ( data.fillColor | 0).toString(16)).substr(-6);
-                context.fill();
-            }
-            if(data.lineWidth)
-            {
-                context.globalAlpha = data.lineAlpha * worldAlpha;
-                context.stroke();
-            }
-        }
-        else if(data.type === PIXI.Graphics.ELIP)
-        {
-
-            // ellipse code taken from: http://stackoverflow.com/questions/2172798/how-to-draw-an-oval-in-html5-canvas
-
-            var ellipseData =  data.points;
-
-            var w = ellipseData[2] * 2;
-            var h = ellipseData[3] * 2;
-
-            var x = ellipseData[0] - w/2;
-            var y = ellipseData[1] - h/2;
-
-            context.beginPath();
-
-            var kappa = 0.5522848,
-                ox = (w / 2) * kappa, // control point offset horizontal
-                oy = (h / 2) * kappa, // control point offset vertical
-                xe = x + w,           // x-end
-                ye = y + h,           // y-end
-                xm = x + w / 2,       // x-middle
-                ym = y + h / 2;       // y-middle
-
-            context.moveTo(x, ym);
-            context.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
-            context.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
-            context.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
-            context.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
-
-            context.closePath();
-
-            if(data.fill)
-            {
-                context.globalAlpha = data.fillAlpha * worldAlpha;
-                context.fillStyle = color = '#' + ('00000' + ( data.fillColor | 0).toString(16)).substr(-6);
-                context.fill();
-            }
-            if(data.lineWidth)
-            {
-                context.globalAlpha = data.lineAlpha * worldAlpha;
-                context.stroke();
-            }
-        }
-    }
-};
-
-/*
- * Renders a graphics mask
- *
- * @static
- * @private
- * @method renderGraphicsMask
- * @param graphics {Graphics}
- * @param context {Context2D}
- */
-PIXI.CanvasGraphics.renderGraphicsMask = function(graphics, context)
-{
-    var len = graphics.graphicsData.length;
-
-    if(len === 0) return;
-
-    if(len > 1)
-    {
-        len = 1;
-        window.console.log('Pixi.js warning: masks in canvas can only mask using the first path in the graphics object');
-    }
-
-    for (var i = 0; i < 1; i++)
-    {
-        var data = graphics.graphicsData[i];
-        var points = data.points;
-
-        if(data.type === PIXI.Graphics.POLY)
-        {
-            context.beginPath();
-            context.moveTo(points[0], points[1]);
-
-            for (var j=1; j < points.length/2; j++)
-            {
-                context.lineTo(points[j * 2], points[j * 2 + 1]);
-            }
-
-            // if the first and last point are the same close the path - much neater :)
-            if(points[0] === points[points.length-2] && points[1] === points[points.length-1])
-            {
-                context.closePath();
-            }
-
-        }
-        else if(data.type === PIXI.Graphics.RECT)
-        {
-            context.beginPath();
-            context.rect(points[0], points[1], points[2], points[3]);
-            context.closePath();
-        }
-        else if(data.type === PIXI.Graphics.CIRC)
-        {
-            // TODO - need to be Undefined!
-            context.beginPath();
-            context.arc(points[0], points[1], points[2],0,2*Math.PI);
-            context.closePath();
-        }
-        else if(data.type === PIXI.Graphics.ELIP)
-        {
-
-            // ellipse code taken from: http://stackoverflow.com/questions/2172798/how-to-draw-an-oval-in-html5-canvas
-            var ellipseData =  data.points;
-
-            var w = ellipseData[2] * 2;
-            var h = ellipseData[3] * 2;
-
-            var x = ellipseData[0] - w/2;
-            var y = ellipseData[1] - h/2;
-
-            context.beginPath();
-
-            var kappa = 0.5522848,
-                ox = (w / 2) * kappa, // control point offset horizontal
-                oy = (h / 2) * kappa, // control point offset vertical
-                xe = x + w,           // x-end
-                ye = y + h,           // y-end
-                xm = x + w / 2,       // x-middle
-                ym = y + h / 2;       // y-middle
-
-            context.moveTo(x, ym);
-            context.bezierCurveTo(x, ym - oy, xm - ox, y, xm, y);
-            context.bezierCurveTo(xm + ox, y, xe, ym - oy, xe, ym);
-            context.bezierCurveTo(xe, ym + oy, xm + ox, ye, xm, ye);
-            context.bezierCurveTo(xm - ox, ye, x, ym + oy, x, ym);
-            context.closePath();
-        }
-    }
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-/**
- * the CanvasRenderer draws the stage and all its content onto a 2d canvas. This renderer should be used for browsers that do not support webGL.
- * Dont forget to add the view to your DOM or you will not see anything :)
- *
- * @class CanvasRenderer
- * @constructor
- * @param width=0 {Number} the width of the canvas view
- * @param height=0 {Number} the height of the canvas view
- * @param view {Canvas} the canvas to use as a view, optional
- * @param transparent=false {Boolean} the transparency of the render view, default false
- */
-PIXI.CanvasRenderer = function(width, height, view, transparent)
-{
-    this.transparent = transparent;
-
-    /**
-     * The width of the canvas view
-     *
-     * @property width
-     * @type Number
-     * @default 800
-     */
-    this.width = width || 800;
-
-    /**
-     * The height of the canvas view
-     *
-     * @property height
-     * @type Number
-     * @default 600
-     */
-    this.height = height || 600;
-
-    /**
-     * The canvas element that the everything is drawn to
-     *
-     * @property view
-     * @type Canvas
-     */
-    this.view = view || document.createElement( 'canvas' );
-
-    /**
-     * The canvas context that the everything is drawn to
-     * @property context
-     * @type Canvas 2d Context
-     */
-    this.context = this.view.getContext( '2d' );
-
-    //some filter variables
-    this.smoothProperty = null;
-
-    if('imageSmoothingEnabled' in this.context)
-        this.smoothProperty = 'imageSmoothingEnabled';
-    else if('webkitImageSmoothingEnabled' in this.context)
-        this.smoothProperty = 'webkitImageSmoothingEnabled';
-    else if('mozImageSmoothingEnabled' in this.context)
-        this.smoothProperty = 'mozImageSmoothingEnabled';
-    else if('oImageSmoothingEnabled' in this.context)
-        this.smoothProperty = 'oImageSmoothingEnabled';
-
-    this.scaleMode = null;
-
-    this.refresh = true;
-    // hack to enable some hardware acceleration!
-    //this.view.style["transform"] = "translatez(0)";
-
-    this.view.width = this.width;
-    this.view.height = this.height;
-    this.count = 0;
-};
-
-// constructor
-PIXI.CanvasRenderer.prototype.constructor = PIXI.CanvasRenderer;
-
-/**
- * Renders the stage to its canvas view
- *
- * @method render
- * @param stage {Stage} the Stage element to be rendered
- */
-PIXI.CanvasRenderer.prototype.render = function(stage)
-{
-    //stage.__childrenAdded = [];
-    //stage.__childrenRemoved = [];
-
-    // update textures if need be
-    PIXI.texturesToUpdate = [];
-    PIXI.texturesToDestroy = [];
-
-    PIXI.visibleCount++;
-    stage.updateTransform();
-
-    // update the background color
-    if(this.view.style.backgroundColor !== stage.backgroundColorString && !this.transparent)
-        this.view.style.backgroundColor = stage.backgroundColorString;
-
-    this.context.setTransform(1,0,0,1,0,0);
-    this.context.clearRect(0, 0, this.width, this.height);
-    this.renderDisplayObject(stage);
-    //as
-
-    // run interaction!
-    if(stage.interactive)
-    {
-        //need to add some events!
-        if(!stage._interactiveEventsAdded)
-        {
-            stage._interactiveEventsAdded = true;
-            stage.interactionManager.setTarget(this);
-        }
-    }
-
-    // remove frame updates..
-    if(PIXI.Texture.frameUpdates.length > 0)
-    {
-        PIXI.Texture.frameUpdates = [];
-    }
-};
-
-/**
- * resizes the canvas view to the specified width and height
- *
- * @method resize
- * @param width {Number} the new width of the canvas view
- * @param height {Number} the new height of the canvas view
- */
-PIXI.CanvasRenderer.prototype.resize = function(width, height)
-{
-    this.width = width;
-    this.height = height;
-
-    this.view.width = width;
-    this.view.height = height;
-};
-
-/**
- * Renders a display object
- *
- * @method renderDisplayObject
- * @param displayObject {DisplayObject} The displayObject to render
- * @private
- */
-PIXI.CanvasRenderer.prototype.renderDisplayObject = function(displayObject)
-{
-    // no loger recurrsive!
-    var transform;
-    var context = this.context;
-
-    context.globalCompositeOperation = 'source-over';
-
-    // one the display object hits this. we can break the loop
-    var testObject = displayObject.last._iNext;
-    displayObject = displayObject.first;
-
-    do
-    {
-        transform = displayObject.worldTransform;
-
-        if(!displayObject.visible)
-        {
-            displayObject = displayObject.last._iNext;
-            continue;
-        }
-
-        if(!displayObject.renderable)
-        {
-            displayObject = displayObject._iNext;
-            continue;
-        }
-
-        if(displayObject instanceof PIXI.Sprite)
-        {
-
-            var frame = displayObject.texture.frame;
-
-            //ignore null sources
-            if(frame && frame.width && frame.height && displayObject.texture.baseTexture.source)
-            {
-                context.globalAlpha = displayObject.worldAlpha;
-
-                context.setTransform(transform[0], transform[3], transform[1], transform[4], transform[2], transform[5]);
-
-                //if smoothingEnabled is supported and we need to change the smoothing property for this texture
-                if(this.smoothProperty && this.scaleMode !== displayObject.texture.baseTexture.scaleMode) {
-                    this.scaleMode = displayObject.texture.baseTexture.scaleMode;
-                    context[this.smoothProperty] = (this.scaleMode === PIXI.BaseTexture.SCALE_MODE.LINEAR);
-                }
-
-                context.drawImage(displayObject.texture.baseTexture.source,
-                                   frame.x,
-                                   frame.y,
-                                   frame.width,
-                                   frame.height,
-                                   (displayObject.anchor.x) * -frame.width,
-                                   (displayObject.anchor.y) * -frame.height,
-                                   frame.width,
-                                   frame.height);
-            }
-        }
-        else if(displayObject instanceof PIXI.Strip)
-        {
-            context.setTransform(transform[0], transform[3], transform[1], transform[4], transform[2], transform[5]);
-            this.renderStrip(displayObject);
-        }
-        else if(displayObject instanceof PIXI.TilingSprite)
-        {
-            context.setTransform(transform[0], transform[3], transform[1], transform[4], transform[2], transform[5]);
-            this.renderTilingSprite(displayObject);
-        }
-        else if(displayObject instanceof PIXI.CustomRenderable)
-        {
-            context.setTransform(transform[0], transform[3], transform[1], transform[4], transform[2], transform[5]);
-            displayObject.renderCanvas(this);
-        }
-        else if(displayObject instanceof PIXI.Graphics)
-        {
-            context.setTransform(transform[0], transform[3], transform[1], transform[4], transform[2], transform[5]);
-            PIXI.CanvasGraphics.renderGraphics(displayObject, context);
-        }
-        else if(displayObject instanceof PIXI.FilterBlock)
-        {
-            if(displayObject.data instanceof PIXI.Graphics)
-            {
-                var mask = displayObject.data;
-
-                if(displayObject.open)
-                {
-                    context.save();
-
-                    var cacheAlpha = mask.alpha;
-                    var maskTransform = mask.worldTransform;
-
-                    context.setTransform(maskTransform[0], maskTransform[3], maskTransform[1], maskTransform[4], maskTransform[2], maskTransform[5]);
-
-                    mask.worldAlpha = 0.5;
-
-                    context.worldAlpha = 0;
-
-                    PIXI.CanvasGraphics.renderGraphicsMask(mask, context);
-                    context.clip();
-
-                    mask.worldAlpha = cacheAlpha;
-                }
-                else
-                {
-                    context.restore();
-                }
-            }
-        }
-        //count++
-        displayObject = displayObject._iNext;
-    }
-    while(displayObject !== testObject);
-};
-
-/**
- * Renders a flat strip
- *
- * @method renderStripFlat
- * @param strip {Strip} The Strip to render
- * @private
- */
-PIXI.CanvasRenderer.prototype.renderStripFlat = function(strip)
-{
-    var context = this.context;
-    var verticies = strip.verticies;
-
-    var length = verticies.length/2;
-    this.count++;
-
-    context.beginPath();
-    for (var i=1; i < length-2; i++)
-    {
-        // draw some triangles!
-        var index = i*2;
-
-        var x0 = verticies[index],   x1 = verticies[index+2], x2 = verticies[index+4];
-        var y0 = verticies[index+1], y1 = verticies[index+3], y2 = verticies[index+5];
-
-        context.moveTo(x0, y0);
-        context.lineTo(x1, y1);
-        context.lineTo(x2, y2);
-    }
-
-    context.fillStyle = '#FF0000';
-    context.fill();
-    context.closePath();
-};
-
-/**
- * Renders a tiling sprite
- *
- * @method renderTilingSprite
- * @param sprite {TilingSprite} The tilingsprite to render
- * @private
- */
-PIXI.CanvasRenderer.prototype.renderTilingSprite = function(sprite)
-{
-    var context = this.context;
-
-    context.globalAlpha = sprite.worldAlpha;
-
-    if(!sprite.__tilePattern)
-        sprite.__tilePattern = context.createPattern(sprite.texture.baseTexture.source, 'repeat');
-
-    context.beginPath();
-
-    var tilePosition = sprite.tilePosition;
-    var tileScale = sprite.tileScale;
-
-    // offset
-    context.scale(tileScale.x,tileScale.y);
-    context.translate(tilePosition.x, tilePosition.y);
-
-    context.fillStyle = sprite.__tilePattern;
-    context.fillRect(-tilePosition.x,-tilePosition.y,sprite.width / tileScale.x, sprite.height / tileScale.y);
-
-    context.scale(1/tileScale.x, 1/tileScale.y);
-    context.translate(-tilePosition.x, -tilePosition.y);
-
-    context.closePath();
-};
-
-/**
- * Renders a strip
- *
- * @method renderStrip
- * @param strip {Strip} The Strip to render
- * @private
- */
-PIXI.CanvasRenderer.prototype.renderStrip = function(strip)
-{
-    var context = this.context;
-
-    // draw triangles!!
-    var verticies = strip.verticies;
-    var uvs = strip.uvs;
-
-    var length = verticies.length/2;
-    this.count++;
-
-    for (var i = 1; i < length-2; i++)
-    {
-        // draw some triangles!
-        var index = i*2;
-
-        var x0 = verticies[index],   x1 = verticies[index+2], x2 = verticies[index+4];
-        var y0 = verticies[index+1], y1 = verticies[index+3], y2 = verticies[index+5];
-
-        var u0 = uvs[index] * strip.texture.width,   u1 = uvs[index+2] * strip.texture.width, u2 = uvs[index+4]* strip.texture.width;
-        var v0 = uvs[index+1]* strip.texture.height, v1 = uvs[index+3] * strip.texture.height, v2 = uvs[index+5]* strip.texture.height;
-
-        context.save();
-        context.beginPath();
-        context.moveTo(x0, y0);
-        context.lineTo(x1, y1);
-        context.lineTo(x2, y2);
-        context.closePath();
-
-        context.clip();
-
-        // Compute matrix transform
-        var delta = u0*v1 + v0*u2 + u1*v2 - v1*u2 - v0*u1 - u0*v2;
-        var deltaA = x0*v1 + v0*x2 + x1*v2 - v1*x2 - v0*x1 - x0*v2;
-        var deltaB = u0*x1 + x0*u2 + u1*x2 - x1*u2 - x0*u1 - u0*x2;
-        var deltaC = u0*v1*x2 + v0*x1*u2 + x0*u1*v2 - x0*v1*u2 - v0*u1*x2 - u0*x1*v2;
-        var deltaD = y0*v1 + v0*y2 + y1*v2 - v1*y2 - v0*y1 - y0*v2;
-        var deltaE = u0*y1 + y0*u2 + u1*y2 - y1*u2 - y0*u1 - u0*y2;
-        var deltaF = u0*v1*y2 + v0*y1*u2 + y0*u1*v2 - y0*v1*u2 - v0*u1*y2 - u0*y1*v2;
-
-        context.transform(deltaA / delta, deltaD / delta,
-                            deltaB / delta, deltaE / delta,
-                            deltaC / delta, deltaF / delta);
-
-        context.drawImage(strip.texture.baseTexture.source, 0, 0);
-        context.restore();
-    }
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- * @author Richard Davey http://www.photonstorm.com @photonstorm
- */
-
-/**
-* @class PIXI.PixiShader
-* @constructor
-*/
-PIXI.PixiShader = function()
-{
-    /**
-    * @property {any} program - The WebGL program.
-    */
-    this.program = null;
-
-    /**
-    * @property {array} fragmentSrc - The fragment shader.
-    */
-    this.fragmentSrc = [
-        'precision lowp float;',
-        'varying vec2 vTextureCoord;',
-        'varying float vColor;',
-        'uniform sampler2D uSampler;',
-        'void main(void) {',
-        '   gl_FragColor = texture2D(uSampler, vTextureCoord) * vColor;',
-        '}'
-    ];
-
-    /**
-    * @property {number} textureCount - A local texture counter for multi-texture shaders.
-    */
-    this.textureCount = 0;
-};
-
-/**
-* @method PIXI.PixiShader#init
-*/
-PIXI.PixiShader.prototype.init = function()
-{
-    var program = PIXI.compileProgram(this.vertexSrc || PIXI.PixiShader.defaultVertexSrc, this.fragmentSrc);
-
-    var gl = PIXI.gl;
-
-    gl.useProgram(program);
-
-    // get and store the uniforms for the shader
-    this.uSampler = gl.getUniformLocation(program, 'uSampler');
-    this.projectionVector = gl.getUniformLocation(program, 'projectionVector');
-    this.offsetVector = gl.getUniformLocation(program, 'offsetVector');
-    this.dimensions = gl.getUniformLocation(program, 'dimensions');
-
-    // get and store the attributes
-    this.aVertexPosition = gl.getAttribLocation(program, 'aVertexPosition');
-    this.colorAttribute = gl.getAttribLocation(program, 'aColor');
-    this.aTextureCoord = gl.getAttribLocation(program, 'aTextureCoord');
-
-    // add those custom shaders!
-    for (var key in this.uniforms)
-    {
-        // get the uniform locations..
-        this.uniforms[key].uniformLocation = gl.getUniformLocation(program, key);
-    }
-
-    this.initUniforms();
-
-    this.program = program;
-};
-
-/**
-* Initialises the shader uniform values.
-* Uniforms are specified in the GLSL_ES Specification: http://www.khronos.org/registry/webgl/specs/latest/1.0/
-* http://www.khronos.org/registry/gles/specs/2.0/GLSL_ES_Specification_1.0.17.pdf
-*
-* @method PIXI.PixiShader#initUniforms
-*/
-PIXI.PixiShader.prototype.initUniforms = function()
-{
-    this.textureCount = 1;
-
-    var uniform;
-
-    for (var key in this.uniforms)
-    {
-        uniform = this.uniforms[key];
-
-        var type = uniform.type;
-
-        if (type === 'sampler2D')
-        {
-            uniform._init = false;
-
-            if (uniform.value !== null)
-            {
-                this.initSampler2D(uniform);
-            }
-        }
-        else if (type === 'mat2' || type === 'mat3' || type === 'mat4')
-        {
-            //  These require special handling
-            uniform.glMatrix = true;
-            uniform.glValueLength = 1;
-
-            if (type === 'mat2')
-            {
-                uniform.glFunc = PIXI.gl.uniformMatrix2fv;
-            }
-            else if (type === 'mat3')
-            {
-                uniform.glFunc = PIXI.gl.uniformMatrix3fv;
-            }
-            else if (type === 'mat4')
-            {
-                uniform.glFunc = PIXI.gl.uniformMatrix4fv;
-            }
-        }
-        else
-        {
-            //  GL function reference
-            uniform.glFunc = PIXI.gl['uniform' + type];
-
-            if (type === '2f' || type === '2i')
-            {
-                uniform.glValueLength = 2;
-            }
-            else if (type === '3f' || type === '3i')
-            {
-                uniform.glValueLength = 3;
-            }
-            else if (type === '4f' || type === '4i')
-            {
-                uniform.glValueLength = 4;
-            }
-            else
-            {
-                uniform.glValueLength = 1;
-            }
-        }
-    }
-
-};
-
-/**
-* Initialises a Sampler2D uniform (which may only be available later on after initUniforms once the texture is has loaded)
-*
-* @method PIXI.PixiShader#initSampler2D
-*/
-PIXI.PixiShader.prototype.initSampler2D = function(uniform)
-{
-    if (!uniform.value || !uniform.value.baseTexture || !uniform.value.baseTexture.hasLoaded)
-    {
-        return;
-    }
-
-    PIXI.gl.activeTexture(PIXI.gl['TEXTURE' + this.textureCount]);
-    PIXI.gl.bindTexture(PIXI.gl.TEXTURE_2D, uniform.value.baseTexture._glTexture);
-
-    //  Extended texture data
-    if (uniform.textureData)
-    {
-        var data = uniform.textureData;
-
-        // GLTexture = mag linear, min linear_mipmap_linear, wrap repeat + gl.generateMipmap(gl.TEXTURE_2D);
-        // GLTextureLinear = mag/min linear, wrap clamp
-        // GLTextureNearestRepeat = mag/min NEAREST, wrap repeat
-        // GLTextureNearest = mag/min nearest, wrap clamp
-        // AudioTexture = whatever + luminance + width 512, height 2, border 0
-        // KeyTexture = whatever + luminance + width 256, height 2, border 0
-
-        //  magFilter can be: gl.LINEAR, gl.LINEAR_MIPMAP_LINEAR or gl.NEAREST
-        //  wrapS/T can be: gl.CLAMP_TO_EDGE or gl.REPEAT
-
-        var magFilter = (data.magFilter) ? data.magFilter : PIXI.gl.LINEAR;
-        var minFilter = (data.minFilter) ? data.minFilter : PIXI.gl.LINEAR;
-        var wrapS = (data.wrapS) ? data.wrapS : PIXI.gl.CLAMP_TO_EDGE;
-        var wrapT = (data.wrapT) ? data.wrapT : PIXI.gl.CLAMP_TO_EDGE;
-        var format = (data.luminance) ? PIXI.gl.LUMINANCE : PIXI.gl.RGBA;
-
-        if (data.repeat)
-        {
-            wrapS = PIXI.gl.REPEAT;
-            wrapT = PIXI.gl.REPEAT;
-        }
-
-        PIXI.gl.pixelStorei(PIXI.gl.UNPACK_FLIP_Y_WEBGL, false);
-
-        if (data.width)
-        {
-            var width = (data.width) ? data.width : 512;
-            var height = (data.height) ? data.height : 2;
-            var border = (data.border) ? data.border : 0;
-
-            // void texImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, ArrayBufferView? pixels);
-            PIXI.gl.texImage2D(PIXI.gl.TEXTURE_2D, 0, format, width, height, border, format, PIXI.gl.UNSIGNED_BYTE, null);
-        }
-        else
-        {
-            //  void texImage2D(GLenum target, GLint level, GLenum internalformat, GLenum format, GLenum type, ImageData? pixels);
-            PIXI.gl.texImage2D(PIXI.gl.TEXTURE_2D, 0, format, PIXI.gl.RGBA, PIXI.gl.UNSIGNED_BYTE, uniform.value.baseTexture.source);
-        }
-
-        PIXI.gl.texParameteri(PIXI.gl.TEXTURE_2D, PIXI.gl.TEXTURE_MAG_FILTER, magFilter);
-        PIXI.gl.texParameteri(PIXI.gl.TEXTURE_2D, PIXI.gl.TEXTURE_MIN_FILTER, minFilter);
-        PIXI.gl.texParameteri(PIXI.gl.TEXTURE_2D, PIXI.gl.TEXTURE_WRAP_S, wrapS);
-        PIXI.gl.texParameteri(PIXI.gl.TEXTURE_2D, PIXI.gl.TEXTURE_WRAP_T, wrapT);
-    }
-
-    PIXI.gl.uniform1i(uniform.uniformLocation, this.textureCount);
-
-    uniform._init = true;
-
-    this.textureCount++;
-
-};
-
-/**
-* Updates the shader uniform values.
-*
-* @method PIXI.PixiShader#syncUniforms
-*/
-PIXI.PixiShader.prototype.syncUniforms = function()
-{
-    this.textureCount = 1;
-    var uniform;
-
-    //  This would probably be faster in an array and it would guarantee key order
-    for (var key in this.uniforms)
-    {
-
-        uniform = this.uniforms[key];
-
-        if (uniform.glValueLength === 1)
-        {
-            if (uniform.glMatrix === true)
-            {
-                uniform.glFunc.call(PIXI.gl, uniform.uniformLocation, uniform.transpose, uniform.value);
-            }
-            else
-            {
-                uniform.glFunc.call(PIXI.gl, uniform.uniformLocation, uniform.value);
-            }
-        }
-        else if (uniform.glValueLength === 2)
-        {
-            uniform.glFunc.call(PIXI.gl, uniform.uniformLocation, uniform.value.x, uniform.value.y);
-        }
-        else if (uniform.glValueLength === 3)
-        {
-            uniform.glFunc.call(PIXI.gl, uniform.uniformLocation, uniform.value.x, uniform.value.y, uniform.value.z);
-        }
-        else if (uniform.glValueLength === 4)
-        {
-            uniform.glFunc.call(PIXI.gl, uniform.uniformLocation, uniform.value.x, uniform.value.y, uniform.value.z, uniform.value.w);
-        }
-        else if (uniform.type === 'sampler2D')
-        {
-            if (uniform._init)
-            {
-                PIXI.gl.activeTexture(PIXI.gl['TEXTURE' + this.textureCount]);
-                PIXI.gl.bindTexture(PIXI.gl.TEXTURE_2D, uniform.value.baseTexture._glTexture);
-                PIXI.gl.uniform1i(uniform.uniformLocation, this.textureCount);
-                this.textureCount++;
-            }
-            else
-            {
-                this.initSampler2D(uniform);
-            }
-        }
-    }
-
-};
-
-PIXI.PixiShader.defaultVertexSrc = [
-    'attribute vec2 aVertexPosition;',
-    'attribute vec2 aTextureCoord;',
-    'attribute float aColor;',
-
-    'uniform vec2 projectionVector;',
-    'uniform vec2 offsetVector;',
-    'varying vec2 vTextureCoord;',
-
-    'varying float vColor;',
-
-    'const vec2 center = vec2(-1.0, 1.0);',
-
-    'void main(void) {',
-    '   gl_Position = vec4( ((aVertexPosition + offsetVector) / projectionVector) + center , 0.0, 1.0);',
-    '   vTextureCoord = aTextureCoord;',
-    '   vColor = aColor;',
-    '}'
-];
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-
-PIXI.PrimitiveShader = function()
-{
-    // the webGL program..
-    this.program = null;
-
-    this.fragmentSrc = [
-        'precision mediump float;',
-        'varying vec4 vColor;',
-
-        'void main(void) {',
-        '   gl_FragColor = vColor;',
-        '}'
-    ];
-
-    this.vertexSrc  = [
-        'attribute vec2 aVertexPosition;',
-        'attribute vec4 aColor;',
-        'uniform mat3 translationMatrix;',
-        'uniform vec2 projectionVector;',
-        'uniform vec2 offsetVector;',
-        'uniform float alpha;',
-        'varying vec4 vColor;',
-
-        'void main(void) {',
-        '   vec3 v = translationMatrix * vec3(aVertexPosition , 1.0);',
-        '   v -= offsetVector.xyx;',
-        '   gl_Position = vec4( v.x / projectionVector.x -1.0, v.y / -projectionVector.y + 1.0 , 0.0, 1.0);',
-        '   vColor = aColor  * alpha;',
-        '}'
-    ];
-};
-
-PIXI.PrimitiveShader.prototype.init = function()
-{
-    var program = PIXI.compileProgram(this.vertexSrc, this.fragmentSrc);
-
-    var gl = PIXI.gl;
-
-    gl.useProgram(program);
-
-    // get and store the uniforms for the shader
-    this.projectionVector = gl.getUniformLocation(program, 'projectionVector');
-    this.offsetVector = gl.getUniformLocation(program, 'offsetVector');
-
-    // get and store the attributes
-    this.aVertexPosition = gl.getAttribLocation(program, 'aVertexPosition');
-    this.colorAttribute = gl.getAttribLocation(program, 'aColor');
-
-    this.translationMatrix = gl.getUniformLocation(program, 'translationMatrix');
-    this.alpha = gl.getUniformLocation(program, 'alpha');
-
-    this.program = program;
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-
-PIXI.StripShader = function()
-{
-    // the webGL program..
-    this.program = null;
-
-    this.fragmentSrc = [
-        'precision mediump float;',
-        'varying vec2 vTextureCoord;',
-        'varying float vColor;',
-        'uniform float alpha;',
-        'uniform sampler2D uSampler;',
-
-        'void main(void) {',
-        '   gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.x, vTextureCoord.y));',
-        '   gl_FragColor = gl_FragColor * alpha;',
-        '}'
-    ];
-
-    this.vertexSrc = [
-        'attribute vec2 aVertexPosition;',
-        'attribute vec2 aTextureCoord;',
-        'attribute float aColor;',
-        'uniform mat3 translationMatrix;',
-        'uniform vec2 projectionVector;',
-        'uniform vec2 offsetVector;',
-        'varying vec2 vTextureCoord;',
-        'varying float vColor;',
-
-        'void main(void) {',
-        '   vec3 v = translationMatrix * vec3(aVertexPosition, 1.0);',
-        '   v -= offsetVector.xyx;',
-        '   gl_Position = vec4( v.x / projectionVector.x -1.0, v.y / projectionVector.y + 1.0 , 0.0, 1.0);',
-        '   vTextureCoord = aTextureCoord;',
-        '   vColor = aColor;',
-        '}'
-    ];
-};
-
-PIXI.StripShader.prototype.init = function()
-{
-    var program = PIXI.compileProgram(this.vertexSrc, this.fragmentSrc);
-
-    var gl = PIXI.gl;
-
-    gl.useProgram(program);
-
-    // get and store the uniforms for the shader
-    this.uSampler = gl.getUniformLocation(program, 'uSampler');
-    this.projectionVector = gl.getUniformLocation(program, 'projectionVector');
-    this.offsetVector = gl.getUniformLocation(program, 'offsetVector');
-    this.colorAttribute = gl.getAttribLocation(program, 'aColor');
-    //this.dimensions = gl.getUniformLocation(this.program, 'dimensions');
-
-    // get and store the attributes
-    this.aVertexPosition = gl.getAttribLocation(program, 'aVertexPosition');
-    this.aTextureCoord = gl.getAttribLocation(program, 'aTextureCoord');
-
-    this.translationMatrix = gl.getUniformLocation(program, 'translationMatrix');
-    this.alpha = gl.getUniformLocation(program, 'alpha');
-
-    this.program = program;
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-PIXI._batchs = [];
-
-/**
- * @private
- */
-PIXI._getBatch = function(gl)
-{
-    if(PIXI._batchs.length === 0)
-    {
-        return new PIXI.WebGLBatch(gl);
-    }
-    else
-    {
-        return PIXI._batchs.pop();
-    }
-};
-
-/**
- * @private
- */
-PIXI._returnBatch = function(batch)
-{
-    batch.clean();
-    PIXI._batchs.push(batch);
-};
-
-/**
- * @private
- */
-PIXI._restoreBatchs = function(gl)
-{
-    for (var i=0; i < PIXI._batchs.length; i++)
-    {
-        PIXI._batchs[i].restoreLostContext(gl);
-    }
-};
-
-/**
- * A WebGLBatch Enables a group of sprites to be drawn using the same settings.
- * if a group of sprites all have the same baseTexture and blendMode then they can be grouped into a batch.
- * All the sprites in a batch can then be drawn in one go by the GPU which is hugely efficient. ALL sprites
- * in the webGL renderer are added to a batch even if the batch only contains one sprite. Batching is handled
- * automatically by the webGL renderer. A good tip is: the smaller the number of batchs there are, the faster
- * the webGL renderer will run.
- *
- * @class WebGLBatch
- * @constructor
- * @param gl {WebGLContext} an instance of the webGL context
- */
-PIXI.WebGLBatch = function(gl)
-{
-    this.gl = gl;
-
-    this.size = 0;
-
-    this.vertexBuffer =  gl.createBuffer();
-    this.indexBuffer =  gl.createBuffer();
-    this.uvBuffer =  gl.createBuffer();
-    this.colorBuffer =  gl.createBuffer();
-    this.blendMode = PIXI.blendModes.NORMAL;
-    this.dynamicSize = 1;
-};
-
-// constructor
-PIXI.WebGLBatch.prototype.constructor = PIXI.WebGLBatch;
-
-/**
- * Cleans the batch so that is can be returned to an object pool and reused
- *
- * @method clean
- */
-PIXI.WebGLBatch.prototype.clean = function()
-{
-    this.verticies = [];
-    this.uvs = [];
-    this.indices = [];
-    this.colors = [];
-    this.dynamicSize = 1;
-    this.texture = null;
-    this.last = null;
-    this.size = 0;
-    this.head = null;
-    this.tail = null;
-};
-
-/**
- * Recreates the buffers in the event of a context loss
- *
- * @method restoreLostContext
- * @param gl {WebGLContext}
- */
-PIXI.WebGLBatch.prototype.restoreLostContext = function(gl)
-{
-    this.gl = gl;
-    this.vertexBuffer =  gl.createBuffer();
-    this.indexBuffer =  gl.createBuffer();
-    this.uvBuffer =  gl.createBuffer();
-    this.colorBuffer =  gl.createBuffer();
-};
-
-/**
- * inits the batch's texture and blend mode based if the supplied sprite
- *
- * @method init
- * @param sprite {Sprite} the first sprite to be added to the batch. Only sprites with
- *      the same base texture and blend mode will be allowed to be added to this batch
- */
-PIXI.WebGLBatch.prototype.init = function(sprite)
-{
-    sprite.batch = this;
-    this.dirty = true;
-    this.blendMode = sprite.blendMode;
-    this.texture = sprite.texture.baseTexture;
-    this.head = sprite;
-    this.tail = sprite;
-    this.size = 1;
-
-    this.growBatch();
-};
-
-/**
- * inserts a sprite before the specified sprite
- *
- * @method insertBefore
- * @param sprite {Sprite} the sprite to be added
- * @param nextSprite {nextSprite} the first sprite will be inserted before this sprite
- */
-PIXI.WebGLBatch.prototype.insertBefore = function(sprite, nextSprite)
-{
-    this.size++;
-
-    sprite.batch = this;
-    this.dirty = true;
-    var tempPrev = nextSprite.__prev;
-    nextSprite.__prev = sprite;
-    sprite.__next = nextSprite;
-
-    if(tempPrev)
-    {
-        sprite.__prev = tempPrev;
-        tempPrev.__next = sprite;
-    }
-    else
-    {
-        this.head = sprite;
-    }
-};
-
-/**
- * inserts a sprite after the specified sprite
- *
- * @method insertAfter
- * @param sprite {Sprite} the sprite to be added
- * @param  previousSprite {Sprite} the first sprite will be inserted after this sprite
- */
-PIXI.WebGLBatch.prototype.insertAfter = function(sprite, previousSprite)
-{
-    this.size++;
-
-    sprite.batch = this;
-    this.dirty = true;
-
-    var tempNext = previousSprite.__next;
-    previousSprite.__next = sprite;
-    sprite.__prev = previousSprite;
-
-    if(tempNext)
-    {
-        sprite.__next = tempNext;
-        tempNext.__prev = sprite;
-    }
-    else
-    {
-        this.tail = sprite;
-    }
-};
-
-/**
- * removes a sprite from the batch
- *
- * @method remove
- * @param sprite {Sprite} the sprite to be removed
- */
-PIXI.WebGLBatch.prototype.remove = function(sprite)
-{
-    this.size--;
-
-    if(this.size === 0)
-    {
-        sprite.batch = null;
-        sprite.__prev = null;
-        sprite.__next = null;
-        return;
-    }
-
-    if(sprite.__prev)
-    {
-        sprite.__prev.__next = sprite.__next;
-    }
-    else
-    {
-        this.head = sprite.__next;
-        this.head.__prev = null;
-    }
-
-    if(sprite.__next)
-    {
-        sprite.__next.__prev = sprite.__prev;
-    }
-    else
-    {
-        this.tail = sprite.__prev;
-        this.tail.__next = null;
-    }
-
-    sprite.batch = null;
-    sprite.__next = null;
-    sprite.__prev = null;
-    this.dirty = true;
-};
-
-/**
- * Splits the batch into two with the specified sprite being the start of the new batch.
- *
- * @method split
- * @param sprite {Sprite} the sprite that indicates where the batch should be split
- * @return {WebGLBatch} the new batch
- */
-PIXI.WebGLBatch.prototype.split = function(sprite)
-{
-    this.dirty = true;
-
-    var batch = new PIXI.WebGLBatch(this.gl);
-    batch.init(sprite);
-    batch.texture = this.texture;
-    batch.tail = this.tail;
-
-    this.tail = sprite.__prev;
-    this.tail.__next = null;
-
-    sprite.__prev = null;
-    // return a splite batch!
-
-    // TODO this size is wrong!
-    // need to recalculate :/ problem with a linked list!
-    // unless it gets calculated in the "clean"?
-
-    // need to loop through items as there is no way to know the length on a linked list :/
-    var tempSize = 0;
-    while(sprite)
-    {
-        tempSize++;
-        sprite.batch = batch;
-        sprite = sprite.__next;
-    }
-
-    batch.size = tempSize;
-    this.size -= tempSize;
-
-    return batch;
-};
-
-/**
- * Merges two batchs together
- *
- * @method merge
- * @param batch {WebGLBatch} the batch that will be merged
- */
-PIXI.WebGLBatch.prototype.merge = function(batch)
-{
-    this.dirty = true;
-
-    this.tail.__next = batch.head;
-    batch.head.__prev = this.tail;
-
-    this.size += batch.size;
-
-    this.tail = batch.tail;
-
-    var sprite = batch.head;
-    while(sprite)
-    {
-        sprite.batch = this;
-        sprite = sprite.__next;
-    }
-};
-
-/**
- * Grows the size of the batch. As the elements in the batch cannot have a dynamic size this
- * function is used to increase the size of the batch. It also creates a little extra room so
- * that the batch does not need to be resized every time a sprite is added
- *
- * @method growBatch
- */
-PIXI.WebGLBatch.prototype.growBatch = function()
-{
-    var gl = this.gl;
-    if( this.size === 1)
-    {
-        this.dynamicSize = 1;
-    }
-    else
-    {
-        this.dynamicSize = this.size * 1.5;
-    }
-
-    // grow verts
-    this.verticies = new Float32Array(this.dynamicSize * 8);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER,this.verticies , gl.DYNAMIC_DRAW);
-
-    this.uvs  = new Float32Array( this.dynamicSize * 8 );
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, this.uvs , gl.DYNAMIC_DRAW);
-
-    this.dirtyUVS = true;
-
-    this.colors  = new Float32Array( this.dynamicSize * 4 );
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, this.colors , gl.DYNAMIC_DRAW);
-
-    this.dirtyColors = true;
-
-    this.indices = new Uint16Array(this.dynamicSize * 6);
-    var length = this.indices.length/6;
-
-    for (var i = 0; i < length; i++)
-    {
-        var index2 = i * 6;
-        var index3 = i * 4;
-        this.indices[index2 + 0] = index3 + 0;
-        this.indices[index2 + 1] = index3 + 1;
-        this.indices[index2 + 2] = index3 + 2;
-        this.indices[index2 + 3] = index3 + 0;
-        this.indices[index2 + 4] = index3 + 2;
-        this.indices[index2 + 5] = index3 + 3;
-    }
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indices, gl.STATIC_DRAW);
-};
-
-/**
- * Refresh's all the data in the batch and sync's it with the webGL buffers
- *
- * @method refresh
- */
-PIXI.WebGLBatch.prototype.refresh = function()
-{
-    if (this.dynamicSize < this.size)
-    {
-        this.growBatch();
-    }
-
-    var indexRun = 0;
-    var index, colorIndex;
-
-    var displayObject = this.head;
-
-    while(displayObject)
-    {
-        index = indexRun * 8;
-
-        var texture = displayObject.texture;
-
-        var frame = texture.frame;
-        var tw = texture.baseTexture.width;
-        var th = texture.baseTexture.height;
-
-        this.uvs[index + 0] = frame.x / tw;
-        this.uvs[index +1] = frame.y / th;
-
-        this.uvs[index +2] = (frame.x + frame.width) / tw;
-        this.uvs[index +3] = frame.y / th;
-
-        this.uvs[index +4] = (frame.x + frame.width) / tw;
-        this.uvs[index +5] = (frame.y + frame.height) / th;
-
-        this.uvs[index +6] = frame.x / tw;
-        this.uvs[index +7] = (frame.y + frame.height) / th;
-
-        displayObject.updateFrame = false;
-
-        colorIndex = indexRun * 4;
-        this.colors[colorIndex] = this.colors[colorIndex + 1] = this.colors[colorIndex + 2] = this.colors[colorIndex + 3] = displayObject.worldAlpha;
-
-        displayObject = displayObject.__next;
-
-        indexRun++;
-    }
-
-    this.dirtyUVS = true;
-    this.dirtyColors = true;
-};
-
-/**
- * Updates all the relevant geometry and uploads the data to the GPU
- *
- * @method update
- */
-PIXI.WebGLBatch.prototype.update = function()
-{
-    var worldTransform, width, height, aX, aY, w0, w1, h0, h1, index;
-
-    var a, b, c, d, tx, ty;
-
-    var indexRun = 0;
-
-    var displayObject = this.head;
-    var verticies = this.verticies;
-    var uvs = this.uvs;
-    var colors = this.colors;
-
-    while(displayObject)
-    {
-        if(displayObject.vcount === PIXI.visibleCount)
-        {
-            width = displayObject.texture.frame.width;
-            height = displayObject.texture.frame.height;
-
-            // TODO trim??
-            aX = displayObject.anchor.x;// - displayObject.texture.trim.x
-            aY = displayObject.anchor.y; //- displayObject.texture.trim.y
-            w0 = width * (1-aX);
-            w1 = width * -aX;
-
-            h0 = height * (1-aY);
-            h1 = height * -aY;
-
-            index = indexRun * 8;
-
-            worldTransform = displayObject.worldTransform;
-
-            a = worldTransform[0];
-            b = worldTransform[3];
-            c = worldTransform[1];
-            d = worldTransform[4];
-            tx = worldTransform[2];
-            ty = worldTransform[5];
-
-            verticies[index + 0 ] = a * w1 + c * h1 + tx;
-            verticies[index + 1 ] = d * h1 + b * w1 + ty;
-
-            verticies[index + 2 ] = a * w0 + c * h1 + tx;
-            verticies[index + 3 ] = d * h1 + b * w0 + ty;
-
-            verticies[index + 4 ] = a * w0 + c * h0 + tx;
-            verticies[index + 5 ] = d * h0 + b * w0 + ty;
-
-            verticies[index + 6] =  a * w1 + c * h0 + tx;
-            verticies[index + 7] =  d * h0 + b * w1 + ty;
-
-            if(displayObject.updateFrame || displayObject.texture.updateFrame)
-            {
-                this.dirtyUVS = true;
-
-                var texture = displayObject.texture;
-
-                var frame = texture.frame;
-                var tw = texture.baseTexture.width;
-                var th = texture.baseTexture.height;
-
-                uvs[index + 0] = frame.x / tw;
-                uvs[index +1] = frame.y / th;
-
-                uvs[index +2] = (frame.x + frame.width) / tw;
-                uvs[index +3] = frame.y / th;
-
-                uvs[index +4] = (frame.x + frame.width) / tw;
-                uvs[index +5] = (frame.y + frame.height) / th;
-
-                uvs[index +6] = frame.x / tw;
-                uvs[index +7] = (frame.y + frame.height) / th;
-
-                displayObject.updateFrame = false;
-            }
-
-            // TODO this probably could do with some optimisation....
-            if(displayObject.cacheAlpha !== displayObject.worldAlpha)
-            {
-                displayObject.cacheAlpha = displayObject.worldAlpha;
-
-                var colorIndex = indexRun * 4;
-                colors[colorIndex] = colors[colorIndex + 1] = colors[colorIndex + 2] = colors[colorIndex + 3] = displayObject.worldAlpha;
-                this.dirtyColors = true;
-            }
-        }
-        else
-        {
-            index = indexRun * 8;
-
-            verticies[index + 0 ] = verticies[index + 1 ] = verticies[index + 2 ] = verticies[index + 3 ] = verticies[index + 4 ] = verticies[index + 5 ] = verticies[index + 6] =  verticies[index + 7] = 0;
-        }
-
-        indexRun++;
-        displayObject = displayObject.__next;
-    }
-};
-
-/**
- * Draws the batch to the frame buffer
- *
- * @method render
- */
-PIXI.WebGLBatch.prototype.render = function(start, end)
-{
-    start = start || 0;
-
-    if(end === undefined)
-        end = this.size;
-
-    if(this.dirty)
-    {
-        this.refresh();
-        this.dirty = false;
-    }
-
-    if (this.size === 0)return;
-
-    this.update();
-    var gl = this.gl;
-
-    //TODO optimize this!
-
-    var shaderProgram = PIXI.defaultShader;
-
-    //gl.useProgram(shaderProgram);
-
-    // update the verts..
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-    // ok..
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.verticies);
-    gl.vertexAttribPointer(shaderProgram.aVertexPosition, 2, gl.FLOAT, false, 0, 0);
-    // update the uvs
-    //var isDefault = (shaderProgram == PIXI.shaderProgram)
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
-
-    if(this.dirtyUVS)
-    {
-        this.dirtyUVS = false;
-        gl.bufferSubData(gl.ARRAY_BUFFER,  0, this.uvs);
-    }
-
-    gl.vertexAttribPointer(shaderProgram.aTextureCoord, 2, gl.FLOAT, false, 0, 0);
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, this.texture._glTexture);
-
-    // update color!
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
-
-    if(this.dirtyColors)
-    {
-        this.dirtyColors = false;
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.colors);
-    }
-
-    gl.vertexAttribPointer(shaderProgram.colorAttribute, 1, gl.FLOAT, false, 0, 0);
-    // dont need to upload!
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-
-    var len = end - start;
-
-    // DRAW THAT this!
-    gl.drawElements(gl.TRIANGLES, len * 6, gl.UNSIGNED_SHORT, start * 2 * 6 );
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-
-PIXI.WebGLFilterManager = function(transparent)
-{
-    this.transparent = transparent;
-
-    this.filterStack = [];
-    this.texturePool = [];
-
-    this.offsetX = 0;
-    this.offsetY = 0;
-
-    this.initShaderBuffers();
-};
-
-// API
-
-PIXI.WebGLFilterManager.prototype.begin = function(projection, buffer)
-{
-    this.width = projection.x * 2;
-    this.height = -projection.y * 2;
-    this.buffer = buffer;
-};
-
-PIXI.WebGLFilterManager.prototype.pushFilter = function(filterBlock)
-{
-    var gl = PIXI.gl;
-
-    // filter program
-    // OPTIMISATION - the first filter is free if its a simple color change?
-    this.filterStack.push(filterBlock);
-
-    var filter = filterBlock.filterPasses[0];
-
-    this.offsetX += filterBlock.target.filterArea.x;
-    this.offsetY += filterBlock.target.filterArea.y;
-
-    var texture = this.texturePool.pop();
-    if(!texture)
-    {
-        texture = new PIXI.FilterTexture(this.width, this.height);
-    }
-    else
-    {
-        texture.resize(this.width, this.height);
-    }
-
-    gl.bindTexture(gl.TEXTURE_2D,  texture.texture);
-
-    this.getBounds(filterBlock.target);
-
-    var filterArea = filterBlock.target.filterArea;
-
-    var padidng = filter.padding;
-    filterArea.x -= padidng;
-    filterArea.y -= padidng;
-    filterArea.width += padidng * 2;
-    filterArea.height += padidng * 2;
-
-    // cap filter to screen size..
-    if(filterArea.x < 0)filterArea.x = 0;
-    if(filterArea.width > this.width)filterArea.width = this.width;
-    if(filterArea.y < 0)filterArea.y = 0;
-    if(filterArea.height > this.height)filterArea.height = this.height;
-
-    //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,  filterArea.width, filterArea.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, texture.frameBuffer);
-
-    // set view port
-    gl.viewport(0, 0, filterArea.width, filterArea.height);
-
-    PIXI.projection.x = filterArea.width/2;
-    PIXI.projection.y = -filterArea.height/2;
-
-    PIXI.offset.x = -filterArea.x;
-    PIXI.offset.y = -filterArea.y;
-
-    // update projection
-    gl.uniform2f(PIXI.defaultShader.projectionVector, filterArea.width/2, -filterArea.height/2);
-    gl.uniform2f(PIXI.defaultShader.offsetVector, -filterArea.x, -filterArea.y);
-    //PIXI.primitiveProgram
-
-    gl.colorMask(true, true, true, true);
-    gl.clearColor(0,0,0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    filterBlock._glFilterTexture = texture;
-};
-
-
-PIXI.WebGLFilterManager.prototype.popFilter = function()
-{
-    var gl = PIXI.gl;
-    var filterBlock = this.filterStack.pop();
-    var filterArea = filterBlock.target.filterArea;
-    var texture = filterBlock._glFilterTexture;
-
-    if(filterBlock.filterPasses.length > 1)
-    {
-        gl.viewport(0, 0, filterArea.width, filterArea.height);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-
-        this.vertexArray[0] = 0;
-        this.vertexArray[1] = filterArea.height;
-
-        this.vertexArray[2] = filterArea.width;
-        this.vertexArray[3] = filterArea.height;
-
-        this.vertexArray[4] = 0;
-        this.vertexArray[5] = 0;
-
-        this.vertexArray[6] = filterArea.width;
-        this.vertexArray[7] = 0;
-
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.vertexArray);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
-        // nnow set the uvs..
-        this.uvArray[2] = filterArea.width/this.width;
-        this.uvArray[5] = filterArea.height/this.height;
-        this.uvArray[6] = filterArea.width/this.width;
-        this.uvArray[7] = filterArea.height/this.height;
-
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.uvArray);
-
-        var inputTexture = texture;
-        var outputTexture = this.texturePool.pop();
-        if(!outputTexture)outputTexture = new PIXI.FilterTexture(this.width, this.height);
-
-        // need to clear this FBO as it may have some left over elements from a prvious filter.
-        gl.bindFramebuffer(gl.FRAMEBUFFER, outputTexture.frameBuffer );
-        gl.clear(gl.COLOR_BUFFER_BIT);
-
-        gl.disable(gl.BLEND);
-
-        for (var i = 0; i < filterBlock.filterPasses.length-1; i++)
-        {
-            var filterPass = filterBlock.filterPasses[i];
-
-            gl.bindFramebuffer(gl.FRAMEBUFFER, outputTexture.frameBuffer );
-
-            // set texture
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, inputTexture.texture);
-
-            // draw texture..
-            //filterPass.applyFilterPass(filterArea.width, filterArea.height);
-            this.applyFilterPass(filterPass, filterArea, filterArea.width, filterArea.height);
-
-            // swap the textures..
-            var temp = inputTexture;
-            inputTexture = outputTexture;
-            outputTexture = temp;
-        }
-
-        gl.enable(gl.BLEND);
-
-        texture = inputTexture;
-        this.texturePool.push(outputTexture);
-    }
-
-    var filter = filterBlock.filterPasses[filterBlock.filterPasses.length-1];
-
-    this.offsetX -= filterArea.x;
-    this.offsetY -= filterArea.y;
-
-
-    var sizeX = this.width;
-    var sizeY = this.height;
-
-    var offsetX = 0;
-    var offsetY = 0;
-
-    var buffer = this.buffer;
-
-    // time to render the filters texture to the previous scene
-    if(this.filterStack.length === 0)
-    {
-        gl.colorMask(true, true, true, this.transparent);
-    }
-    else
-    {
-        var currentFilter = this.filterStack[this.filterStack.length-1];
-        filterArea = currentFilter.target.filterArea;
-
-        sizeX = filterArea.width;
-        sizeY = filterArea.height;
-
-        offsetX = filterArea.x;
-        offsetY = filterArea.y;
-
-        buffer =  currentFilter._glFilterTexture.frameBuffer;
-    }
-
-
-
-    // TODO need toremove thease global elements..
-    PIXI.projection.x = sizeX/2;
-    PIXI.projection.y = -sizeY/2;
-
-    PIXI.offset.x = offsetX;
-    PIXI.offset.y = offsetY;
-
-    filterArea = filterBlock.target.filterArea;
-
-    var x = filterArea.x-offsetX;
-    var y = filterArea.y-offsetY;
-
-    // update the buffers..
-    // make sure to flip the y!
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-
-    this.vertexArray[0] = x;
-    this.vertexArray[1] = y + filterArea.height;
-
-    this.vertexArray[2] = x + filterArea.width;
-    this.vertexArray[3] = y + filterArea.height;
-
-    this.vertexArray[4] = x;
-    this.vertexArray[5] = y;
-
-    this.vertexArray[6] = x + filterArea.width;
-    this.vertexArray[7] = y;
-
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.vertexArray);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
-
-    this.uvArray[2] = filterArea.width/this.width;
-    this.uvArray[5] = filterArea.height/this.height;
-    this.uvArray[6] = filterArea.width/this.width;
-    this.uvArray[7] = filterArea.height/this.height;
-
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.uvArray);
-
-    gl.viewport(0, 0, sizeX, sizeY);
-    // bind the buffer
-    gl.bindFramebuffer(gl.FRAMEBUFFER, buffer );
-
-    // set texture
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture.texture);
-
-    // apply!
-    //filter.applyFilterPass(sizeX, sizeY);
-    this.applyFilterPass(filter, filterArea, sizeX, sizeY);
-
-    // now restore the regular shader..
-    gl.useProgram(PIXI.defaultShader.program);
-    gl.uniform2f(PIXI.defaultShader.projectionVector, sizeX/2, -sizeY/2);
-    gl.uniform2f(PIXI.defaultShader.offsetVector, -offsetX, -offsetY);
-
-    // return the texture to the pool
-    this.texturePool.push(texture);
-    filterBlock._glFilterTexture = null;
-};
-
-PIXI.WebGLFilterManager.prototype.applyFilterPass = function(filter, filterArea, width, height)
-{
-    // use program
-    var gl = PIXI.gl;
-    var shader = filter.shader;
-
-    if(!shader)
-    {
-        shader = new PIXI.PixiShader();
-
-        shader.fragmentSrc = filter.fragmentSrc;
-        shader.uniforms = filter.uniforms;
-        shader.init();
-
-        filter.shader = shader;
-    }
-
-    // set the shader
-    gl.useProgram(shader.program);
-
-    gl.uniform2f(shader.projectionVector, width/2, -height/2);
-    gl.uniform2f(shader.offsetVector, 0,0);
-
-    if(filter.uniforms.dimensions)
-    {
-        filter.uniforms.dimensions.value[0] = this.width;//width;
-        filter.uniforms.dimensions.value[1] = this.height;//height;
-        filter.uniforms.dimensions.value[2] = this.vertexArray[0];
-        filter.uniforms.dimensions.value[3] = this.vertexArray[5];//filterArea.height;
-    }
-
-    shader.syncUniforms();
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-    gl.vertexAttribPointer(shader.aVertexPosition, 2, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
-    gl.vertexAttribPointer(shader.aTextureCoord, 2, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-
-    // draw the filter...
-    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0 );
-};
-
-PIXI.WebGLFilterManager.prototype.initShaderBuffers = function()
-{
-    var gl = PIXI.gl;
-
-    // create some buffers
-    this.vertexBuffer = gl.createBuffer();
-    this.uvBuffer = gl.createBuffer();
-    this.indexBuffer = gl.createBuffer();
-
-    // bind and upload the vertexs..
-    // keep a refferance to the vertexFloatData..
-    this.vertexArray = new Float32Array([0.0, 0.0,
-                                         1.0, 0.0,
-                                         0.0, 1.0,
-                                         1.0, 1.0]);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
-    gl.bufferData(
-    gl.ARRAY_BUFFER,
-    this.vertexArray,
-    gl.STATIC_DRAW);
-
-
-    // bind and upload the uv buffer
-    this.uvArray = new Float32Array([0.0, 0.0,
-                                     1.0, 0.0,
-                                     0.0, 1.0,
-                                     1.0, 1.0]);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.uvBuffer);
-    gl.bufferData(
-    gl.ARRAY_BUFFER,
-    this.uvArray,
-    gl.STATIC_DRAW);
-
-    // bind and upload the index
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-    gl.bufferData(
-    gl.ELEMENT_ARRAY_BUFFER,
-    new Uint16Array([0, 1, 2, 1, 3, 2]),
-    gl.STATIC_DRAW);
-};
-
-PIXI.WebGLFilterManager.prototype.getBounds = function(displayObject)
-{
-    // time to get the width and height of the object!
-    var worldTransform, width, height, aX, aY, w0, w1, h0, h1, doTest;
-    var a, b, c, d, tx, ty, x1, x2, x3, x4, y1, y2, y3, y4;
-
-    var tempObject = displayObject.first;
-    var testObject = displayObject.last._iNext;
-
-    var maxX = -Infinity;
-    var maxY = -Infinity;
-
-    var minX = Infinity;
-    var minY = Infinity;
-
-    do
-    {
-        // TODO can be optimized! - what if there is no scale / rotation?
-
-        if(tempObject.visible)
-        {
-            if(tempObject instanceof PIXI.Sprite)
-            {
-                width = tempObject.texture.frame.width;
-                height = tempObject.texture.frame.height;
-
-                // TODO trim??
-                aX = tempObject.anchor.x;
-                aY = tempObject.anchor.y;
-                w0 = width * (1-aX);
-                w1 = width * -aX;
-
-                h0 = height * (1-aY);
-                h1 = height * -aY;
-
-                doTest = true;
-            }
-            else if(tempObject instanceof PIXI.Graphics)
-            {
-                tempObject.updateFilterBounds();
-
-                var bounds = tempObject.bounds;
-
-                width = bounds.width;
-                height = bounds.height;
-
-                w0 = bounds.x;
-                w1 = bounds.x + bounds.width;
-
-                h0 = bounds.y;
-                h1 = bounds.y + bounds.height;
-
-                doTest = true;
-            }
-        }
-
-        if(doTest)
-        {
-            worldTransform = tempObject.worldTransform;
-
-            a = worldTransform[0];
-            b = worldTransform[3];
-            c = worldTransform[1];
-            d = worldTransform[4];
-            tx = worldTransform[2];
-            ty = worldTransform[5];
-
-            x1 = a * w1 + c * h1 + tx;
-            y1 = d * h1 + b * w1 + ty;
-
-            x2 = a * w0 + c * h1 + tx;
-            y2 = d * h1 + b * w0 + ty;
-
-            x3 = a * w0 + c * h0 + tx;
-            y3 = d * h0 + b * w0 + ty;
-
-            x4 =  a * w1 + c * h0 + tx;
-            y4 =  d * h0 + b * w1 + ty;
-
-            minX = x1 < minX ? x1 : minX;
-            minX = x2 < minX ? x2 : minX;
-            minX = x3 < minX ? x3 : minX;
-            minX = x4 < minX ? x4 : minX;
-
-            minY = y1 < minY ? y1 : minY;
-            minY = y2 < minY ? y2 : minY;
-            minY = y3 < minY ? y3 : minY;
-            minY = y4 < minY ? y4 : minY;
-
-            maxX = x1 > maxX ? x1 : maxX;
-            maxX = x2 > maxX ? x2 : maxX;
-            maxX = x3 > maxX ? x3 : maxX;
-            maxX = x4 > maxX ? x4 : maxX;
-
-            maxY = y1 > maxY ? y1 : maxY;
-            maxY = y2 > maxY ? y2 : maxY;
-            maxY = y3 > maxY ? y3 : maxY;
-            maxY = y4 > maxY ? y4 : maxY;
-        }
-
-        doTest = false;
-        tempObject = tempObject._iNext;
-
-    }
-    while(tempObject !== testObject);
-
-    displayObject.filterArea.x = minX;
-    displayObject.filterArea.y = minY;
-
-    displayObject.filterArea.width = maxX - minX;
-    displayObject.filterArea.height = maxY - minY;
-};
-
-PIXI.FilterTexture = function(width, height)
-{
-    var gl = PIXI.gl;
-
-    // next time to create a frame buffer and texture
-    this.frameBuffer = gl.createFramebuffer();
-    this.texture = gl.createTexture();
-
-    gl.bindTexture(gl.TEXTURE_2D,  this.texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer );
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.frameBuffer );
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.texture, 0);
-
-    this.resize(width, height);
-};
-
-PIXI.FilterTexture.prototype.resize = function(width, height)
-{
-    if(this.width === width && this.height === height) return;
-
-    this.width = width;
-    this.height = height;
-
-    var gl = PIXI.gl;
-
-    gl.bindTexture(gl.TEXTURE_2D,  this.texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,  width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-/**
- * A set of functions used by the webGL renderer to draw the primitive graphics data
- *
- * @class CanvasGraphics
- */
-PIXI.WebGLGraphics = function()
-{
-
-};
-
-/**
- * Renders the graphics object
- *
- * @static
- * @private
- * @method renderGraphics
- * @param graphics {Graphics}
- * @param projection {Object}
- */
-PIXI.WebGLGraphics.renderGraphics = function(graphics, projection)
-{
-    var gl = PIXI.gl;
-
-    if(!graphics._webGL)graphics._webGL = {points:[], indices:[], lastIndex:0,
-                                           buffer:gl.createBuffer(),
-                                           indexBuffer:gl.createBuffer()};
-
-    if(graphics.dirty)
-    {
-        graphics.dirty = false;
-
-        if(graphics.clearDirty)
-        {
-            graphics.clearDirty = false;
-
-            graphics._webGL.lastIndex = 0;
-            graphics._webGL.points = [];
-            graphics._webGL.indices = [];
-
-        }
-
-        PIXI.WebGLGraphics.updateGraphics(graphics);
-    }
-
-    PIXI.activatePrimitiveShader();
-
-    // This  could be speeded up fo sure!
-    var m = PIXI.mat3.clone(graphics.worldTransform);
-
-    PIXI.mat3.transpose(m);
-
-    // set the matrix transform for the
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-
-    gl.uniformMatrix3fv(PIXI.primitiveShader.translationMatrix, false, m);
-
-    gl.uniform2f(PIXI.primitiveShader.projectionVector, projection.x, -projection.y);
-    gl.uniform2f(PIXI.primitiveShader.offsetVector, -PIXI.offset.x, -PIXI.offset.y);
-
-    gl.uniform1f(PIXI.primitiveShader.alpha, graphics.worldAlpha);
-    gl.bindBuffer(gl.ARRAY_BUFFER, graphics._webGL.buffer);
-
-    gl.vertexAttribPointer(PIXI.primitiveShader.aVertexPosition, 2, gl.FLOAT, false, 4 * 6, 0);
-    gl.vertexAttribPointer(PIXI.primitiveShader.colorAttribute, 4, gl.FLOAT, false,4 * 6, 2 * 4);
-
-    // set the index buffer!
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, graphics._webGL.indexBuffer);
-
-
-    gl.drawElements(gl.TRIANGLE_STRIP,  graphics._webGL.indices.length, gl.UNSIGNED_SHORT, 0 );
-
-    PIXI.deactivatePrimitiveShader();
-
-    // return to default shader...
-//  PIXI.activateShader(PIXI.defaultShader);
-};
-
-/**
- * Updates the graphics object
- *
- * @static
- * @private
- * @method updateGraphics
- * @param graphics {Graphics}
- */
-PIXI.WebGLGraphics.updateGraphics = function(graphics)
-{
-    for (var i = graphics._webGL.lastIndex; i < graphics.graphicsData.length; i++)
-    {
-        var data = graphics.graphicsData[i];
-
-        if(data.type === PIXI.Graphics.POLY)
-        {
-            if(data.fill)
-            {
-                if(data.points.length>3)
-                    PIXI.WebGLGraphics.buildPoly(data, graphics._webGL);
-            }
-
-            if(data.lineWidth > 0)
-            {
-                PIXI.WebGLGraphics.buildLine(data, graphics._webGL);
-            }
-        }
-        else if(data.type === PIXI.Graphics.RECT)
-        {
-            PIXI.WebGLGraphics.buildRectangle(data, graphics._webGL);
-        }
-        else if(data.type === PIXI.Graphics.CIRC || data.type === PIXI.Graphics.ELIP)
-        {
-            PIXI.WebGLGraphics.buildCircle(data, graphics._webGL);
-        }
-    }
-
-    graphics._webGL.lastIndex = graphics.graphicsData.length;
-
-    var gl = PIXI.gl;
-
-    graphics._webGL.glPoints = new Float32Array(graphics._webGL.points);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, graphics._webGL.buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, graphics._webGL.glPoints, gl.STATIC_DRAW);
-
-    graphics._webGL.glIndicies = new Uint16Array(graphics._webGL.indices);
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, graphics._webGL.indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, graphics._webGL.glIndicies, gl.STATIC_DRAW);
-};
-
-/**
- * Builds a rectangle to draw
- *
- * @static
- * @private
- * @method buildRectangle
- * @param graphics {Graphics}
- * @param webGLData {Object}
- */
-PIXI.WebGLGraphics.buildRectangle = function(graphicsData, webGLData)
-{
-    // --- //
-    // need to convert points to a nice regular data
-    //
-    var rectData = graphicsData.points;
-    var x = rectData[0];
-    var y = rectData[1];
-    var width = rectData[2];
-    var height = rectData[3];
-
-
-    if(graphicsData.fill)
-    {
-        var color = PIXI.hex2rgb(graphicsData.fillColor);
-        var alpha = graphicsData.fillAlpha;
-
-        var r = color[0] * alpha;
-        var g = color[1] * alpha;
-        var b = color[2] * alpha;
-
-        var verts = webGLData.points;
-        var indices = webGLData.indices;
-
-        var vertPos = verts.length/6;
-
-        // start
-        verts.push(x, y);
-        verts.push(r, g, b, alpha);
-
-        verts.push(x + width, y);
-        verts.push(r, g, b, alpha);
-
-        verts.push(x , y + height);
-        verts.push(r, g, b, alpha);
-
-        verts.push(x + width, y + height);
-        verts.push(r, g, b, alpha);
-
-        // insert 2 dead triangles..
-        indices.push(vertPos, vertPos, vertPos+1, vertPos+2, vertPos+3, vertPos+3);
-    }
-
-    if(graphicsData.lineWidth)
-    {
-        graphicsData.points = [x, y,
-                  x + width, y,
-                  x + width, y + height,
-                  x, y + height,
-                  x, y];
-
-        PIXI.WebGLGraphics.buildLine(graphicsData, webGLData);
-    }
-};
-
-/**
- * Builds a circle to draw
- *
- * @static
- * @private
- * @method buildCircle
- * @param graphics {Graphics}
- * @param webGLData {Object}
- */
-PIXI.WebGLGraphics.buildCircle = function(graphicsData, webGLData)
-{
-    // --- //
-    // need to convert points to a nice regular data
-    //
-    var rectData = graphicsData.points;
-    var x = rectData[0];
-    var y = rectData[1];
-    var width = rectData[2];
-    var height = rectData[3];
-
-    var totalSegs = 40;
-    var seg = (Math.PI * 2) / totalSegs ;
-
-    var i = 0;
-
-    if(graphicsData.fill)
-    {
-        var color = PIXI.hex2rgb(graphicsData.fillColor);
-        var alpha = graphicsData.fillAlpha;
-
-        var r = color[0] * alpha;
-        var g = color[1] * alpha;
-        var b = color[2] * alpha;
-
-        var verts = webGLData.points;
-        var indices = webGLData.indices;
-
-        var vecPos = verts.length/6;
-
-        indices.push(vecPos);
-
-        for (i = 0; i < totalSegs + 1 ; i++)
-        {
-            verts.push(x,y, r, g, b, alpha);
-
-            verts.push(x + Math.sin(seg * i) * width,
-                       y + Math.cos(seg * i) * height,
-                       r, g, b, alpha);
-
-            indices.push(vecPos++, vecPos++);
-        }
-
-        indices.push(vecPos-1);
-    }
-
-    if(graphicsData.lineWidth)
-    {
-        graphicsData.points = [];
-
-        for (i = 0; i < totalSegs + 1; i++)
-        {
-            graphicsData.points.push(x + Math.sin(seg * i) * width,
-                                     y + Math.cos(seg * i) * height);
-        }
-
-        PIXI.WebGLGraphics.buildLine(graphicsData, webGLData);
-    }
-};
-
-/**
- * Builds a line to draw
- *
- * @static
- * @private
- * @method buildLine
- * @param graphics {Graphics}
- * @param webGLData {Object}
- */
-PIXI.WebGLGraphics.buildLine = function(graphicsData, webGLData)
-{
-    // TODO OPTIMISE!
-    var i = 0;
-
-    var points = graphicsData.points;
-    if(points.length === 0)return;
-
-    // if the line width is an odd number add 0.5 to align to a whole pixel
-    if(graphicsData.lineWidth%2)
-    {
-        for (i = 0; i < points.length; i++) {
-            points[i] += 0.5;
-        }
-    }
-
-    // get first and last point.. figure out the middle!
-    var firstPoint = new PIXI.Point( points[0], points[1] );
-    var lastPoint = new PIXI.Point( points[points.length - 2], points[points.length - 1] );
-
-    // if the first point is the last point - goona have issues :)
-    if(firstPoint.x === lastPoint.x && firstPoint.y === lastPoint.y)
-    {
-        points.pop();
-        points.pop();
-
-        lastPoint = new PIXI.Point( points[points.length - 2], points[points.length - 1] );
-
-        var midPointX = lastPoint.x + (firstPoint.x - lastPoint.x) *0.5;
-        var midPointY = lastPoint.y + (firstPoint.y - lastPoint.y) *0.5;
-
-        points.unshift(midPointX, midPointY);
-        points.push(midPointX, midPointY);
-    }
-
-    var verts = webGLData.points;
-    var indices = webGLData.indices;
-    var length = points.length / 2;
-    var indexCount = points.length;
-    var indexStart = verts.length/6;
-
-    // DRAW the Line
-    var width = graphicsData.lineWidth / 2;
-
-    // sort color
-    var color = PIXI.hex2rgb(graphicsData.lineColor);
-    var alpha = graphicsData.lineAlpha;
-    var r = color[0] * alpha;
-    var g = color[1] * alpha;
-    var b = color[2] * alpha;
-
-    var px, py, p1x, p1y, p2x, p2y, p3x, p3y;
-    var perpx, perpy, perp2x, perp2y, perp3x, perp3y;
-    var a1, b1, c1, a2, b2, c2;
-    var denom, pdist, dist;
-
-    p1x = points[0];
-    p1y = points[1];
-
-    p2x = points[2];
-    p2y = points[3];
-
-    perpx = -(p1y - p2y);
-    perpy =  p1x - p2x;
-
-    dist = Math.sqrt(perpx*perpx + perpy*perpy);
-
-    perpx /= dist;
-    perpy /= dist;
-    perpx *= width;
-    perpy *= width;
-
-    // start
-    verts.push(p1x - perpx , p1y - perpy,
-                r, g, b, alpha);
-
-    verts.push(p1x + perpx , p1y + perpy,
-                r, g, b, alpha);
-
-    for (i = 1; i < length-1; i++)
-    {
-        p1x = points[(i-1)*2];
-        p1y = points[(i-1)*2 + 1];
-
-        p2x = points[(i)*2];
-        p2y = points[(i)*2 + 1];
-
-        p3x = points[(i+1)*2];
-        p3y = points[(i+1)*2 + 1];
-
-        perpx = -(p1y - p2y);
-        perpy = p1x - p2x;
-
-        dist = Math.sqrt(perpx*perpx + perpy*perpy);
-        perpx /= dist;
-        perpy /= dist;
-        perpx *= width;
-        perpy *= width;
-
-        perp2x = -(p2y - p3y);
-        perp2y = p2x - p3x;
-
-        dist = Math.sqrt(perp2x*perp2x + perp2y*perp2y);
-        perp2x /= dist;
-        perp2y /= dist;
-        perp2x *= width;
-        perp2y *= width;
-
-        a1 = (-perpy + p1y) - (-perpy + p2y);
-        b1 = (-perpx + p2x) - (-perpx + p1x);
-        c1 = (-perpx + p1x) * (-perpy + p2y) - (-perpx + p2x) * (-perpy + p1y);
-        a2 = (-perp2y + p3y) - (-perp2y + p2y);
-        b2 = (-perp2x + p2x) - (-perp2x + p3x);
-        c2 = (-perp2x + p3x) * (-perp2y + p2y) - (-perp2x + p2x) * (-perp2y + p3y);
-
-        denom = a1*b2 - a2*b1;
-
-        if(Math.abs(denom) < 0.1 )
-        {
-
-            denom+=10.1;
-            verts.push(p2x - perpx , p2y - perpy,
-                r, g, b, alpha);
-
-            verts.push(p2x + perpx , p2y + perpy,
-                r, g, b, alpha);
-
-            continue;
-        }
-
-        px = (b1*c2 - b2*c1)/denom;
-        py = (a2*c1 - a1*c2)/denom;
-
-
-        pdist = (px -p2x) * (px -p2x) + (py -p2y) + (py -p2y);
-
-
-        if(pdist > 140 * 140)
-        {
-            perp3x = perpx - perp2x;
-            perp3y = perpy - perp2y;
-
-            dist = Math.sqrt(perp3x*perp3x + perp3y*perp3y);
-            perp3x /= dist;
-            perp3y /= dist;
-            perp3x *= width;
-            perp3y *= width;
-
-            verts.push(p2x - perp3x, p2y -perp3y);
-            verts.push(r, g, b, alpha);
-
-            verts.push(p2x + perp3x, p2y +perp3y);
-            verts.push(r, g, b, alpha);
-
-            verts.push(p2x - perp3x, p2y -perp3y);
-            verts.push(r, g, b, alpha);
-
-            indexCount++;
-        }
-        else
-        {
-
-            verts.push(px , py);
-            verts.push(r, g, b, alpha);
-
-            verts.push(p2x - (px-p2x), p2y - (py - p2y));
-            verts.push(r, g, b, alpha);
-        }
-    }
-
-    p1x = points[(length-2)*2];
-    p1y = points[(length-2)*2 + 1];
-
-    p2x = points[(length-1)*2];
-    p2y = points[(length-1)*2 + 1];
-
-    perpx = -(p1y - p2y);
-    perpy = p1x - p2x;
-
-    dist = Math.sqrt(perpx*perpx + perpy*perpy);
-    perpx /= dist;
-    perpy /= dist;
-    perpx *= width;
-    perpy *= width;
-
-    verts.push(p2x - perpx , p2y - perpy);
-    verts.push(r, g, b, alpha);
-
-    verts.push(p2x + perpx , p2y + perpy);
-    verts.push(r, g, b, alpha);
-
-    indices.push(indexStart);
-
-    for (i = 0; i < indexCount; i++)
-    {
-        indices.push(indexStart++);
-    }
-
-    indices.push(indexStart-1);
-};
-
-/**
- * Builds a polygon to draw
- *
- * @static
- * @private
- * @method buildPoly
- * @param graphics {Graphics}
- * @param webGLData {Object}
- */
-PIXI.WebGLGraphics.buildPoly = function(graphicsData, webGLData)
-{
-    var points = graphicsData.points;
-    if(points.length < 6)return;
-
-    // get first and last point.. figure out the middle!
-    var verts = webGLData.points;
-    var indices = webGLData.indices;
-
-    var length = points.length / 2;
-
-    // sort color
-    var color = PIXI.hex2rgb(graphicsData.fillColor);
-    var alpha = graphicsData.fillAlpha;
-    var r = color[0] * alpha;
-    var g = color[1] * alpha;
-    var b = color[2] * alpha;
-
-    var triangles = PIXI.PolyK.Triangulate(points);
-
-    var vertPos = verts.length / 6;
-
-    var i = 0;
-
-    for (i = 0; i < triangles.length; i+=3)
-    {
-        indices.push(triangles[i] + vertPos);
-        indices.push(triangles[i] + vertPos);
-        indices.push(triangles[i+1] + vertPos);
-        indices.push(triangles[i+2] +vertPos);
-        indices.push(triangles[i+2] + vertPos);
-    }
-
-    for (i = 0; i < length; i++)
-    {
-        verts.push(points[i * 2], points[i * 2 + 1],
-                   r, g, b, alpha);
-    }
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-PIXI._defaultFrame = new PIXI.Rectangle(0,0,1,1);
-
-// an instance of the gl context..
-// only one at the moment :/
-PIXI.gl = null;
-
-/**
- * the WebGLRenderer is draws the stage and all its content onto a webGL enabled canvas. This renderer
- * should be used for browsers support webGL. This Render works by automatically managing webGLBatchs.
- * So no need for Sprite Batch's or Sprite Cloud's
- * Dont forget to add the view to your DOM or you will not see anything :)
- *
- * @class WebGLRenderer
- * @constructor
- * @param width=0 {Number} the width of the canvas view
- * @param height=0 {Number} the height of the canvas view
- * @param view {Canvas} the canvas to use as a view, optional
- * @param transparent=false {Boolean} the transparency of the render view, default false
- * @param antialias=false {Boolean} sets antialias (only applicable in chrome at the moment)
- *
- */
-PIXI.WebGLRenderer = function(width, height, view, transparent, antialias)
-{
-    // do a catch.. only 1 webGL renderer..
-
-    this.transparent = !!transparent;
-
-    this.width = width || 800;
-    this.height = height || 600;
-
-    this.view = view || document.createElement( 'canvas' );
-    this.view.width = this.width;
-    this.view.height = this.height;
-
-    // deal with losing context..
-    var scope = this;
-    this.view.addEventListener('webglcontextlost', function(event) { scope.handleContextLost(event); }, false);
-    this.view.addEventListener('webglcontextrestored', function(event) { scope.handleContextRestored(event); }, false);
-
-    this.batchs = [];
-
-    var options = {
-        alpha: this.transparent,
-        antialias:!!antialias, // SPEED UP??
-        premultipliedAlpha:false,
-        stencil:true
-    };
-
-    //try 'experimental-webgl'
-    try {
-        PIXI.gl = this.gl = this.view.getContext('experimental-webgl',  options);
-    } catch (e) {
-        //try 'webgl'
-        try {
-            PIXI.gl = this.gl = this.view.getContext('webgl',  options);
-        } catch (e2) {
-            // fail, not able to get a context
-            throw new Error(' This browser does not support webGL. Try using the canvas renderer' + this);
-        }
-    }
-
-    PIXI.initDefaultShaders();
-
-
-
-
-   // PIXI.activateDefaultShader();
-
-    var gl = this.gl;
-
-    gl.useProgram(PIXI.defaultShader.program);
-
-
-    PIXI.WebGLRenderer.gl = gl;
-
-    this.batch = new PIXI.WebGLBatch(gl);
-    gl.disable(gl.DEPTH_TEST);
-    gl.disable(gl.CULL_FACE);
-
-    gl.enable(gl.BLEND);
-    gl.colorMask(true, true, true, this.transparent);
-
-    PIXI.projection = new PIXI.Point(400, 300);
-    PIXI.offset = new PIXI.Point(0, 0);
-
-    // TODO remove thease globals..
-
-    this.resize(this.width, this.height);
-    this.contextLost = false;
-
-    //PIXI.pushShader(PIXI.defaultShader);
-
-    this.stageRenderGroup = new PIXI.WebGLRenderGroup(this.gl, this.transparent);
-  //  this.stageRenderGroup. = this.transparent
-};
-
-// constructor
-PIXI.WebGLRenderer.prototype.constructor = PIXI.WebGLRenderer;
-
-/**
- * Gets a new WebGLBatch from the pool
- *
- * @static
- * @method getBatch
- * @return {WebGLBatch}
- * @private
- */
-PIXI.WebGLRenderer.getBatch = function()
-{
-    if(PIXI._batchs.length === 0)
-    {
-        return new PIXI.WebGLBatch(PIXI.WebGLRenderer.gl);
-    }
-    else
-    {
-        return PIXI._batchs.pop();
-    }
-};
-
-/**
- * Puts a batch back into the pool
- *
- * @static
- * @method returnBatch
- * @param batch {WebGLBatch} The batch to return
- * @private
- */
-PIXI.WebGLRenderer.returnBatch = function(batch)
-{
-    batch.clean();
-    PIXI._batchs.push(batch);
-};
-
-/**
- * Renders the stage to its webGL view
- *
- * @method render
- * @param stage {Stage} the Stage element to be rendered
- */
-PIXI.WebGLRenderer.prototype.render = function(stage)
-{
-    if(this.contextLost)return;
-
-
-    // if rendering a new stage clear the batchs..
-    if(this.__stage !== stage)
-    {
-        // TODO make this work
-        // dont think this is needed any more?
-        this.__stage = stage;
-        this.stageRenderGroup.setRenderable(stage);
-    }
-
-    // update any textures
-    PIXI.WebGLRenderer.updateTextures();
-
-    // update the scene graph
-    PIXI.visibleCount++;
-    stage.updateTransform();
-
-    var gl = this.gl;
-
-    // -- Does this need to be set every frame? -- //
-    gl.colorMask(true, true, true, this.transparent);
-    gl.viewport(0, 0, this.width, this.height);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    gl.clearColor(stage.backgroundColorSplit[0],stage.backgroundColorSplit[1],stage.backgroundColorSplit[2], !this.transparent);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    // HACK TO TEST
-
-    this.stageRenderGroup.backgroundColor = stage.backgroundColorSplit;
-
-    PIXI.projection.x =  this.width/2;
-    PIXI.projection.y =  -this.height/2;
-
-    this.stageRenderGroup.render(PIXI.projection);
-
-    // interaction
-    // run interaction!
-    if(stage.interactive)
-    {
-        //need to add some events!
-        if(!stage._interactiveEventsAdded)
-        {
-            stage._interactiveEventsAdded = true;
-            stage.interactionManager.setTarget(this);
-        }
-    }
-
-    // after rendering lets confirm all frames that have been uodated..
-    if(PIXI.Texture.frameUpdates.length > 0)
-    {
-        for (var i=0; i < PIXI.Texture.frameUpdates.length; i++)
-        {
-            PIXI.Texture.frameUpdates[i].updateFrame = false;
-        }
-
-        PIXI.Texture.frameUpdates = [];
-    }
-};
-
-/**
- * Updates the textures loaded into this webgl renderer
- *
- * @static
- * @method updateTextures
- * @private
- */
-PIXI.WebGLRenderer.updateTextures = function()
-{
-    var i = 0;
-
-    //TODO break this out into a texture manager...
-    for (i = 0; i < PIXI.texturesToUpdate.length; i++)
-        PIXI.WebGLRenderer.updateTexture(PIXI.texturesToUpdate[i]);
-
-    for (i = 0; i < PIXI.texturesToDestroy.length; i++)
-        PIXI.WebGLRenderer.destroyTexture(PIXI.texturesToDestroy[i]);
-
-    PIXI.texturesToUpdate = [];
-    PIXI.texturesToDestroy = [];
-};
-
-/**
- * Updates a loaded webgl texture
- *
- * @static
- * @method updateTexture
- * @param texture {Texture} The texture to update
- * @private
- */
-PIXI.WebGLRenderer.updateTexture = function(texture)
-{
-    //TODO break this out into a texture manager...
-    var gl = PIXI.gl;
-
-    if(!texture._glTexture)
-    {
-        texture._glTexture = gl.createTexture();
-    }
-
-    if(texture.hasLoaded)
-    {
-        gl.bindTexture(gl.TEXTURE_2D, texture._glTexture);
-        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.source);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, texture.scaleMode === PIXI.BaseTexture.SCALE_MODE.LINEAR ? gl.LINEAR : gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, texture.scaleMode === PIXI.BaseTexture.SCALE_MODE.LINEAR ? gl.LINEAR : gl.NEAREST);
-
-        // reguler...
-
-        if(!texture._powerOf2)
-        {
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        }
-        else
-        {
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-        }
-
-        gl.bindTexture(gl.TEXTURE_2D, null);
-    }
-};
-
-/**
- * Destroys a loaded webgl texture
- *
- * @method destroyTexture
- * @param texture {Texture} The texture to update
- * @private
- */
-PIXI.WebGLRenderer.destroyTexture = function(texture)
-{
-    //TODO break this out into a texture manager...
-    var gl = PIXI.gl;
-
-    if(texture._glTexture)
-    {
-        texture._glTexture = gl.createTexture();
-        gl.deleteTexture(gl.TEXTURE_2D, texture._glTexture);
-    }
-};
-
-/**
- * resizes the webGL view to the specified width and height
- *
- * @method resize
- * @param width {Number} the new width of the webGL view
- * @param height {Number} the new height of the webGL view
- */
-PIXI.WebGLRenderer.prototype.resize = function(width, height)
-{
-    this.width = width;
-    this.height = height;
-
-    this.view.width = width;
-    this.view.height = height;
-
-    this.gl.viewport(0, 0, this.width, this.height);
-
-    //var projectionMatrix = this.projectionMatrix;
-
-    PIXI.projection.x =  this.width/2;
-    PIXI.projection.y =  -this.height/2;
-
-    //PIXI.size.x =  this.width/2;
-    //PIXI.size.y =  -this.height/2;
-
-//  projectionMatrix[0] = 2/this.width;
-//  projectionMatrix[5] = -2/this.height;
-//  projectionMatrix[12] = -1;
-//  projectionMatrix[13] = 1;
-};
-
-/**
- * Handles a lost webgl context
- *
- * @method handleContextLost
- * @param event {Event}
- * @private
- */
-PIXI.WebGLRenderer.prototype.handleContextLost = function(event)
-{
-    event.preventDefault();
-    this.contextLost = true;
-};
-
-/**
- * Handles a restored webgl context
- *
- * @method handleContextRestored
- * @param event {Event}
- * @private
- */
-PIXI.WebGLRenderer.prototype.handleContextRestored = function()
-{
-    this.gl = this.view.getContext('experimental-webgl',  {
-        alpha: true
-    });
-
-    this.initShaders();
-
-    for(var key in PIXI.TextureCache)
-    {
-        var texture = PIXI.TextureCache[key].baseTexture;
-        texture._glTexture = null;
-        PIXI.WebGLRenderer.updateTexture(texture);
-    }
-
-    for (var i=0; i <  this.batchs.length; i++)
-    {
-        this.batchs[i].restoreLostContext(this.gl);
-        this.batchs[i].dirty = true;
-    }
-
-    PIXI._restoreBatchs(this.gl);
-
-    this.contextLost = false;
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-/**
- * A WebGLBatch Enables a group of sprites to be drawn using the same settings.
- * if a group of sprites all have the same baseTexture and blendMode then they can be
- * grouped into a batch. All the sprites in a batch can then be drawn in one go by the
- * GPU which is hugely efficient. ALL sprites in the webGL renderer are added to a batch
- * even if the batch only contains one sprite. Batching is handled automatically by the
- * webGL renderer. A good tip is: the smaller the number of batchs there are, the faster
- * the webGL renderer will run.
- *
- * @class WebGLBatch
- * @contructor
- * @param gl {WebGLContext} An instance of the webGL context
- */
-PIXI.WebGLRenderGroup = function(gl, transparent)
-{
-	this.gl = gl;
-	this.root;
-	
-	this.backgroundColor;
-	this.transparent = transparent == undefined ? true : transparent;
-	
-	this.batchs = [];
-	this.toRemove = [];
-	// console.log(this.transparent)
-	this.filterManager = new PIXI.WebGLFilterManager(this.transparent);
-}
-
-// constructor
-PIXI.WebGLRenderGroup.prototype.constructor = PIXI.WebGLRenderGroup;
-
-/**
- * Add a display object to the webgl renderer
- *
- * @method setRenderable
- * @param displayObject {DisplayObject}
- * @private 
- */
-PIXI.WebGLRenderGroup.prototype.setRenderable = function(displayObject)
-{
-	// has this changed??
-	if(this.root)this.removeDisplayObjectAndChildren(this.root);
-	
-	displayObject.worldVisible = displayObject.visible;
-	
-	// soooooo //
-	// to check if any batchs exist already??
-	
-	// TODO what if its already has an object? should remove it
-	this.root = displayObject;
-	this.addDisplayObjectAndChildren(displayObject);
-}
-
-/**
- * Renders the stage to its webgl view
- *
- * @method render
- * @param projection {Object}
- */
-PIXI.WebGLRenderGroup.prototype.render = function(projection, buffer)
-{
-	PIXI.WebGLRenderer.updateTextures();
-	
-	var gl = this.gl;
-	gl.uniform2f(PIXI.defaultShader.projectionVector, projection.x, projection.y);
-
-	this.filterManager.begin(projection, buffer);
-
-	
-	gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-	// will render all the elements in the group
-	var renderable;
-
-	for (var i=0; i < this.batchs.length; i++) 
-	{
-		
-		renderable = this.batchs[i];
-		if(renderable instanceof PIXI.WebGLBatch)
-		{
-			this.batchs[i].render();
-			continue;
-		}
-		
-		// render special
-		this.renderSpecial(renderable, projection);
-	}
-	
-}
-
-/**
- * Renders a specific displayObject
- *
- * @method renderSpecific
- * @param displayObject {DisplayObject}
- * @param projection {Object}
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.renderSpecific = function(displayObject, projection, buffer)
-{
-	PIXI.WebGLRenderer.updateTextures();
-	var gl = this.gl;
-
-	gl.uniform2f(PIXI.defaultShader.projectionVector, projection.x, projection.y);
-
-	this.filterManager.begin(projection, buffer);
-
-	// to do!
-	// render part of the scene...
-	
-	var startIndex;
-	var startBatchIndex;
-	
-	var endIndex;
-	var endBatchIndex;
-	
-	/*
-	 *  LOOK FOR THE NEXT SPRITE
-	 *  This part looks for the closest next sprite that can go into a batch
-	 *  it keeps looking until it finds a sprite or gets to the end of the display
-	 *  scene graph
-	 */
-	var nextRenderable = displayObject.first;
-	while(nextRenderable._iNext)
-	{
-		if(nextRenderable.renderable && nextRenderable.__renderGroup)break;
-		nextRenderable = nextRenderable._iNext;
-	}
-	var startBatch = nextRenderable.batch;
-	//console.log(nextRenderable);
-	
-	//console.log(renderable)
-	if(nextRenderable instanceof PIXI.Sprite)
-	{
-		startBatch = nextRenderable.batch;
-		
-		var head = startBatch.head;
-		var next = head;
-		
-		// ok now we have the batch.. need to find the start index!
-		if(head == nextRenderable)
-		{
-			startIndex = 0;
-		}
-		else
-		{
-			startIndex = 1;
-			
-			while(head.__next != nextRenderable)
-			{
-				startIndex++;
-				head = head.__next;
-			}
-		}
-	}
-	else
-	{
-		startBatch = nextRenderable;
-	}
-	
-	// Get the LAST renderable object
-	var lastRenderable = displayObject.last;
-	while(lastRenderable._iPrev)
-	{
-		if(lastRenderable.renderable && lastRenderable.__renderGroup)break;
-		lastRenderable = lastRenderable._iNext;
-	}
-	
-	if(lastRenderable instanceof PIXI.Sprite)
-	{
-		endBatch = lastRenderable.batch;
-		
-		var head = endBatch.head;
-		
-		if(head == lastRenderable)
-		{
-			endIndex = 0;
-		}
-		else
-		{
-			endIndex = 1;
-			
-			while(head.__next != lastRenderable)
-			{
-				endIndex++;
-				head = head.__next;
-			}
-		}
-	}
-	else
-	{
-		endBatch = lastRenderable;
-	}
-	
-	if(startBatch == endBatch)
-	{
-		if(startBatch instanceof PIXI.WebGLBatch)
-		{
-			startBatch.render(startIndex, endIndex+1);
-		}
-		else
-		{
-			this.renderSpecial(startBatch, projection);
-		}
-		return;
-	}
-	
-	// now we have first and last!
-	startBatchIndex = this.batchs.indexOf(startBatch);
-	endBatchIndex = this.batchs.indexOf(endBatch);
-	
-	// DO the first batch
-	if(startBatch instanceof PIXI.WebGLBatch)
-	{
-		startBatch.render(startIndex);
-	}
-	else
-	{
-		this.renderSpecial(startBatch, projection);
-	}
-	
-	// DO the middle batchs..
-	for (var i=startBatchIndex+1; i < endBatchIndex; i++) 
-	{
-		renderable = this.batchs[i];
-	
-		if(renderable instanceof PIXI.WebGLBatch)
-		{
-			this.batchs[i].render();
-		}
-		else
-		{
-			this.renderSpecial(renderable, projection);
-		}
-	}
-	
-	// DO the last batch..
-	if(endBatch instanceof PIXI.WebGLBatch)
-	{
-		endBatch.render(0, endIndex+1);
-	}
-	else
-	{
-		this.renderSpecial(endBatch, projection);
-	}
-}
-
-/**
- * Renders a specific renderable
- *
- * @method renderSpecial
- * @param renderable {DisplayObject}
- * @param projection {Object}
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.renderSpecial = function(renderable, projection)
-{
-	
-	var worldVisible = renderable.vcount === PIXI.visibleCount
-
-
-	if(renderable instanceof PIXI.TilingSprite)
-	{
-		if(worldVisible)this.renderTilingSprite(renderable, projection);
-	}
-	else if(renderable instanceof PIXI.Strip)
-	{
-		if(worldVisible)this.renderStrip(renderable, projection);
-	}
-	else if(renderable instanceof PIXI.CustomRenderable)
-	{
-		if(worldVisible) renderable.renderWebGL(this, projection);
-	}
-	else if(renderable instanceof PIXI.Graphics)
-	{
-		if(worldVisible && renderable.renderable) PIXI.WebGLGraphics.renderGraphics(renderable, projection);
-	}
-	else if(renderable instanceof PIXI.FilterBlock)
-	{
-		this.handleFilterBlock(renderable, projection);
-	}
-}
-
-flip = false;
-var maskStack = [];
-var maskPosition = 0;
-
-//var usedMaskStack = [];
-
-PIXI.WebGLRenderGroup.prototype.handleFilterBlock = function(filterBlock, projection)
-{
-	/*
-	 * for now only masks are supported..
-	 */
-	var gl = PIXI.gl;
-	
-	if(filterBlock.open)
-	{
-		if(filterBlock.data instanceof Array)
-		{
-			this.filterManager.pushFilter(filterBlock);
-			// ok so..
-			
-		}
-		else
-		{	
-			maskPosition++;
-
-			maskStack.push(filterBlock)
-	
-			gl.enable(gl.STENCIL_TEST);
-			
-			gl.colorMask(false, false, false, false);
-			
-			gl.stencilFunc(gl.ALWAYS,1,1);
-			gl.stencilOp(gl.KEEP,gl.KEEP,gl.INCR);
-	
-			PIXI.WebGLGraphics.renderGraphics(filterBlock.data, projection);
-			
-			gl.colorMask(true, true, true, true);
-			gl.stencilFunc(gl.NOTEQUAL,0,maskStack.length);
-			gl.stencilOp(gl.KEEP,gl.KEEP,gl.KEEP);
-		}
-	}
-	else
-	{
-		if(filterBlock.data instanceof Array)
-		{
-			this.filterManager.popFilter();
-		}
-		else
-		{
-			var maskData = maskStack.pop(filterBlock)
-
-
-			if(maskData)
-			{
-				gl.colorMask(false, false, false, false);
-			
-				gl.stencilFunc(gl.ALWAYS,1,1);
-				gl.stencilOp(gl.KEEP,gl.KEEP,gl.DECR);
-
-				PIXI.WebGLGraphics.renderGraphics(maskData.data, projection);
-			
-				gl.colorMask(true, true, true, true);
-				gl.stencilFunc(gl.NOTEQUAL,0,maskStack.length);
-				gl.stencilOp(gl.KEEP,gl.KEEP,gl.KEEP);
-			};
-
-			gl.disable(gl.STENCIL_TEST);
-		}
-	}
-}
-
-/**
- * Updates a webgl texture
- *
- * @method updateTexture
- * @param displayObject {DisplayObject}
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.updateTexture = function(displayObject)
-{
-	
-	// TODO definitely can optimse this function..
-	
-	this.removeObject(displayObject);
-	
-	/*
-	 *  LOOK FOR THE PREVIOUS RENDERABLE
-	 *  This part looks for the closest previous sprite that can go into a batch
-	 *  It keeps going back until it finds a sprite or the stage
-	 */
-	var previousRenderable = displayObject.first;
-	while(previousRenderable != this.root)
-	{
-		previousRenderable = previousRenderable._iPrev;
-		if(previousRenderable.renderable && previousRenderable.__renderGroup)break;
-	}
-	
-	/*
-	 *  LOOK FOR THE NEXT SPRITE
-	 *  This part looks for the closest next sprite that can go into a batch
-	 *  it keeps looking until it finds a sprite or gets to the end of the display
-	 *  scene graph
-	 */
-	var nextRenderable = displayObject.last;
-	while(nextRenderable._iNext)
-	{
-		nextRenderable = nextRenderable._iNext;
-		if(nextRenderable.renderable && nextRenderable.__renderGroup)break;
-	}
-	
-	this.insertObject(displayObject, previousRenderable, nextRenderable);
-}
-
-/**
- * Adds filter blocks
- *
- * @method addFilterBlocks
- * @param start {FilterBlock}
- * @param end {FilterBlock}
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.addFilterBlocks = function(start, end)
-{
-	start.__renderGroup = this;
-	end.__renderGroup = this;
-	/*
-	 *  LOOK FOR THE PREVIOUS RENDERABLE
-	 *  This part looks for the closest previous sprite that can go into a batch
-	 *  It keeps going back until it finds a sprite or the stage
-	 */
-	var previousRenderable = start;
-	while(previousRenderable != this.root.first)
-	{
-		previousRenderable = previousRenderable._iPrev;
-		if(previousRenderable.renderable && previousRenderable.__renderGroup)break;
-	}
-	this.insertAfter(start, previousRenderable);
-		
-	/*
-	 *  LOOK FOR THE NEXT SPRITE
-	 *  This part looks for the closest next sprite that can go into a batch
-	 *  it keeps looking until it finds a sprite or gets to the end of the display
-	 *  scene graph
-	 */
-	var previousRenderable2 = end;
-	while(previousRenderable2 != this.root.first)
-	{
-		previousRenderable2 = previousRenderable2._iPrev;
-		if(previousRenderable2.renderable && previousRenderable2.__renderGroup)break;
-	}
-	this.insertAfter(end, previousRenderable2);
-}
-
-/**
- * Remove filter blocks
- *
- * @method removeFilterBlocks
- * @param start {FilterBlock}
- * @param end {FilterBlock}
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.removeFilterBlocks = function(start, end)
-{
-	this.removeObject(start);
-	this.removeObject(end);
-}
-
-/**
- * Adds a display object and children to the webgl context
- *
- * @method addDisplayObjectAndChildren
- * @param displayObject {DisplayObject}
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.addDisplayObjectAndChildren = function(displayObject)
-{
-	if(displayObject.__renderGroup)displayObject.__renderGroup.removeDisplayObjectAndChildren(displayObject);
-	
-	/*
-	 *  LOOK FOR THE PREVIOUS RENDERABLE
-	 *  This part looks for the closest previous sprite that can go into a batch
-	 *  It keeps going back until it finds a sprite or the stage
-	 */
-	
-	var previousRenderable = displayObject.first;
-	while(previousRenderable != this.root.first)
-	{
-		previousRenderable = previousRenderable._iPrev;
-		if(previousRenderable.renderable && previousRenderable.__renderGroup)break;
-	}
-	
-	/*
-	 *  LOOK FOR THE NEXT SPRITE
-	 *  This part looks for the closest next sprite that can go into a batch
-	 *  it keeps looking until it finds a sprite or gets to the end of the display
-	 *  scene graph
-	 */
-	var nextRenderable = displayObject.last;
-	while(nextRenderable._iNext)
-	{
-		nextRenderable = nextRenderable._iNext;
-		if(nextRenderable.renderable && nextRenderable.__renderGroup)break;
-	}
-	
-	// one the display object hits this. we can break the loop	
-	
-	var tempObject = displayObject.first;
-	var testObject = displayObject.last._iNext;
-	do	
-	{
-		tempObject.__renderGroup = this;
-		
-		if(tempObject.renderable)
-		{
-		
-			this.insertObject(tempObject, previousRenderable, nextRenderable);
-			previousRenderable = tempObject;
-		}
-		
-		tempObject = tempObject._iNext;
-	}
-	while(tempObject != testObject)
-}
-
-/**
- * Removes a display object and children to the webgl context
- *
- * @method removeDisplayObjectAndChildren
- * @param displayObject {DisplayObject}
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.removeDisplayObjectAndChildren = function(displayObject)
-{
-	if(displayObject.__renderGroup != this)return;
-	
-//	var displayObject = displayObject.first;
-	var lastObject = displayObject.last;
-	do	
-	{
-		displayObject.__renderGroup = null;
-		if(displayObject.renderable)this.removeObject(displayObject);
-		displayObject = displayObject._iNext;
-	}
-	while(displayObject)
-}
-
-/**
- * Inserts a displayObject into the linked list
- *
- * @method insertObject
- * @param displayObject {DisplayObject}
- * @param previousObject {DisplayObject}
- * @param nextObject {DisplayObject}
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.insertObject = function(displayObject, previousObject, nextObject)
-{
-	// while looping below THE OBJECT MAY NOT HAVE BEEN ADDED
-	var previousSprite = previousObject;
-	var nextSprite = nextObject;
-	
-	/*
-	 * so now we have the next renderable and the previous renderable
-	 * 
-	 */
-	if(displayObject instanceof PIXI.Sprite)
-	{
-		var previousBatch
-		var nextBatch
-		
-		if(previousSprite instanceof PIXI.Sprite)
-		{
-			previousBatch = previousSprite.batch;
-			if(previousBatch)
-			{
-				if(previousBatch.texture == displayObject.texture.baseTexture && previousBatch.blendMode == displayObject.blendMode)
-				{
-					previousBatch.insertAfter(displayObject, previousSprite);
-					return;
-				}
-			}
-		}
-		else
-		{
-			// TODO reword!
-			previousBatch = previousSprite;
-		}
-	
-		if(nextSprite)
-		{
-			if(nextSprite instanceof PIXI.Sprite)
-			{
-				nextBatch = nextSprite.batch;
-			
-				//batch may not exist if item was added to the display list but not to the webGL
-				if(nextBatch)
-				{
-					if(nextBatch.texture == displayObject.texture.baseTexture && nextBatch.blendMode == displayObject.blendMode)
-					{
-						nextBatch.insertBefore(displayObject, nextSprite);
-						return;
-					}
-					else
-					{
-						if(nextBatch == previousBatch)
-						{
-							// THERE IS A SPLIT IN THIS BATCH! //
-							var splitBatch = previousBatch.split(nextSprite);
-							// COOL!
-							// add it back into the array	
-							/*
-							 * OOPS!
-							 * seems the new sprite is in the middle of a batch
-							 * lets split it.. 
-							 */
-							var batch = PIXI.WebGLRenderer.getBatch();
-
-							var index = this.batchs.indexOf( previousBatch );
-							batch.init(displayObject);
-							this.batchs.splice(index+1, 0, batch, splitBatch);
-							
-							return;
-						}
-					}
-				}
-			}
-			else
-			{
-				// TODO re-word!
-				
-				nextBatch = nextSprite;
-			}
-		}
-		
-		/*
-		 * looks like it does not belong to any batch!
-		 * but is also not intersecting one..
-		 * time to create anew one!
-		 */
-		
-		var batch =  PIXI.WebGLRenderer.getBatch();
-		batch.init(displayObject);
-
-		if(previousBatch) // if this is invalid it means 
-		{
-			var index = this.batchs.indexOf( previousBatch );
-			this.batchs.splice(index+1, 0, batch);
-		}
-		else
-		{
-			this.batchs.push(batch);
-		}
-		
-		return;
-	}
-	else if(displayObject instanceof PIXI.TilingSprite)
-	{
-		
-		// add to a batch!!
-		this.initTilingSprite(displayObject);
-	//	this.batchs.push(displayObject);
-		
-	}
-	else if(displayObject instanceof PIXI.Strip)
-	{
-		// add to a batch!!
-		this.initStrip(displayObject);
-	//	this.batchs.push(displayObject);
-	}
-	else if(displayObject)// instanceof PIXI.Graphics)
-	{
-		//displayObject.initWebGL(this);
-		
-		// add to a batch!!
-		//this.initStrip(displayObject);
-		//this.batchs.push(displayObject);
-	}
-	
-	this.insertAfter(displayObject, previousSprite);
-			
-	// insert and SPLIT!
-
-}
-
-/**
- * Inserts a displayObject into the linked list
- *
- * @method insertAfter
- * @param item {DisplayObject}
- * @param displayObject {DisplayObject} The object to insert
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.insertAfter = function(item, displayObject)
-{
-	if(displayObject instanceof PIXI.Sprite)
-	{
-		var previousBatch = displayObject.batch;
-		
-		if(previousBatch)
-		{
-			// so this object is in a batch!
-			
-			// is it not? need to split the batch
-			if(previousBatch.tail == displayObject)
-			{
-				// is it tail? insert in to batchs	
-				var index = this.batchs.indexOf( previousBatch );
-				this.batchs.splice(index+1, 0, item);
-			}
-			else
-			{
-				// TODO MODIFY ADD / REMOVE CHILD TO ACCOUNT FOR FILTERS (also get prev and next) //
-				
-				// THERE IS A SPLIT IN THIS BATCH! //
-				var splitBatch = previousBatch.split(displayObject.__next);
-				
-				// COOL!
-				// add it back into the array	
-				/*
-				 * OOPS!
-				 * seems the new sprite is in the middle of a batch
-				 * lets split it.. 
-				 */
-				var index = this.batchs.indexOf( previousBatch );
-				this.batchs.splice(index+1, 0, item, splitBatch);
-			}
-		}
-		else
-		{
-			this.batchs.push(item);
-		}
-	}
-	else
-	{
-		var index = this.batchs.indexOf( displayObject );
-		this.batchs.splice(index+1, 0, item);
-	}
-}
-
-/**
- * Removes a displayObject from the linked list
- *
- * @method removeObject
- * @param displayObject {DisplayObject} The object to remove
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.removeObject = function(displayObject)
-{
-	// loop through children..
-	// display object //
-	
-	// add a child from the render group..
-	// remove it and all its children!
-	//displayObject.cacheVisible = false;//displayObject.visible;
-
-	/*
-	 * removing is a lot quicker..
-	 * 
-	 */
-	var batchToRemove;
-	
-	if(displayObject instanceof PIXI.Sprite)
-	{
-		// should always have a batch!
-		var batch = displayObject.batch;
-		if(!batch)return; // this means the display list has been altered befre rendering
-		
-		batch.remove(displayObject);
-		
-		if(batch.size==0)
-		{
-			batchToRemove = batch;
-		}
-	}
-	else
-	{
-		batchToRemove = displayObject;
-	}
-	
-	/*
-	 * Looks like there is somthing that needs removing!
-	 */
-	if(batchToRemove)	
-	{
-		var index = this.batchs.indexOf( batchToRemove );
-		if(index == -1)return;// this means it was added then removed before rendered
-		
-		// ok so.. check to see if you adjacent batchs should be joined.
-		// TODO may optimise?
-		if(index == 0 || index == this.batchs.length-1)
-		{
-			// wha - eva! just get of the empty batch!
-			this.batchs.splice(index, 1);
-			if(batchToRemove instanceof PIXI.WebGLBatch)PIXI.WebGLRenderer.returnBatch(batchToRemove);
-		
-			return;
-		}
-		
-		if(this.batchs[index-1] instanceof PIXI.WebGLBatch && this.batchs[index+1] instanceof PIXI.WebGLBatch)
-		{
-			if(this.batchs[index-1].texture == this.batchs[index+1].texture && this.batchs[index-1].blendMode == this.batchs[index+1].blendMode)
-			{
-				//console.log("MERGE")
-				this.batchs[index-1].merge(this.batchs[index+1]);
-				
-				if(batchToRemove instanceof PIXI.WebGLBatch)PIXI.WebGLRenderer.returnBatch(batchToRemove);
-				PIXI.WebGLRenderer.returnBatch(this.batchs[index+1]);
-				this.batchs.splice(index, 2);
-				return;
-			}
-		}
-		
-		this.batchs.splice(index, 1);
-		if(batchToRemove instanceof PIXI.WebGLBatch)PIXI.WebGLRenderer.returnBatch(batchToRemove);
-	}
-}
-
-
-/**
- * Initializes a tiling sprite
- *
- * @method initTilingSprite
- * @param sprite {TilingSprite} The tiling sprite to initialize
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.initTilingSprite = function(sprite)
-{
-	var gl = this.gl;
-
-	// make the texture tilable..
-			
-	sprite.verticies = new Float32Array([0, 0,
-										  sprite.width, 0,
-										  sprite.width,  sprite.height,
-										 0,  sprite.height]);
-					
-	sprite.uvs = new Float32Array([0, 0,
-									1, 0,
-									1, 1,
-									0, 1]);
-				
-	sprite.colors = new Float32Array([1,1,1,1]);
-	
-	sprite.indices =  new Uint16Array([0, 1, 3,2])//, 2]);
-	
-	sprite._vertexBuffer = gl.createBuffer();
-	sprite._indexBuffer = gl.createBuffer();
-	sprite._uvBuffer = gl.createBuffer();
-	sprite._colorBuffer = gl.createBuffer();
-						
-	gl.bindBuffer(gl.ARRAY_BUFFER, sprite._vertexBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, sprite.verticies, gl.STATIC_DRAW);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, sprite._uvBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER,  sprite.uvs, gl.DYNAMIC_DRAW);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, sprite._colorBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, sprite.colors, gl.STATIC_DRAW);
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sprite._indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, sprite.indices, gl.STATIC_DRAW);
-    
-//    return ( (x > 0) && ((x & (x - 1)) == 0) );
-
-	if(sprite.texture.baseTexture._glTexture)
-	{
-    	gl.bindTexture(gl.TEXTURE_2D, sprite.texture.baseTexture._glTexture);
-    	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-		sprite.texture.baseTexture._powerOf2 = true;
-	}
-	else
-	{
-		sprite.texture.baseTexture._powerOf2 = true;
-	}
-}
-
-/**
- * Renders a Strip
- *
- * @method renderStrip
- * @param strip {Strip} The strip to render
- * @param projection {Object}
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.renderStrip = function(strip, projection)
-{
-	var gl = this.gl;
-
-	PIXI.activateStripShader();
-
-	var shader = PIXI.stripShader;
-
-	var program = shader.program;
-	
-	var m = PIXI.mat3.clone(strip.worldTransform);
-	
-	PIXI.mat3.transpose(m);
-	
-//	console.log(projection)
-	// set the matrix transform for the 
- 	gl.uniformMatrix3fv(shader.translationMatrix, false, m);
-	gl.uniform2f(shader.projectionVector, projection.x, projection.y);
-	gl.uniform2f(shader.offsetVector, -PIXI.offset.x, -PIXI.offset.y);
-	
-	gl.uniform1f(shader.alpha, strip.worldAlpha);
-
-	/*
-	if(strip.blendMode == PIXI.blendModes.NORMAL)
-	{
-		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-	}
-	else
-	{
-		gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_COLOR);
-	}
-	*/
-	
-	//console.log("!!")
-	if(!strip.dirty)
-	{	
-		gl.bindBuffer(gl.ARRAY_BUFFER, strip._vertexBuffer);
-		gl.bufferSubData(gl.ARRAY_BUFFER, 0, strip.verticies)
-	    gl.vertexAttribPointer(shader.aVertexPosition, 2, gl.FLOAT, false, 0, 0);
-		
-		// update the uvs
-	   	gl.bindBuffer(gl.ARRAY_BUFFER, strip._uvBuffer);
-	    gl.vertexAttribPointer(shader.aTextureCoord, 2, gl.FLOAT, false, 0, 0);
-			
-	    gl.activeTexture(gl.TEXTURE0);
-	    gl.bindTexture(gl.TEXTURE_2D, strip.texture.baseTexture._glTexture);
-		
-		gl.bindBuffer(gl.ARRAY_BUFFER, strip._colorBuffer);
-	    gl.vertexAttribPointer(shader.colorAttribute, 1, gl.FLOAT, false, 0, 0);
-		
-		// dont need to upload!
-	    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, strip._indexBuffer);
-	}
-	else
-	{
-		strip.dirty = false;
-		gl.bindBuffer(gl.ARRAY_BUFFER, strip._vertexBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, strip.verticies, gl.STATIC_DRAW)
-	    gl.vertexAttribPointer(shader.aVertexPosition, 2, gl.FLOAT, false, 0, 0);
-		
-		// update the uvs
-	   	gl.bindBuffer(gl.ARRAY_BUFFER, strip._uvBuffer);
-	   	gl.bufferData(gl.ARRAY_BUFFER, strip.uvs, gl.STATIC_DRAW)
-	    gl.vertexAttribPointer(shader.aTextureCoord, 2, gl.FLOAT, false, 0, 0);
-			
-	    gl.activeTexture(gl.TEXTURE0);
-	    gl.bindTexture(gl.TEXTURE_2D, strip.texture.baseTexture._glTexture);
-	//	console.log(strip.texture.baseTexture._glTexture)
-		gl.bindBuffer(gl.ARRAY_BUFFER, strip._colorBuffer);
-		gl.bufferData(gl.ARRAY_BUFFER, strip.colors, gl.STATIC_DRAW)
-	    gl.vertexAttribPointer(shader.colorAttribute, 1, gl.FLOAT, false, 0, 0);
-		
-		// dont need to upload!
-	    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, strip._indexBuffer);
-	    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, strip.indices, gl.STATIC_DRAW);
-	    
-	}
-	
-	gl.drawElements(gl.TRIANGLE_STRIP, strip.indices.length, gl.UNSIGNED_SHORT, 0);
-    
-    PIXI.deactivateStripShader();
-  	//gl.useProgram(PIXI.currentProgram);
-}
-
-/**
- * Renders a TilingSprite
- *
- * @method renderTilingSprite
- * @param sprite {TilingSprite} The tiling sprite to render
- * @param projectionMatrix {Object}
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.renderTilingSprite = function(sprite, projectionMatrix)
-{
-	var gl = this.gl;
-
-
-	var shaderProgram = PIXI.shaderProgram;
-	
-	var tilePosition = sprite.tilePosition;
-	var tileScale = sprite.tileScale;
-	
-	var offsetX =  tilePosition.x/sprite.texture.baseTexture.width;
-	var offsetY =  tilePosition.y/sprite.texture.baseTexture.height;
-	
-	var scaleX =  (sprite.width / sprite.texture.baseTexture.width)  / tileScale.x;
-	var scaleY =  (sprite.height / sprite.texture.baseTexture.height) / tileScale.y;
-
-	sprite.uvs[0] = 0 - offsetX;
-	sprite.uvs[1] = 0 - offsetY;
-	
-	sprite.uvs[2] = (1 * scaleX)  -offsetX;
-	sprite.uvs[3] = 0 - offsetY;
-	
-	sprite.uvs[4] = (1 *scaleX) - offsetX;
-	sprite.uvs[5] = (1 *scaleY) - offsetY;
-	
-	sprite.uvs[6] = 0 - offsetX;
-	sprite.uvs[7] = (1 *scaleY) - offsetY;
-	
-	gl.bindBuffer(gl.ARRAY_BUFFER, sprite._uvBuffer);
-	gl.bufferSubData(gl.ARRAY_BUFFER, 0, sprite.uvs)
-	
-	this.renderStrip(sprite, projectionMatrix);
-}
-
-/**
- * Initializes a strip to be rendered
- *
- * @method initStrip
- * @param strip {Strip} The strip to initialize
- * @private
- */
-PIXI.WebGLRenderGroup.prototype.initStrip = function(strip)
-{
-	// build the strip!
-	var gl = this.gl;
-	var shaderProgram = this.shaderProgram;
-	
-	strip._vertexBuffer = gl.createBuffer();
-	strip._indexBuffer = gl.createBuffer();
-	strip._uvBuffer = gl.createBuffer();
-	strip._colorBuffer = gl.createBuffer();
-	
-	gl.bindBuffer(gl.ARRAY_BUFFER, strip._vertexBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, strip.verticies, gl.DYNAMIC_DRAW);
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, strip._uvBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER,  strip.uvs, gl.STATIC_DRAW);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, strip._colorBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, strip.colors, gl.STATIC_DRAW);
-
-	
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, strip._indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, strip.indices, gl.STATIC_DRAW);
-}
-
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-PIXI.initDefaultShaders = function()
-{
-    PIXI.primitiveShader = new PIXI.PrimitiveShader();
-    PIXI.primitiveShader.init();
-
-    PIXI.stripShader = new PIXI.StripShader();
-    PIXI.stripShader.init();
-
-    PIXI.defaultShader = new PIXI.PixiShader();
-    PIXI.defaultShader.init();
-
-    var gl = PIXI.gl;
-    var shaderProgram = PIXI.defaultShader.program;
-
-    gl.useProgram(shaderProgram);
-
-    gl.enableVertexAttribArray(PIXI.defaultShader.aVertexPosition);
-    gl.enableVertexAttribArray(PIXI.defaultShader.colorAttribute);
-    gl.enableVertexAttribArray(PIXI.defaultShader.aTextureCoord);
-};
-
-PIXI.activatePrimitiveShader = function()
-{
-    var gl = PIXI.gl;
-
-    gl.useProgram(PIXI.primitiveShader.program);
-
-    gl.disableVertexAttribArray(PIXI.defaultShader.aVertexPosition);
-    gl.disableVertexAttribArray(PIXI.defaultShader.colorAttribute);
-    gl.disableVertexAttribArray(PIXI.defaultShader.aTextureCoord);
-
-    gl.enableVertexAttribArray(PIXI.primitiveShader.aVertexPosition);
-    gl.enableVertexAttribArray(PIXI.primitiveShader.colorAttribute);
-};
-
-PIXI.deactivatePrimitiveShader = function()
-{
-    var gl = PIXI.gl;
-
-    gl.useProgram(PIXI.defaultShader.program);
-
-    gl.disableVertexAttribArray(PIXI.primitiveShader.aVertexPosition);
-    gl.disableVertexAttribArray(PIXI.primitiveShader.colorAttribute);
-
-    gl.enableVertexAttribArray(PIXI.defaultShader.aVertexPosition);
-    gl.enableVertexAttribArray(PIXI.defaultShader.colorAttribute);
-    gl.enableVertexAttribArray(PIXI.defaultShader.aTextureCoord);
-};
-
-PIXI.activateStripShader = function()
-{
-    var gl = PIXI.gl;
-
-    gl.useProgram(PIXI.stripShader.program);
- // gl.disableVertexAttribArray(PIXI.defaultShader.aTextureCoord);
-};
-
-PIXI.deactivateStripShader = function()
-{
-    var gl = PIXI.gl;
-
-    gl.useProgram(PIXI.defaultShader.program);
-    //gl.enableVertexAttribArray(PIXI.defaultShader.aTextureCoord);
-};
-
-/*
-
-SHADER COMPILER HELPERS
-*/
-
-PIXI.CompileVertexShader = function(gl, shaderSrc)
-{
-    return PIXI._CompileShader(gl, shaderSrc, gl.VERTEX_SHADER);
-};
-
-PIXI.CompileFragmentShader = function(gl, shaderSrc)
-{
-    return PIXI._CompileShader(gl, shaderSrc, gl.FRAGMENT_SHADER);
-};
-
-PIXI._CompileShader = function(gl, shaderSrc, shaderType)
-{
-    var src = shaderSrc.join("\n");
-    var shader = gl.createShader(shaderType);
-    gl.shaderSource(shader, src);
-    gl.compileShader(shader);
-
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        window.console.log(gl.getShaderInfoLog(shader));
-        return null;
-    }
-
-    return shader;
-};
-
-PIXI.compileProgram = function(vertexSrc, fragmentSrc)
-{
-    var gl = PIXI.gl;
-    var fragmentShader = PIXI.CompileFragmentShader(gl, fragmentSrc);
-    var vertexShader = PIXI.CompileVertexShader(gl, vertexSrc);
-
-    var shaderProgram = gl.createProgram();
-
-    gl.attachShader(shaderProgram, vertexShader);
-    gl.attachShader(shaderProgram, fragmentShader);
-    gl.linkProgram(shaderProgram);
-
-    if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-        window.console.log("Could not initialise shaders");
-    }
-
-    return shaderProgram;
-};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-/**
- * A Text Object will create a line(s) of text using bitmap font. To split a line you can use '\n', '\r' or '\r\n'
- * You can generate the fnt files using
- * http://www.angelcode.com/products/bmfont/ for windows or
- * http://www.bmglyph.com/ for mac.
- *
- * @class BitmapText
- * @extends DisplayObjectContainer
- * @constructor
- * @param text {String} The copy that you would like the text to display
- * @param style {Object} The style parameters
- * @param style.font {String} The size (optional) and bitmap font id (required) eq 'Arial' or '20px Arial' (must have loaded previously)
- * @param [style.align='left'] {String} An alignment of the multiline text ('left', 'center' or 'right')
- */
-PIXI.BitmapText = function(text, style)
-{
-    PIXI.DisplayObjectContainer.call(this);
-
-    this.setText(text);
-    this.setStyle(style);
-    this.updateText();
-    this.dirty = false;
-};
-
-// constructor
-PIXI.BitmapText.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
-PIXI.BitmapText.prototype.constructor = PIXI.BitmapText;
-
-/**
- * Set the copy for the text object
- *
- * @method setText
- * @param text {String} The copy that you would like the text to display
- */
-PIXI.BitmapText.prototype.setText = function(text)
-{
-    this.text = text || ' ';
-    this.dirty = true;
-};
-
-/**
- * Set the style of the text
- *
- * @method setStyle
- * @param style {Object} The style parameters
- * @param style.font {String} The size (optional) and bitmap font id (required) eq 'Arial' or '20px Arial' (must have loaded previously)
- * @param [style.align='left'] {String} An alignment of the multiline text ('left', 'center' or 'right')
- */
-PIXI.BitmapText.prototype.setStyle = function(style)
-{
-    style = style || {};
-    style.align = style.align || 'left';
-    this.style = style;
-
-    var font = style.font.split(' ');
-    this.fontName = font[font.length - 1];
-    this.fontSize = font.length >= 2 ? parseInt(font[font.length - 2], 10) : PIXI.BitmapText.fonts[this.fontName].size;
-
-    this.dirty = true;
-};
-
-/**
- * Renders text
- *
- * @method updateText
- * @private
- */
-PIXI.BitmapText.prototype.updateText = function()
-{
-    var data = PIXI.BitmapText.fonts[this.fontName];
-    var pos = new PIXI.Point();
-    var prevCharCode = null;
-    var chars = [];
-    var maxLineWidth = 0;
-    var lineWidths = [];
-    var line = 0;
-    var scale = this.fontSize / data.size;
-    for(var i = 0; i < this.text.length; i++)
-    {
-        var charCode = this.text.charCodeAt(i);
-        if(/(?:\r\n|\r|\n)/.test(this.text.charAt(i)))
-        {
-            lineWidths.push(pos.x);
-            maxLineWidth = Math.max(maxLineWidth, pos.x);
-            line++;
-
-            pos.x = 0;
-            pos.y += data.lineHeight;
-            prevCharCode = null;
-            continue;
-        }
-
-        var charData = data.chars[charCode];
-        if(!charData) continue;
-
-        if(prevCharCode && charData[prevCharCode])
-        {
-            pos.x += charData.kerning[prevCharCode];
-        }
-        chars.push({texture:charData.texture, line: line, charCode: charCode, position: new PIXI.Point(pos.x + charData.xOffset, pos.y + charData.yOffset)});
-        pos.x += charData.xAdvance;
-
-        prevCharCode = charCode;
-    }
-
-    lineWidths.push(pos.x);
-    maxLineWidth = Math.max(maxLineWidth, pos.x);
-
-    var lineAlignOffsets = [];
-    for(i = 0; i <= line; i++)
-    {
-        var alignOffset = 0;
-        if(this.style.align === 'right')
-        {
-            alignOffset = maxLineWidth - lineWidths[i];
-        }
-        else if(this.style.align === 'center')
-        {
-            alignOffset = (maxLineWidth - lineWidths[i]) / 2;
-        }
-        lineAlignOffsets.push(alignOffset);
-    }
-
-    for(i = 0; i < chars.length; i++)
-    {
-        var c = new PIXI.Sprite(chars[i].texture); //PIXI.Sprite.fromFrame(chars[i].charCode);
-        c.position.x = (chars[i].position.x + lineAlignOffsets[chars[i].line]) * scale;
-        c.position.y = chars[i].position.y * scale;
-        c.scale.x = c.scale.y = scale;
-        this.addChild(c);
-    }
-
-    this.width = maxLineWidth * scale;
-    this.height = (pos.y + data.lineHeight) * scale;
-};
-
-/**
- * Updates the transfor of this object
- *
- * @method updateTransform
- * @private
- */
-PIXI.BitmapText.prototype.updateTransform = function()
-{
-    if(this.dirty)
-    {
-        while(this.children.length > 0)
-        {
-            this.removeChild(this.getChildAt(0));
-        }
-        this.updateText();
-
-        this.dirty = false;
-    }
-
-    PIXI.DisplayObjectContainer.prototype.updateTransform.call(this);
-};
-
-PIXI.BitmapText.fonts = {};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-/**
- * A Text Object will create a line(s) of text to split a line you can use '\n'
- *
- * @class Text
- * @extends Sprite
- * @constructor
- * @param text {String} The copy that you would like the text to display
- * @param [style] {Object} The style parameters
- * @param [style.font] {String} default 'bold 20pt Arial' The style and size of the font
- * @param [style.fill='black'] {Object} A canvas fillstyle that will be used on the text eg 'red', '#00FF00'
- * @param [style.align='left'] {String} An alignment of the multiline text ('left', 'center' or 'right')
- * @param [style.stroke] {String} A canvas fillstyle that will be used on the text stroke eg 'blue', '#FCFF00'
- * @param [style.strokeThickness=0] {Number} A number that represents the thickness of the stroke. Default is 0 (no stroke)
- * @param [style.wordWrap=false] {Boolean} Indicates if word wrap should be used
- * @param [style.wordWrapWidth=100] {Number} The width at which text will wrap
- */
-PIXI.Text = function(text, style)
-{
-    this.canvas = document.createElement('canvas');
-    this.context = this.canvas.getContext('2d');
-    PIXI.Sprite.call(this, PIXI.Texture.fromCanvas(this.canvas));
-
-    this.setText(text);
-    this.setStyle(style);
-
-    this.updateText();
-    this.dirty = false;
-};
-
-// constructor
-PIXI.Text.prototype = Object.create(PIXI.Sprite.prototype);
-PIXI.Text.prototype.constructor = PIXI.Text;
-
-/**
- * Set the style of the text
- *
- * @method setStyle
- * @param [style] {Object} The style parameters
- * @param [style.font='bold 20pt Arial'] {String} The style and size of the font
- * @param [style.fill='black'] {Object} A canvas fillstyle that will be used on the text eg 'red', '#00FF00'
- * @param [style.align='left'] {String} An alignment of the multiline text ('left', 'center' or 'right')
- * @param [style.stroke='black'] {String} A canvas fillstyle that will be used on the text stroke eg 'blue', '#FCFF00'
- * @param [style.strokeThickness=0] {Number} A number that represents the thickness of the stroke. Default is 0 (no stroke)
- * @param [style.wordWrap=false] {Boolean} Indicates if word wrap should be used
- * @param [style.wordWrapWidth=100] {Number} The width at which text will wrap
- */
-PIXI.Text.prototype.setStyle = function(style)
-{
-    style = style || {};
-    style.font = style.font || 'bold 20pt Arial';
-    style.fill = style.fill || 'black';
-    style.align = style.align || 'left';
-    style.stroke = style.stroke || 'black'; //provide a default, see: https://github.com/GoodBoyDigital/pixi.js/issues/136
-    style.strokeThickness = style.strokeThickness || 0;
-    style.wordWrap = style.wordWrap || false;
-    style.wordWrapWidth = style.wordWrapWidth || 100;
-    this.style = style;
-    this.dirty = true;
-};
-
-/**
- * Set the copy for the text object. To split a line you can use '\n'
- *
- * @method setText
- * @param {String} text The copy that you would like the text to display
- */
-PIXI.Text.prototype.setText = function(text)
-{
-    this.text = text.toString() || ' ';
-    this.dirty = true;
-};
-
-/**
- * Renders text
- *
- * @method updateText
- * @private
- */
-PIXI.Text.prototype.updateText = function()
-{
-    this.context.font = this.style.font;
-
-    var outputText = this.text;
-
-    // word wrap
-    // preserve original text
-    if(this.style.wordWrap)outputText = this.wordWrap(this.text);
-
-    //split text into lines
-    var lines = outputText.split(/(?:\r\n|\r|\n)/);
-
-    //calculate text width
-    var lineWidths = [];
-    var maxLineWidth = 0;
-    for (var i = 0; i < lines.length; i++)
-    {
-        var lineWidth = this.context.measureText(lines[i]).width;
-        lineWidths[i] = lineWidth;
-        maxLineWidth = Math.max(maxLineWidth, lineWidth);
-    }
-    this.canvas.width = maxLineWidth + this.style.strokeThickness;
-
-    //calculate text height
-    var lineHeight = this.determineFontHeight('font: ' + this.style.font  + ';') + this.style.strokeThickness;
-    this.canvas.height = lineHeight * lines.length;
-
-    //set canvas text styles
-    this.context.fillStyle = this.style.fill;
-    this.context.font = this.style.font;
-
-    this.context.strokeStyle = this.style.stroke;
-    this.context.lineWidth = this.style.strokeThickness;
-
-    this.context.textBaseline = 'top';
-
-    //draw lines line by line
-    for (i = 0; i < lines.length; i++)
-    {
-        var linePosition = new PIXI.Point(this.style.strokeThickness / 2, this.style.strokeThickness / 2 + i * lineHeight);
-
-        if(this.style.align === 'right')
-        {
-            linePosition.x += maxLineWidth - lineWidths[i];
-        }
-        else if(this.style.align === 'center')
-        {
-            linePosition.x += (maxLineWidth - lineWidths[i]) / 2;
-        }
-
-        if(this.style.stroke && this.style.strokeThickness)
-        {
-            this.context.strokeText(lines[i], linePosition.x, linePosition.y);
-        }
-
-        if(this.style.fill)
-        {
-            this.context.fillText(lines[i], linePosition.x, linePosition.y);
-        }
-    }
-
-    this.updateTexture();
-};
-
-/**
- * Updates texture size based on canvas size
- *
- * @method updateTexture
- * @private
- */
-PIXI.Text.prototype.updateTexture = function()
-{
-    this.texture.baseTexture.width = this.canvas.width;
-    this.texture.baseTexture.height = this.canvas.height;
-    this.texture.frame.width = this.canvas.width;
-    this.texture.frame.height = this.canvas.height;
-
-    this._width = this.canvas.width;
-    this._height = this.canvas.height;
-
-    PIXI.texturesToUpdate.push(this.texture.baseTexture);
-};
-
-/**
- * Updates the transfor of this object
- *
- * @method updateTransform
- * @private
- */
-PIXI.Text.prototype.updateTransform = function()
-{
-    if(this.dirty)
-    {
-        this.updateText();
-        this.dirty = false;
-    }
-
-    PIXI.Sprite.prototype.updateTransform.call(this);
-};
-
-/*
- * http://stackoverflow.com/users/34441/ellisbben
- * great solution to the problem!
- *
- * @method determineFontHeight
- * @param fontStyle {Object}
- * @private
- */
-PIXI.Text.prototype.determineFontHeight = function(fontStyle)
-{
-    // build a little reference dictionary so if the font style has been used return a
-    // cached version...
-    var result = PIXI.Text.heightCache[fontStyle];
-
-    if(!result)
-    {
-        var body = document.getElementsByTagName('body')[0];
-        var dummy = document.createElement('div');
-        var dummyText = document.createTextNode('M');
-        dummy.appendChild(dummyText);
-        dummy.setAttribute('style', fontStyle + ';position:absolute;top:0;left:0');
-        body.appendChild(dummy);
-
-        result = dummy.offsetHeight;
-        PIXI.Text.heightCache[fontStyle] = result;
-
-        body.removeChild(dummy);
-    }
-
-    return result;
-};
-
-/**
- * Applies newlines to a string to have it optimally fit into the horizontal
- * bounds set by the Text object's wordWrapWidth property.
- *
- * @method wordWrap
- * @param text {String}
- * @private
- */
-PIXI.Text.prototype.wordWrap = function(text)
-{
-    // Greedy wrapping algorithm that will wrap words as the line grows longer
-    // than its horizontal bounds.
-    var result = '';
-    var lines = text.split('\n');
-    for (var i = 0; i < lines.length; i++)
-    {
-        var spaceLeft = this.style.wordWrapWidth;
-        var words = lines[i].split(' ');
-        for (var j = 0; j < words.length; j++)
-        {
-            var wordWidth = this.context.measureText(words[j]).width;
-            var wordWidthWithSpace = wordWidth + this.context.measureText(' ').width;
-            if(wordWidthWithSpace > spaceLeft)
-            {
-                // Skip printing the newline if it's the first word of the line that is
-                // greater than the word wrap width.
-                if(j > 0)
-                {
-                    result += '\n';
-                }
-                result += words[j] + ' ';
-                spaceLeft = this.style.wordWrapWidth - wordWidth;
-            }
-            else
-            {
-                spaceLeft -= wordWidthWithSpace;
-                result += words[j] + ' ';
-            }
-        }
-        result += '\n';
-    }
-    return result;
-};
-
-/**
- * Destroys this text object
- *
- * @method destroy
- * @param destroyTexture {Boolean}
- */
-PIXI.Text.prototype.destroy = function(destroyTexture)
-{
-    if(destroyTexture)
-    {
-        this.texture.destroy();
-    }
-
-};
-
-PIXI.Text.heightCache = {};
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-PIXI.BaseTextureCache = {};
-PIXI.texturesToUpdate = [];
-PIXI.texturesToDestroy = [];
-
-/**
- * A texture stores the information that represents an image. All textures have a base texture
- *
- * @class BaseTexture
- * @uses EventTarget
- * @constructor
- * @param source {String} the source object (image or canvas)
- */
-PIXI.BaseTexture = function(source, scaleMode)
-{
-    PIXI.EventTarget.call( this );
-
-    /**
-     * [read-only] The width of the base texture set when the image has loaded
-     *
-     * @property width
-     * @type Number
-     * @readOnly
-     */
-    this.width = 100;
-
-    /**
-     * [read-only] The height of the base texture set when the image has loaded
-     *
-     * @property height
-     * @type Number
-     * @readOnly
-     */
-    this.height = 100;
-
-    /**
-     * The scale mode to apply when scaling this texture
-     * @property scaleMode
-     * @type PIXI.BaseTexture.SCALE_MODE
-     * @default PIXI.BaseTexture.SCALE_MODE.LINEAR
-     */
-    this.scaleMode = scaleMode || PIXI.BaseTexture.SCALE_MODE.DEFAULT;
-
-    /**
-     * [read-only] Describes if the base texture has loaded or not
-     *
-     * @property hasLoaded
-     * @type Boolean
-     * @readOnly
-     */
-    this.hasLoaded = false;
-
-    /**
-     * The source that is loaded to create the texture
-     *
-     * @property source
-     * @type Image
-     */
-    this.source = source;
-
-    if(!source)return;
-
-    if(this.source instanceof Image || this.source instanceof HTMLImageElement)
-    {
-        if(this.source.complete)
-        {
-            this.hasLoaded = true;
-            this.width = this.source.width;
-            this.height = this.source.height;
-
-            PIXI.texturesToUpdate.push(this);
-        }
-        else
-        {
-
-            var scope = this;
-            this.source.onload = function() {
-
-                scope.hasLoaded = true;
-                scope.width = scope.source.width;
-                scope.height = scope.source.height;
-
-                // add it to somewhere...
-                PIXI.texturesToUpdate.push(scope);
-                scope.dispatchEvent( { type: 'loaded', content: scope } );
-            };
-            //this.image.src = imageUrl;
-        }
-    }
-    else
-    {
-        this.hasLoaded = true;
-        this.width = this.source.width;
-        this.height = this.source.height;
-
-        PIXI.texturesToUpdate.push(this);
-    }
-
-    this.imageUrl = null;
-    this._powerOf2 = false;
-};
-
-PIXI.BaseTexture.prototype.constructor = PIXI.BaseTexture;
-
-/**
- * Destroys this base texture
- *
- * @method destroy
- */
-PIXI.BaseTexture.prototype.destroy = function()
-{
-    if(this.source instanceof Image)
-    {
-        if (this.imageUrl in PIXI.BaseTextureCache)
-            delete PIXI.BaseTextureCache[this.imageUrl];
-        this.imageUrl = null;
-        this.source.src = null;
-    }
-    this.source = null;
-    PIXI.texturesToDestroy.push(this);
-};
-
-/**
- *
- *
- * @method destroy
- */
-
-PIXI.BaseTexture.prototype.updateSourceImage = function(newSrc)
-{
-    this.hasLoaded = false;
-    this.source.src = null;
-    this.source.src = newSrc;
-};
-
-/**
- * Helper function that returns a base texture based on an image url
- * If the image is not in the base texture cache it will be  created and loaded
- *
- * @static
- * @method fromImage
- * @param imageUrl {String} The image url of the texture
- * @return BaseTexture
- */
-PIXI.BaseTexture.fromImage = function(imageUrl, crossorigin, scaleMode)
-{
-    var baseTexture = PIXI.BaseTextureCache[imageUrl];
-    if(!baseTexture)
-    {
-        // new Image() breaks tex loading in some versions of Chrome.
-        // See https://code.google.com/p/chromium/issues/detail?id=238071
-        var image = new Image();//document.createElement('img');
-        if (crossorigin)
-        {
-            image.crossOrigin = '';
-        }
-        image.src = imageUrl;
-        baseTexture = new PIXI.BaseTexture(image, scaleMode);
-        baseTexture.imageUrl = imageUrl;
-        PIXI.BaseTextureCache[imageUrl] = baseTexture;
-    }
-
-    return baseTexture;
-};
-
-PIXI.BaseTexture.SCALE_MODE = {
-    DEFAULT: 0, //default to LINEAR
-    LINEAR: 0,
-    NEAREST: 1
-};
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-PIXI.TextureCache = {};
-PIXI.FrameCache = {};
-
-/**
- * A texture stores the information that represents an image or part of an image. It cannot be added
- * to the display list directly. To do this use PIXI.Sprite. If no frame is provided then the whole image is used
- *
- * @class Texture
- * @uses EventTarget
- * @constructor
- * @param baseTexture {BaseTexture} The base texture source to create the texture from
- * @param frame {Rectangle} The rectangle frame of the texture to show
- */
-PIXI.Texture = function(baseTexture, frame)
-{
-    PIXI.EventTarget.call( this );
-
-    if(!frame)
-    {
-        this.noFrame = true;
-        frame = new PIXI.Rectangle(0,0,1,1);
-    }
-
-    if(baseTexture instanceof PIXI.Texture)
-        baseTexture = baseTexture.baseTexture;
-
-    /**
-     * The base texture of this texture
-     *
-     * @property baseTexture
-     * @type BaseTexture
-     */
-    this.baseTexture = baseTexture;
-
-    /**
-     * The frame specifies the region of the base texture that this texture uses
-     *
-     * @property frame
-     * @type Rectangle
-     */
-    this.frame = frame;
-
-    /**
-     * The trim point
-     *
-     * @property trim
-     * @type Point
-     */
-    this.trim = new PIXI.Point();
-
-    this.scope = this;
-
-    if(baseTexture.hasLoaded)
-    {
-        if(this.noFrame)frame = new PIXI.Rectangle(0,0, baseTexture.width, baseTexture.height);
-        //console.log(frame)
-
-        this.setFrame(frame);
-    }
-    else
-    {
-        var scope = this;
-        baseTexture.addEventListener('loaded', function(){ scope.onBaseTextureLoaded(); });
-    }
-};
-
-PIXI.Texture.prototype.constructor = PIXI.Texture;
-
-/**
- * Called when the base texture is loaded
- *
- * @method onBaseTextureLoaded
- * @param event
- * @private
- */
-PIXI.Texture.prototype.onBaseTextureLoaded = function()
-{
-    var baseTexture = this.baseTexture;
-    baseTexture.removeEventListener( 'loaded', this.onLoaded );
-
-    if(this.noFrame)this.frame = new PIXI.Rectangle(0,0, baseTexture.width, baseTexture.height);
-    this.noFrame = false;
-    this.width = this.frame.width;
-    this.height = this.frame.height;
-
-    this.scope.dispatchEvent( { type: 'update', content: this } );
-};
-
-/**
- * Destroys this texture
- *
- * @method destroy
- * @param destroyBase {Boolean} Whether to destroy the base texture as well
- */
-PIXI.Texture.prototype.destroy = function(destroyBase)
-{
-    if(destroyBase) this.baseTexture.destroy();
-};
-
-/**
- * Specifies the rectangle region of the baseTexture
- *
- * @method setFrame
- * @param frame {Rectangle} The frame of the texture to set it to
- */
-PIXI.Texture.prototype.setFrame = function(frame)
-{
-    this.frame = frame;
-    this.width = frame.width;
-    this.height = frame.height;
-
-    if(frame.x + frame.width > this.baseTexture.width || frame.y + frame.height > this.baseTexture.height)
-    {
-        throw new Error('Texture Error: frame does not fit inside the base Texture dimensions ' + this);
-    }
-
-    this.updateFrame = true;
-
-    PIXI.Texture.frameUpdates.push(this);
-    //this.dispatchEvent( { type: 'update', content: this } );
-};
-
-/**
- * Helper function that returns a texture based on an image url
- * If the image is not in the texture cache it will be  created and loaded
- *
- * @static
- * @method fromImage
- * @param imageUrl {String} The image url of the texture
- * @param crossorigin {Boolean} Whether requests should be treated as crossorigin
- * @return Texture
- */
-PIXI.Texture.fromImage = function(imageUrl, crossorigin, scaleMode)
-{
-    var texture = PIXI.TextureCache[imageUrl];
-
-    if(!texture)
-    {
-        texture = new PIXI.Texture(PIXI.BaseTexture.fromImage(imageUrl, crossorigin, scaleMode));
-        PIXI.TextureCache[imageUrl] = texture;
-    }
-
-    return texture;
-};
-
-/**
- * Helper function that returns a texture based on a frame id
- * If the frame id is not in the texture cache an error will be thrown
- *
- * @static
- * @method fromFrame
- * @param frameId {String} The frame id of the texture
- * @return Texture
- */
-PIXI.Texture.fromFrame = function(frameId)
-{
-    var texture = PIXI.TextureCache[frameId];
-    if(!texture) throw new Error('The frameId "' + frameId + '" does not exist in the texture cache ' + this);
-    return texture;
-};
-
-/**
- * Helper function that returns a texture based on a canvas element
- * If the canvas is not in the texture cache it will be  created and loaded
- *
- * @static
- * @method fromCanvas
- * @param canvas {Canvas} The canvas element source of the texture
- * @return Texture
- */
-PIXI.Texture.fromCanvas = function(canvas, scaleMode)
-{
-    var baseTexture = new PIXI.BaseTexture(canvas, scaleMode);
-    return new PIXI.Texture(baseTexture);
-};
-
+        return inside;
 
-/**
- * Adds a texture to the textureCache.
- *
- * @static
- * @method addTextureToCache
- * @param texture {Texture}
- * @param id {String} the id that the texture will be stored against.
- */
-PIXI.Texture.addTextureToCache = function(texture, id)
-{
-    PIXI.TextureCache[id] = texture;
-};
-
-/**
- * Remove a texture from the textureCache.
- *
- * @static
- * @method removeTextureFromCache
- * @param id {String} the id of the texture to be removed
- * @return {Texture} the texture that was removed
- */
-PIXI.Texture.removeTextureFromCache = function(id)
-{
-    var texture = PIXI.TextureCache[id];
-    PIXI.TextureCache[id] = null;
-    return texture;
-};
-
-// this is more for webGL.. it contains updated frames..
-PIXI.Texture.frameUpdates = [];
-
-PIXI.Texture.SCALE_MODE = PIXI.BaseTexture.SCALE_MODE;
-
-/**
- * @author Mat Groves http://matgroves.com/ @Doormat23
- */
-
-/**
- A RenderTexture is a special texture that allows any pixi displayObject to be rendered to it.
-
- __Hint__: All DisplayObjects (exmpl. Sprites) that renders on RenderTexture should be preloaded.
- Otherwise black rectangles will be drawn instead.
-
- RenderTexture takes snapshot of DisplayObject passed to render method. If DisplayObject is passed to render method, position and rotation of it will be ignored. For example:
-
-    var renderTexture = new PIXI.RenderTexture(800, 600);
-    var sprite = PIXI.Sprite.fromImage("spinObj_01.png");
-    sprite.position.x = 800/2;
-    sprite.position.y = 600/2;
-    sprite.anchor.x = 0.5;
-    sprite.anchor.y = 0.5;
-    renderTexture.render(sprite);
-
- Sprite in this case will be rendered to 0,0 position. To render this sprite at center DisplayObjectContainer should be used:
-
-    var doc = new PIXI.DisplayObjectContainer();
-    doc.addChild(sprite);
-    renderTexture.render(doc);  // Renders to center of renderTexture
-
- @class RenderTexture
- @extends Texture
- @constructor
- @param width {Number} The width of the render texture
- @param height {Number} The height of the render texture
- */
-PIXI.RenderTexture = function(width, height)
-{
-    PIXI.EventTarget.call( this );
-
-    this.width = width || 100;
-    this.height = height || 100;
-
-    this.indetityMatrix = PIXI.mat3.create();
-
-    this.frame = new PIXI.Rectangle(0, 0, this.width, this.height);
-
-    if(PIXI.gl)
-    {
-        this.initWebGL();
-    }
-    else
-    {
-        this.initCanvas();
-    }
-};
-
-PIXI.RenderTexture.prototype = Object.create( PIXI.Texture.prototype );
-PIXI.RenderTexture.prototype.constructor = PIXI.RenderTexture;
-
-/**
- * Initializes the webgl data for this texture
- *
- * @method initWebGL
- * @private
- */
-PIXI.RenderTexture.prototype.initWebGL = function()
-{
-    var gl = PIXI.gl;
-    this.glFramebuffer = gl.createFramebuffer();
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.glFramebuffer );
-
-    this.glFramebuffer.width = this.width;
-    this.glFramebuffer.height = this.height;
-
-    this.baseTexture = new PIXI.BaseTexture();
-
-    this.baseTexture.width = this.width;
-    this.baseTexture.height = this.height;
-
-    this.baseTexture._glTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, this.baseTexture._glTexture);
-
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,  this.width,  this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    this.baseTexture.isRender = true;
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.glFramebuffer );
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.baseTexture._glTexture, 0);
-
-    // create a projection matrix..
-    this.projection = new PIXI.Point(this.width/2 , -this.height/2);
-
-    // set the correct render function..
-    this.render = this.renderWebGL;
-};
-
-
-PIXI.RenderTexture.prototype.resize = function(width, height)
-{
-
-    this.width = width;
-    this.height = height;
-
-    if(PIXI.gl)
-    {
-        this.projection.x = this.width / 2;
-        this.projection.y = -this.height / 2;
-
-        var gl = PIXI.gl;
-        gl.bindTexture(gl.TEXTURE_2D, this.baseTexture._glTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,  this.width,  this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    }
-    else
-    {
-
-        this.frame.width = this.width;
-        this.frame.height = this.height;
-        this.renderer.resize(this.width, this.height);
-    }
-};
-
-/**
- * Initializes the canvas data for this texture
- *
- * @method initCanvas
- * @private
- */
-PIXI.RenderTexture.prototype.initCanvas = function()
-{
-    this.renderer = new PIXI.CanvasRenderer(this.width, this.height, null, 0);
-
-    this.baseTexture = new PIXI.BaseTexture(this.renderer.view);
-    this.frame = new PIXI.Rectangle(0, 0, this.width, this.height);
-
-    this.render = this.renderCanvas;
-};
-
-/**
- * This function will draw the display object to the texture.
- *
- * @method renderWebGL
- * @param displayObject {DisplayObject} The display object to render this texture on
- * @param clear {Boolean} If true the texture will be cleared before the displayObject is drawn
- * @private
- */
-PIXI.RenderTexture.prototype.renderWebGL = function(displayObject, position, clear)
-{
-    var gl = PIXI.gl;
-
-    // enable the alpha color mask..
-    gl.colorMask(true, true, true, true);
-
-    gl.viewport(0, 0, this.width, this.height);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.glFramebuffer );
-
-    if(clear)
-    {
-        gl.clearColor(0,0,0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-    }
-
-    // THIS WILL MESS WITH HIT TESTING!
-    var children = displayObject.children;
-
-    //TODO -? create a new one??? dont think so!
-    var originalWorldTransform = displayObject.worldTransform;
-    displayObject.worldTransform = PIXI.mat3.create();//sthis.indetityMatrix;
-    // modify to flip...
-    displayObject.worldTransform[4] = -1;
-    displayObject.worldTransform[5] = this.projection.y * -2;
-
-    if(position)
-    {
-        displayObject.worldTransform[2] = position.x;
-        displayObject.worldTransform[5] -= position.y;
-    }
-
-    PIXI.visibleCount++;
-    displayObject.vcount = PIXI.visibleCount;
-
-    for(var i=0,j=children.length; i<j; i++)
-    {
-        children[i].updateTransform();
-    }
-
-    var renderGroup = displayObject.__renderGroup;
-
-    if(renderGroup)
-    {
-        if(displayObject === renderGroup.root)
-        {
-            renderGroup.render(this.projection, this.glFramebuffer);
-        }
-        else
-        {
-            renderGroup.renderSpecific(displayObject, this.projection, this.glFramebuffer);
-        }
-    }
-    else
-    {
-        if(!this.renderGroup)this.renderGroup = new PIXI.WebGLRenderGroup(gl);
-        this.renderGroup.setRenderable(displayObject);
-        this.renderGroup.render(this.projection, this.glFramebuffer);
-    }
-
-    displayObject.worldTransform = originalWorldTransform;
-};
-
-
-/**
- * This function will draw the display object to the texture.
- *
- * @method renderCanvas
- * @param displayObject {DisplayObject} The display object to render this texture on
- * @param clear {Boolean} If true the texture will be cleared before the displayObject is drawn
- * @private
- */
-PIXI.RenderTexture.prototype.renderCanvas = function(displayObject, position, clear)
-{
-    var children = displayObject.children;
-
-    displayObject.worldTransform = PIXI.mat3.create();
-
-    if(position)
-    {
-        displayObject.worldTransform[2] = position.x;
-        displayObject.worldTransform[5] = position.y;
-    }
-
-
-    for(var i = 0, j = children.length; i < j; i++)
-    {
-        children[i].updateTransform();
-    }
-
-    if(clear) this.renderer.context.clearRect(0,0, this.width, this.height);
-
-    this.renderer.renderDisplayObject(displayObject);
-
-    this.renderer.context.setTransform(1,0,0,1,0,0);
-
-    //PIXI.texturesToUpdate.push(this.baseTexture);
-};
-
-/**
- * https://github.com/mrdoob/eventtarget.js/
- * THankS mr DOob!
- */
-
-/**
- * Adds event emitter functionality to a class
- *
- * @class EventTarget
- * @example
- *      function MyEmitter() {
- *          PIXI.EventTarget.call(this); //mixes in event target stuff
- *      }
- *
- *      var em = new MyEmitter();
- *      em.emit({ type: 'eventName', data: 'some data' });
- */
-PIXI.EventTarget = function () {
-
-    var listeners = {};
-
-    this.addEventListener = this.on = function ( type, listener ) {
-
-
-        if ( listeners[ type ] === undefined ) {
-
-            listeners[ type ] = [];
-
-        }
-
-        if ( listeners[ type ].indexOf( listener ) === - 1 ) {
-
-            listeners[ type ].push( listener );
-        }
-
-    };
-
-    this.dispatchEvent = this.emit = function ( event ) {
-
-        if ( !listeners[ event.type ] || !listeners[ event.type ].length ) {
-
-            return;
-
-        }
-
-        for(var i = 0, l = listeners[ event.type ].length; i < l; i++) {
-
-            listeners[ event.type ][ i ]( event );
-
-        }
-
-    };
-
-    this.removeEventListener = this.off = function ( type, listener ) {
-
-        var index = listeners[ type ].indexOf( listener );
-
-        if ( index !== - 1 ) {
-
-            listeners[ type ].splice( index, 1 );
-
-        }
-
-    };
-
-	this.removeAllEventListeners = function( type ) {
-		var a = listeners[type];
-		if (a)
-			a.length = 0;
-	};
-};
-
-/*
-    PolyK library
-    url: http://polyk.ivank.net
-    Released under MIT licence.
-
-    Copyright (c) 2012 Ivan Kuckir
-
-    Permission is hereby granted, free of charge, to any person
-    obtaining a copy of this software and associated documentation
-    files (the "Software"), to deal in the Software without
-    restriction, including without limitation the rights to use,
-    copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the
-    Software is furnished to do so, subject to the following
-    conditions:
-
-    The above copyright notice and this permission notice shall be
-    included in all copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-    OTHER DEALINGS IN THE SOFTWARE.
-
-    This is an amazing lib!
-
-    slightly modified by mat groves (matgroves.com);
-*/
-
-PIXI.PolyK = {};
-
-/**
- * Triangulates shapes for webGL graphic fills
- *
- * @method Triangulate
- * @namespace PolyK
- * @constructor
- */
-PIXI.PolyK.Triangulate = function(p)
-{
-    var sign = true;
-
-    var n = p.length >> 1;
-    if(n < 3) return [];
-
-    var tgs = [];
-    var avl = [];
-    for(var i = 0; i < n; i++) avl.push(i);
-
-    i = 0;
-    var al = n;
-    while(al > 3)
-    {
-        var i0 = avl[(i+0)%al];
-        var i1 = avl[(i+1)%al];
-        var i2 = avl[(i+2)%al];
-
-        var ax = p[2*i0],  ay = p[2*i0+1];
-        var bx = p[2*i1],  by = p[2*i1+1];
-        var cx = p[2*i2],  cy = p[2*i2+1];
-
-        var earFound = false;
-        if(PIXI.PolyK._convex(ax, ay, bx, by, cx, cy, sign))
-        {
-            earFound = true;
-            for(var j = 0; j < al; j++)
-            {
-                var vi = avl[j];
-                if(vi === i0 || vi === i1 || vi === i2) continue;
-
-                if(PIXI.PolyK._PointInTriangle(p[2*vi], p[2*vi+1], ax, ay, bx, by, cx, cy)) {
-                    earFound = false;
-                    break;
-                }
-            }
-        }
-
-        if(earFound)
-        {
-            tgs.push(i0, i1, i2);
-            avl.splice((i+1)%al, 1);
-            al--;
-            i = 0;
-        }
-        else if(i++ > 3*al)
-        {
-            // need to flip flip reverse it!
-            // reset!
-            if(sign)
-            {
-                tgs = [];
-                avl = [];
-                for(i = 0; i < n; i++) avl.push(i);
-
-                i = 0;
-                al = n;
-
-                sign = false;
-            }
-            else
-            {
-                window.console.log("PIXI Warning: shape too complex to fill");
-                return [];
-            }
-        }
     }
 
-    tgs.push(avl[0], avl[1], avl[2]);
-    return tgs;
 };
 
-/**
- * Checks if a point is within a triangle
- *
- * @class _PointInTriangle
- * @namespace PolyK
- * @private
- */
-PIXI.PolyK._PointInTriangle = function(px, py, ax, ay, bx, by, cx, cy)
-{
-    var v0x = cx-ax;
-    var v0y = cy-ay;
-    var v1x = bx-ax;
-    var v1y = by-ay;
-    var v2x = px-ax;
-    var v2y = py-ay;
+Phaser.Polygon.prototype.constructor = Phaser.Polygon;
 
-    var dot00 = v0x*v0x+v0y*v0y;
-    var dot01 = v0x*v1x+v0y*v1y;
-    var dot02 = v0x*v2x+v0y*v2y;
-    var dot11 = v1x*v1x+v1y*v1y;
-    var dot12 = v1x*v2x+v1y*v2y;
-
-    var invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
-    var u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-    var v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-
-    // Check if point is in triangle
-    return (u >= 0) && (v >= 0) && (u + v < 1);
-};
-
-/**
- * Checks if a shape is convex
- *
- * @class _convex
- * @namespace PolyK
- * @private
- */
-PIXI.PolyK._convex = function(ax, ay, bx, by, cx, cy, sign)
-{
-    return ((ay-by)*(cx-bx) + (bx-ax)*(cy-by) >= 0) === sign;
-};
+//   Because PIXI uses its own Polygon, we'll replace it with ours to avoid duplicating code or confusion.
+PIXI.Polygon = Phaser.Polygon;
 
 /**
 * @author       Richard Davey <rich@photonstorm.com>
@@ -8649,6 +3171,19 @@ Phaser.Camera.prototype = {
 
         this.view.width = width;
         this.view.height = height;
+
+    },
+
+    /**
+    * Resets the camera back to 0,0 and un-follows any object it may have been tracking.
+    * 
+    * @method Phaser.Camera#reset
+    */
+    reset: function () {
+
+        this.target = null;
+        this.view.x = 0;
+        this.view.y = 0;
 
     }
 
@@ -10825,7 +5360,7 @@ Phaser.Stage.prototype = {
         Phaser.Canvas.setUserSelect(this.canvas, 'none');
         Phaser.Canvas.setTouchAction(this.canvas, 'none');
 
-        this.backgroundColor = '#000';
+        this.backgroundColor = '#000000';
 
         document.addEventListener('visibilitychange', this._onChange, false);
         document.addEventListener('webkitvisibilitychange', this._onChange, false);
@@ -10898,21 +5433,12 @@ Object.defineProperty(Phaser.Stage.prototype, "backgroundColor", {
 
         if (this.game.transparent === false)
         {
-            if (this.game.renderType == Phaser.CANVAS)
+            if (typeof color === 'string')
             {
-                //  Set it directly, this allows us to use rgb alpha values in Canvas mode.
-                this.game.canvas.style.backgroundColor = color;
-            }
-            else
-            {
-                if (typeof color === 'string')
-                {
-                    color = Phaser.Color.hexToRGB(color);
-                }
-
-                this._stage.setBackgroundColor(color);
+                color = Phaser.Color.hexToRGB(color);
             }
 
+            this._stage.setBackgroundColor(color);
         }
 
     }
@@ -10931,9 +5457,9 @@ Object.defineProperty(Phaser.Stage.prototype, "backgroundColor", {
 * @classdesc A Group is a container for display objects that allows for fast pooling, recycling and collision checks.
 * @constructor
 * @param {Phaser.Game} game - A reference to the currently running game.
-* @param {*} parent - The parent Group or DisplayObjectContainer that will hold this group, if any. If undefined it will use game.world.
+* @param {*} parent - The parent Group, DisplayObject or DisplayObjectContainer that this Group will be added to. If undefined or null it will use game.world.
 * @param {string} [name=group] - A name for this Group. Not used internally but useful for debugging.
-* @param {boolean} [useStage=false] - Should the DisplayObjectContainer this Group creates be added to the World (default, false) or direct to the Stage (true).
+* @param {boolean} [useStage=false] - Should this Group be added to the World (default, false) or direct to the Stage (true).
 */
 Phaser.Group = function (game, parent, name, useStage) {
 
@@ -10942,7 +5468,7 @@ Phaser.Group = function (game, parent, name, useStage) {
     */
     this.game = game;
 
-    if (typeof parent === 'undefined')
+    if (typeof parent === 'undefined' || parent === null)
     {
         parent = game.world;
     }
@@ -10952,37 +5478,22 @@ Phaser.Group = function (game, parent, name, useStage) {
     */
     this.name = name || 'group';
 
+    PIXI.DisplayObjectContainer.call(this);
+
     if (typeof useStage === 'undefined')
     {
-        useStage = false;
-    }
-
-    if (useStage)
-    {
-        this._container = this.game.stage._stage;
-    }
-    else
-    {
-        this._container = new PIXI.DisplayObjectContainer();
-        this._container.name = this.name;
-
         if (parent)
         {
-            if (parent instanceof Phaser.Group)
-            {
-                parent._container.addChild(this._container);
-            }
-            else
-            {
-                parent.addChild(this._container);
-                parent.updateTransform();
-            }
+            parent.addChild(this);
         }
         else
         {
-            this.game.stage._stage.addChild(this._container);
-            this.game.stage._stage.updateTransform();
+            this.game.stage._stage.addChild(this);
         }
+    }
+    else
+    {
+        this.game.stage._stage.addChild(this);
     }
 
     /**
@@ -10998,28 +5509,24 @@ Phaser.Group = function (game, parent, name, useStage) {
     this.alive = true;
 
     /**
-    * @property {boolean} exists - If exists is true the the Group is updated, otherwise it is skipped.
+    * @property {boolean} exists - If exists is true the Group is updated, otherwise it is skipped.
     * @default
     */
     this.exists = true;
 
     /**
-    * @property {Phaser.Group} group - The parent Group of this Group, if a child of another.
+    * @property {Phaser.Group|Phaser.Sprite} parent - The parent of this Group.
     */
-    this.group = null;
-
-    //  Replaces the PIXI.Point with a slightly more flexible one.
-    this._container.scale = new Phaser.Point(1, 1);
+    // this.group = null;
 
     /**
-    * @property {Phaser.Point} scale - The scane of the Group container.
+    * @property {Phaser.Point} scale - The scale of the Group container.
     */
-    this.scale = this._container.scale;
+    this.scale = new Phaser.Point(1, 1);
 
     /**
     * @property {Phaser.Point} pivot - The pivot point of the Group container.
     */
-    this.pivot = this._container.pivot;
 
     /**
     * The cursor is a simple way to iterate through the objects in a Group using the Group.next and Group.previous functions.
@@ -11028,7 +5535,12 @@ Phaser.Group = function (game, parent, name, useStage) {
     */
     this.cursor = null;
 
+    this._cursorIndex = 0;
+
 };
+
+Phaser.Group.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
+Phaser.Group.prototype.constructor = Phaser.Group;
 
 /**
 * @constant
@@ -11060,1324 +5572,970 @@ Phaser.Group.SORT_ASCENDING = -1;
 */
 Phaser.Group.SORT_DESCENDING = 1;
 
-Phaser.Group.prototype = {
+// PIXI.DisplayObjectContainer.prototype.addChildAt = function(child, index)
 
-    /**
-    * Adds an existing object to this Group. The object can be an instance of Phaser.Sprite, Phaser.Button or any other display object.
-    * The child is automatically added to the top of the Group, so renders on-top of everything else within the Group. If you need to control
-    * that then see the addAt method.
-    *
-    * @see Phaser.Group#create
-    * @see Phaser.Group#addAt
-    * @method Phaser.Group#add
-    * @param {*} child - An instance of Phaser.Sprite, Phaser.Button or any other display object..
-    * @return {*} The child that was added to the Group.
-    */
-    add: function (child) {
+/**
+* Adds an existing object to this Group. The object can be an instance of Phaser.Sprite, Phaser.Button or any other display object.
+* The child is automatically added to the top of the Group, so renders on-top of everything else within the Group. If you need to control
+* that then see the addAt method.
+*
+* @see Phaser.Group#create
+* @see Phaser.Group#addAt
+* @method Phaser.Group#add
+* @param {*} child - An instance of Phaser.Sprite, Phaser.Button or any other display object..
+* @return {*} The child that was added to the Group.
+*/
+Phaser.Group.prototype.add = function (child) {
 
-        if (child.group !== this)
-        {
-            if (child.type && child.type === Phaser.GROUP)
-            {
-                child.group = this;
-
-                this._container.addChild(child._container);
-
-                child._container.updateTransform();
-            }
-            else
-            {
-                child.group = this;
-
-                this._container.addChild(child);
-
-                child.updateTransform();
-
-                if (child.events)
-                {
-                    child.events.onAddedToGroup.dispatch(child, this);
-                }
-            }
-
-            if (this.cursor === null)
-            {
-                this.cursor = child;
-            }
-        }
-
-        return child;
-
-    },
-
-    /**
-    * Adds an existing object to this Group. The object can be an instance of Phaser.Sprite, Phaser.Button or any other display object.
-    * The child is added to the Group at the location specified by the index value, this allows you to control child ordering.
-    *
-    * @method Phaser.Group#addAt
-    * @param {*} child - An instance of Phaser.Sprite, Phaser.Button or any other display object..
-    * @param {number} index - The index within the Group to insert the child to.
-    * @return {*} The child that was added to the Group.
-    */
-    addAt: function (child, index) {
-
-        if (child.group !== this)
-        {
-            if (child.type && child.type === Phaser.GROUP)
-            {
-                child.group = this;
-
-                this._container.addChildAt(child._container, index);
-
-                child._container.updateTransform();
-            }
-            else
-            {
-                child.group = this;
-
-                this._container.addChildAt(child, index);
-
-                child.updateTransform();
-
-                if (child.events)
-                {
-                    child.events.onAddedToGroup.dispatch(child, this);
-                }
-            }
-
-            if (this.cursor === null)
-            {
-                this.cursor = child;
-            }
-        }
-
-        return child;
-
-    },
-
-    /**
-    * Returns the child found at the given index within this Group.
-    *
-    * @method Phaser.Group#getAt
-    * @param {number} index - The index to return the child from.
-    * @return {*} The child that was found at the given index.
-    */
-    getAt: function (index) {
-
-        return this._container.getChildAt(index);
-
-    },
-
-    /**
-    * Automatically creates a new Phaser.Sprite object and adds it to the top of this Group.
-    * Useful if you don't need to create the Sprite instances before-hand.
-    *
-    * @method Phaser.Group#create
-    * @param {number} x - The x coordinate to display the newly created Sprite at. The value is in relation to the Group.x point.
-    * @param {number} y - The y coordinate to display the newly created Sprite at. The value is in relation to the Group.y point.
-    * @param {string} key - The Game.cache key of the image that this Sprite will use.
-    * @param {number|string} [frame] - If the Sprite image contains multiple frames you can specify which one to use here.
-    * @param {boolean} [exists=true] - The default exists state of the Sprite.
-    * @return {Phaser.Sprite} The child that was created.
-    */
-    create: function (x, y, key, frame, exists) {
-
-        if (typeof exists === 'undefined') { exists = true; }
-
-        var child = new Phaser.Sprite(this.game, x, y, key, frame);
-
-        child.group = this;
-        child.exists = exists;
-        child.visible = exists;
-        child.alive = exists;
-
-        this._container.addChild(child);
-            
-        child.updateTransform();
+    if (child.parent !== this)
+    {
+        this.addChild(child);
 
         if (child.events)
         {
             child.events.onAddedToGroup.dispatch(child, this);
         }
-
-        if (this.cursor === null)
-        {
-            this.cursor = child;
-        }
-
-        return child;
-
-    },
-
-    /**
-    * Automatically creates multiple Phaser.Sprite objects and adds them to the top of this Group.
-    * Useful if you need to quickly generate a pool of identical sprites, such as bullets. By default the sprites will be set to not exist
-    * and will be positioned at 0, 0 (relative to the Group.x/y)
-    *
-    * @method Phaser.Group#createMultiple
-    * @param {number} quantity - The number of Sprites to create.
-    * @param {string} key - The Game.cache key of the image that this Sprite will use.
-    * @param {number|string} [frame] - If the Sprite image contains multiple frames you can specify which one to use here.
-    * @param {boolean} [exists=false] - The default exists state of the Sprite.
-    */
-    createMultiple: function (quantity, key, frame, exists) {
-
-        if (typeof exists === 'undefined') { exists = false; }
-
-        for (var i = 0; i < quantity; i++)
-        {
-            var child = new Phaser.Sprite(this.game, 0, 0, key, frame);
-
-            child.group = this;
-            child.exists = exists;
-            child.visible = exists;
-            child.alive = exists;
-
-            this._container.addChild(child);
-
-            child.updateTransform();
-
-            if (child.events)
-            {
-                child.events.onAddedToGroup.dispatch(child, this);
-            }
-
-            if (this.cursor === null)
-            {
-                this.cursor = child;
-            }
-
-        }
-
-    },
-
-    /**
-    * Advances the Group cursor to the next object in the Group. If it's at the end of the Group it wraps around to the first object.
-    *
-    * @method Phaser.Group#next
-    */
-    next: function () {
-
-        if (this.cursor)
-        {
-            //  Wrap the cursor?
-            if (this.cursor == this._container.last)
-            {
-                this.cursor = this._container._iNext;
-            }
-            else
-            {
-                this.cursor = this.cursor._iNext;
-            }
-        }
-
-    },
-
-    /**
-    * Moves the Group cursor to the previous object in the Group. If it's at the start of the Group it wraps around to the last object.
-    *
-    * @method Phaser.Group#previous
-    */
-    previous: function () {
-
-        if (this.cursor)
-        {
-            //  Wrap the cursor?
-            if (this.cursor == this._container._iNext)
-            {
-                this.cursor = this._container.last;
-            }
-            else
-            {
-                this.cursor = this.cursor._iPrev;
-            }
-        }
-
-    },
-
-    /**
-    * Internal test.
-    *
-    * @method Phaser.Group#childTest
-    */
-    childTest: function (prefix, child) {
-
-        var s = prefix + ' next: ';
-
-        if (child._iNext)
-        {
-            s = s + child._iNext.name;
-        }
-        else
-        {
-            s = s + '-null-';
-        }
-
-        s = s + ' ' + prefix + ' prev: ';
-
-        if (child._iPrev)
-        {
-            s = s + child._iPrev.name;
-        }
-        else
-        {
-            s = s + '-null-';
-        }
-
-        console.log(s);
-
-    },
-
-    /**
-    * Internal test.
-    *
-    * @method Phaser.Group#swapIndex
-    */
-    swapIndex: function (index1, index2) {
-
-        var child1 = this.getAt(index1);
-        var child2 = this.getAt(index2);
-
-        this.swap(child1, child2);
-
-    },
-
-    /**
-    * Swaps the position of two children in this Group. Both children must be in this Group.
-    * You cannot swap a child with itself, or swap un-parented children, doing so will return false.
-    *
-    * @method Phaser.Group#swap
-    * @param {*} child1 - The first child to swap.
-    * @param {*} child2 - The second child to swap.
-    * @return {boolean} True if the swap was successful, otherwise false.
-    */
-    swap: function (child1, child2) {
-
-        if (child1 === child2 || !child1.parent || !child2.parent || child1.group !== this || child2.group !== this)
-        {
-            return false;
-        }
-
-        //  Cache the values
-        var child1Prev = child1._iPrev;
-        var child1Next = child1._iNext;
-        var child2Prev = child2._iPrev;
-        var child2Next = child2._iNext;
-
-        var endNode = this._container.last._iNext;
-        var currentNode = this.game.stage._stage;
-            
-        do
-        {
-            if (currentNode !== child1 && currentNode !== child2)
-            {
-                if (currentNode.first === child1)
-                {
-                    currentNode.first = child2;
-                }
-                else if (currentNode.first === child2)
-                {
-                    currentNode.first = child1;
-                }
-
-                if (currentNode.last === child1)
-                {
-                    currentNode.last = child2;
-                }
-                else if (currentNode.last === child2)
-                {
-                    currentNode.last = child1;
-                }
-            }
-
-            currentNode = currentNode._iNext;
-        }
-        while (currentNode != endNode)
-
-        if (child1._iNext == child2)
-        {
-            //  This is a downward (A to B) neighbour swap
-            child1._iNext = child2Next;
-            child1._iPrev = child2;
-            child2._iNext = child1;
-            child2._iPrev = child1Prev;
-
-            if (child1Prev) { child1Prev._iNext = child2; }
-            if (child2Next) { child2Next._iPrev = child1; }
-
-            if (child1.__renderGroup)
-            {
-                child1.__renderGroup.updateTexture(child1);
-            }
-
-            if (child2.__renderGroup)
-            {
-                child2.__renderGroup.updateTexture(child2);
-            }
-
-            return true;
-        }
-        else if (child2._iNext == child1)
-        {
-            //  This is an upward (B to A) neighbour swap
-            child1._iNext = child2;
-            child1._iPrev = child2Prev;
-            child2._iNext = child1Next;
-            child2._iPrev = child1;
-
-            if (child2Prev) { child2Prev._iNext = child1; }
-            if (child1Next) { child1Next._iPrev = child2; }
-
-            if (child1.__renderGroup)
-            {
-                child1.__renderGroup.updateTexture(child1);
-            }
-
-            if (child2.__renderGroup)
-            {
-                child2.__renderGroup.updateTexture(child2);
-            }
-
-            return true;
-        }
-        else
-        {
-            //  Children are far apart
-            child1._iNext = child2Next;
-            child1._iPrev = child2Prev;
-            child2._iNext = child1Next;
-            child2._iPrev = child1Prev;
-
-            if (child1Prev) { child1Prev._iNext = child2; }
-            if (child1Next) { child1Next._iPrev = child2; }
-            if (child2Prev) { child2Prev._iNext = child1; }
-            if (child2Next) { child2Next._iPrev = child1; }
-
-            if (child1.__renderGroup)
-            {
-                child1.__renderGroup.updateTexture(child1);
-            }
-
-            if (child2.__renderGroup)
-            {
-                child2.__renderGroup.updateTexture(child2);
-            }
-
-            return true;
-        }
-
-        return false;
-        
-    },
-
-    /**
-    * Brings the given child to the top of this Group so it renders above all other children.
-    *
-    * @method Phaser.Group#bringToTop
-    * @param {*} child - The child to bring to the top of this Group.
-    * @return {*} The child that was moved.
-    */
-    bringToTop: function (child) {
-
-        if (child.group === this)
-        {
-            this.remove(child);
-            this.add(child);
-        }
-
-        return child;
-
-    },
-
-    /**
-    * Get the index position of the given child in this Group.
-    *
-    * @method Phaser.Group#getIndex
-    * @param {*} child - The child to get the index for.
-    * @return {number} The index of the child or -1 if it's not a member of this Group.
-    */
-    getIndex: function (child) {
-
-        return this._container.children.indexOf(child);
-
-    },
-
-    /**
-    * Replaces a child of this Group with the given newChild. The newChild cannot be a member of this Group.
-    *
-    * @method Phaser.Group#replace
-    * @param {*} oldChild - The child in this Group that will be replaced.
-    * @param {*} newChild - The child to be inserted into this group.
-    */
-    replace: function (oldChild, newChild) {
-
-        if (!this._container.first._iNext)
-        {
-            return;
-        }
-
-        var index = this.getIndex(oldChild);
-        
-        if (index != -1)
-        {
-            if (newChild.parent !== undefined)
-            {
-                newChild.events.onRemovedFromGroup.dispatch(newChild, this);
-                newChild.parent.removeChild(newChild);
-            }
-
-            this._container.removeChild(oldChild);
-            this._container.addChildAt(newChild, index);
-
-            newChild.events.onAddedToGroup.dispatch(newChild, this);
-            newChild.updateTransform();
-
-            if (this.cursor == oldChild)
-            {
-                this.cursor = this._container._iNext;
-            }
-        }
-
-    },
-
-    /**
-    * Sets the given property to the given value on the child. The operation controls the assignment of the value.
-    *
-    * @method Phaser.Group#setProperty
-    * @param {*} child - The child to set the property value on.
-    * @param {array} key - An array of strings that make up the property that will be set.
-    * @param {*} value - The value that will be set.
-    * @param {number} [operation=0] - Controls how the value is assigned. A value of 0 replaces the value with the new one. A value of 1 adds it, 2 subtracts it, 3 multiplies it and 4 divides it.
-    */
-    setProperty: function (child, key, value, operation) {
-
-        operation = operation || 0;
-
-        //  As ugly as this approach looks, and although it's limited to a depth of only 4, it's extremely fast.
-        //  Much faster than a for loop or object iteration. There are no checks, so if the key isn't valid then it'll fail
-        //  but as you are likely to call this from inner loops that have to perform well, I'll take that trade off.
-
-        //  0 = Equals
-        //  1 = Add
-        //  2 = Subtract
-        //  3 = Multiply
-        //  4 = Divide
-
-        var len = key.length;
-
-        if (len == 1)
-        {
-            if (operation === 0) { child[key[0]] = value; }
-            else if (operation == 1) { child[key[0]] += value; }
-            else if (operation == 2) { child[key[0]] -= value; }
-            else if (operation == 3) { child[key[0]] *= value; }
-            else if (operation == 4) { child[key[0]] /= value; }
-        }
-        else if (len == 2)
-        {
-            if (operation === 0) { child[key[0]][key[1]] = value; }
-            else if (operation == 1) { child[key[0]][key[1]] += value; }
-            else if (operation == 2) { child[key[0]][key[1]] -= value; }
-            else if (operation == 3) { child[key[0]][key[1]] *= value; }
-            else if (operation == 4) { child[key[0]][key[1]] /= value; }
-        }
-        else if (len == 3)
-        {
-            if (operation === 0) { child[key[0]][key[1]][key[2]] = value; }
-            else if (operation == 1) { child[key[0]][key[1]][key[2]] += value; }
-            else if (operation == 2) { child[key[0]][key[1]][key[2]] -= value; }
-            else if (operation == 3) { child[key[0]][key[1]][key[2]] *= value; }
-            else if (operation == 4) { child[key[0]][key[1]][key[2]] /= value; }
-        }
-        else if (len == 4)
-        {
-            if (operation === 0) { child[key[0]][key[1]][key[2]][key[3]] = value; }
-            else if (operation == 1) { child[key[0]][key[1]][key[2]][key[3]] += value; }
-            else if (operation == 2) { child[key[0]][key[1]][key[2]][key[3]] -= value; }
-            else if (operation == 3) { child[key[0]][key[1]][key[2]][key[3]] *= value; }
-            else if (operation == 4) { child[key[0]][key[1]][key[2]][key[3]] /= value; }
-        }
-        
-        //  TODO - Deep property scane
-
-    },
-
-    /**
-    * This function allows you to quickly set a property on a single child of this Group to a new value.
-    * The operation parameter controls how the new value is assigned to the property, from simple replacement to addition and multiplication.
-    *
-    * @method Phaser.Group#set
-    * @param {Phaser.Sprite} child - The child to set the property on.
-    * @param {string} key - The property, as a string, to be set. For example: 'body.velocity.x'
-    * @param {*} value - The value that will be set.
-    * @param {boolean} [checkAlive=false] - If set then the child will only be updated if alive=true.
-    * @param {boolean} [checkVisible=false] - If set then the child will only be updated if visible=true.
-    * @param {number} [operation=0] - Controls how the value is assigned. A value of 0 replaces the value with the new one. A value of 1 adds it, 2 subtracts it, 3 multiplies it and 4 divides it.
-    */
-    set: function (child, key, value, checkAlive, checkVisible, operation) {
-
-        key = key.split('.');
-
-        if (typeof checkAlive === 'undefined') { checkAlive = false; }
-        if (typeof checkVisible === 'undefined') { checkVisible = false; }
-
-        if ((checkAlive === false || (checkAlive && child.alive)) && (checkVisible === false || (checkVisible && child.visible)))
-        {
-            this.setProperty(child, key, value, operation);
-        }
-
-    },
-
-    /**
-    * This function allows you to quickly set the same property across all children of this Group to a new value.
-    * The operation parameter controls how the new value is assigned to the property, from simple replacement to addition and multiplication.
-    *
-    * @method Phaser.Group#setAll
-    * @param {string} key - The property, as a string, to be set. For example: 'body.velocity.x'
-    * @param {*} value - The value that will be set.
-    * @param {boolean} [checkAlive=false] - If set then only children with alive=true will be updated.
-    * @param {boolean} [checkVisible=false] - If set then only children with visible=true will be updated.
-    * @param {number} [operation=0] - Controls how the value is assigned. A value of 0 replaces the value with the new one. A value of 1 adds it, 2 subtracts it, 3 multiplies it and 4 divides it.
-    */
-    setAll: function (key, value, checkAlive, checkVisible, operation) {
-
-        key = key.split('.');
-
-        if (typeof checkAlive === 'undefined') { checkAlive = false; }
-        if (typeof checkVisible === 'undefined') { checkVisible = false; }
-
-        operation = operation || 0;
-
-        if (this._container.children.length > 0 && this._container.first._iNext)
-        {
-            var currentNode = this._container.first._iNext;
-                
-            do
-            {
-                if ((checkAlive === false || (checkAlive && currentNode.alive)) && (checkVisible === false || (checkVisible && currentNode.visible)))
-                {
-                    this.setProperty(currentNode, key, value, operation);
-                }
-
-                currentNode = currentNode._iNext;
-            }
-            while (currentNode != this._container.last._iNext)
-        }
-
-    },
-
-    /**
-    * Adds the amount to the given property on all children in this Group.
-    * Group.addAll('x', 10) will add 10 to the child.x value.
-    *
-    * @method Phaser.Group#addAll
-    * @param {string} property - The property to increment, for example 'body.velocity.x' or 'angle'.
-    * @param {number} amount - The amount to increment the property by. If child.x = 10 then addAll('x', 40) would make child.x = 50.
-    * @param {boolean} checkAlive - If true the property will only be changed if the child is alive.
-    * @param {boolean} checkVisible - If true the property will only be changed if the child is visible.
-    */
-    addAll: function (property, amount, checkAlive, checkVisible) {
-
-        this.setAll(property, amount, checkAlive, checkVisible, 1);
-
-    },
-
-    /**
-    * Subtracts the amount from the given property on all children in this Group.
-    * Group.subAll('x', 10) will minus 10 from the child.x value.
-    *
-    * @method Phaser.Group#subAll
-    * @param {string} property - The property to decrement, for example 'body.velocity.x' or 'angle'.
-    * @param {number} amount - The amount to subtract from the property. If child.x = 50 then subAll('x', 40) would make child.x = 10.
-    * @param {boolean} checkAlive - If true the property will only be changed if the child is alive.
-    * @param {boolean} checkVisible - If true the property will only be changed if the child is visible.
-    */
-    subAll: function (property, amount, checkAlive, checkVisible) {
-
-        this.setAll(property, amount, checkAlive, checkVisible, 2);
-
-    },
-
-    /**
-    * Multiplies the given property by the amount on all children in this Group.
-    * Group.multiplyAll('x', 2) will x2 the child.x value.
-    *
-    * @method Phaser.Group#multiplyAll
-    * @param {string} property - The property to multiply, for example 'body.velocity.x' or 'angle'.
-    * @param {number} amount - The amount to multiply the property by. If child.x = 10 then multiplyAll('x', 2) would make child.x = 20.
-    * @param {boolean} checkAlive - If true the property will only be changed if the child is alive.
-    * @param {boolean} checkVisible - If true the property will only be changed if the child is visible.
-    */
-    multiplyAll: function (property, amount, checkAlive, checkVisible) {
-
-        this.setAll(property, amount, checkAlive, checkVisible, 3);
-
-    },
-
-    /**
-    * Divides the given property by the amount on all children in this Group.
-    * Group.divideAll('x', 2) will half the child.x value.
-    *
-    * @method Phaser.Group#divideAll
-    * @param {string} property - The property to divide, for example 'body.velocity.x' or 'angle'.
-    * @param {number} amount - The amount to divide the property by. If child.x = 100 then divideAll('x', 2) would make child.x = 50.
-    * @param {boolean} checkAlive - If true the property will only be changed if the child is alive.
-    * @param {boolean} checkVisible - If true the property will only be changed if the child is visible.
-    */
-    divideAll: function (property, amount, checkAlive, checkVisible) {
-
-        this.setAll(property, amount, checkAlive, checkVisible, 4);
-
-    },
-
-    /**
-    * Calls a function on all of the children that have exists=true in this Group.
-    * After the existsValue parameter you can add as many parameters as you like, which will all be passed to the child callback.
-    * 
-    * @method Phaser.Group#callAllExists
-    * @param {function} callback - The function that exists on the children that will be called.
-    * @param {boolean} existsValue - Only children with exists=existsValue will be called.
-    * @param {...*} parameter - Additional parameters that will be passed to the callback.
-    */
-    callAllExists: function (callback, existsValue) {
-
-        var args = Array.prototype.splice.call(arguments, 2);
-
-        if (this._container.children.length > 0 && this._container.first._iNext)
-        {
-            var currentNode = this._container.first._iNext;
-                
-            do
-            {
-                if (currentNode.exists == existsValue && currentNode[callback])
-                {
-                    currentNode[callback].apply(currentNode, args);
-                }
-
-                currentNode = currentNode._iNext;
-            }
-            while (currentNode != this._container.last._iNext)
-
-        }
-
-    },
-
-    /**
-    * Returns a reference to a function that exists on a child of the Group based on the given callback array.
-    * 
-    * @method Phaser.Group#callbackFromArray
-    * @param {object} child - The object to inspect.
-    * @param {array} callback - The array of function names.
-    * @param {number} length - The size of the array (pre-calculated in callAll).
-    * @protected
-    */
-    callbackFromArray: function (child, callback, length) {
-
-        //  Kinda looks like a Christmas tree
-
-        if (length == 1)
-        {
-            if (child[callback[0]])
-            {
-                return child[callback[0]];
-            }
-        }
-        else if (length == 2)
-        {
-            if (child[callback[0]][callback[1]])
-            {
-                return child[callback[0]][callback[1]];
-            }
-        }
-        else if (length == 3)
-        {
-            if (child[callback[0]][callback[1]][callback[2]])
-            {
-                return child[callback[0]][callback[1]][callback[2]];
-            }
-        }
-        else if (length == 4)
-        {
-            if (child[callback[0]][callback[1]][callback[2]][callback[3]])
-            {
-                return child[callback[0]][callback[1]][callback[2]][callback[3]];
-            }
-        }
-        else
-        {
-            if (child[callback])
-            {
-                return child[callback];
-            }
-        }
-
-        return false;
-
-    },
-
-    /**
-    * Calls a function on all of the children regardless if they are dead or alive (see callAllExists if you need control over that)
-    * After the method parameter and context you can add as many extra parameters as you like, which will all be passed to the child.
-    * 
-    * @method Phaser.Group#callAll
-    * @param {string} method - A string containing the name of the function that will be called. The function must exist on the child.
-    * @param {string} [context=null] - A string containing the context under which the method will be executed. Set to null to default to the child.
-    * @param {...*} parameter - Additional parameters that will be passed to the method.
-    */
-    callAll: function (method, context) {
-
-        if (typeof method === 'undefined')
-        {
-            return;
-        }
-
-        //  Extract the method into an array
-        method = method.split('.');
-
-        var methodLength = method.length;
-
-        if (typeof context === 'undefined')
-        {
-            context = null;
-        }
-        else
-        {
-            //  Extract the context into an array
-            if (typeof context === 'string')
-            {
-                context = context.split('.');
-                var contextLength = context.length;
-            }
-        }
-
-        var args = Array.prototype.splice.call(arguments, 2);
-        var callback = null;
-        var callbackContext = null;
-
-        if (this._container.children.length > 0 && this._container.first._iNext)
-        {
-            var child = this._container.first._iNext;
-                
-            do
-            {
-                callback = this.callbackFromArray(child, method, methodLength);
-
-                if (context && callback)
-                {
-                    callbackContext = this.callbackFromArray(child, context, contextLength);
-    
-                    if (callback)
-                    {
-                        callback.apply(callbackContext, args);
-                    }
-                }
-                else if (callback)
-                {
-                    callback.apply(child, args);
-                }
-
-                child = child._iNext;
-            }
-            while (child != this._container.last._iNext)
-
-        }
-
-    },
-
-    /**
-    * Allows you to call your own function on each member of this Group. You must pass the callback and context in which it will run.
-    * After the checkExists parameter you can add as many parameters as you like, which will all be passed to the callback along with the child.
-    * For example: Group.forEach(awardBonusGold, this, true, 100, 500)
-    * Note: Currently this will skip any children which are Groups themselves.
-    * 
-    * @method Phaser.Group#forEach
-    * @param {function} callback - The function that will be called. Each child of the Group will be passed to it as its first parameter.
-    * @param {Object} callbackContext - The context in which the function should be called (usually 'this').
-    * @param {boolean} checkExists - If set only children with exists=true will be passed to the callback, otherwise all children will be passed.
-    */
-    forEach: function (callback, callbackContext, checkExists) {
-
-        if (typeof checkExists === 'undefined')
-        {
-            checkExists = false;
-        }
-
-        var args = Array.prototype.splice.call(arguments, 3);
-        args.unshift(null);
-
-        if (this._container.children.length > 0 && this._container.first._iNext)
-        {
-            var currentNode = this._container.first._iNext;
-                
-            do
-            {
-                if (checkExists === false || (checkExists && currentNode.exists))
-                {
-                    args[0] = currentNode;
-                    callback.apply(callbackContext, args);
-                }
-
-                currentNode = currentNode._iNext;
-            }
-            while (currentNode != this._container.last._iNext);
-
-        }
-
-    },
-
-    /**
-    * Allows you to call your own function on each existing member of this Group (where child.exists=true). You must pass the callback and context in which it will run.
-    * You can add as many parameters as you like, which will all be passed to the callback along with the child.
-    * For example: Group.forEachExists(causeDamage, this, 500)
-    * 
-    * @method Phaser.Group#forEachExists
-    * @param {function} callback - The function that will be called. Each child of the Group will be passed to it as its first parameter.
-    * @param {Object} callbackContext - The context in which the function should be called (usually 'this').
-    */
-    forEachExists: function (callback, callbackContext) {
-
-        var args = Array.prototype.splice.call(arguments, 2);
-        args.unshift(null);
-
-        this.iterate('exists', true, Phaser.Group.RETURN_TOTAL, callback, callbackContext, args);
-
-    },
-
-    /**
-    * Allows you to call your own function on each alive member of this Group (where child.alive=true). You must pass the callback and context in which it will run.
-    * You can add as many parameters as you like, which will all be passed to the callback along with the child.
-    * For example: Group.forEachAlive(causeDamage, this, 500)
-    * 
-    * @method Phaser.Group#forEachAlive
-    * @param {function} callback - The function that will be called. Each child of the Group will be passed to it as its first parameter.
-    * @param {Object} callbackContext - The context in which the function should be called (usually 'this').
-    */
-    forEachAlive: function (callback, callbackContext) {
-
-        var args = Array.prototype.splice.call(arguments, 2);
-        args.unshift(null);
-
-        this.iterate('alive', true, Phaser.Group.RETURN_TOTAL, callback, callbackContext, args);
-
-    },
-
-    /**
-    * Allows you to call your own function on each dead member of this Group (where alive=false). You must pass the callback and context in which it will run.
-    * You can add as many parameters as you like, which will all be passed to the callback along with the child.
-    * For example: Group.forEachDead(bringToLife, this)
-    * 
-    * @method Phaser.Group#forEachDead
-    * @param {function} callback - The function that will be called. Each child of the Group will be passed to it as its first parameter.
-    * @param {Object} callbackContext - The context in which the function should be called (usually 'this').
-    */
-    forEachDead: function (callback, callbackContext) {
-
-        var args = Array.prototype.splice.call(arguments, 2);
-        args.unshift(null);
-
-        this.iterate('alive', false, Phaser.Group.RETURN_TOTAL, callback, callbackContext, args);
-
-    },
-
-    /**
-    * Call this function to sort the group according to a particular value and order.
-    * For example to depth sort Sprites for Zelda-style game you might call `group.sort('y', Phaser.Group.SORT_ASCENDING)` at the bottom of your `State.update()`.
-    *
-    * @method Phaser.Group#sort
-    * @param {string} [index='y'] - The `string` name of the property you want to sort on.
-    * @param {number} [order=Phaser.Group.SORT_ASCENDING] - The `Group` constant that defines the sort order. Possible values are Phaser.Group.SORT_ASCENDING and Phaser.Group.SORT_DESCENDING.
-    */
-    sort: function (index, order) {
-
-        if (typeof index === 'undefined') { index = 'y'; }
-        if (typeof order === 'undefined') { order = Phaser.Group.SORT_ASCENDING; }
-
-        var swapped;
-        var temp;
-
-        do {
-
-            swapped = false;
-
-            for (var i = 0, len = this._container.children.length - 1; i < len; i++)
-            {
-                if (order == Phaser.Group.SORT_ASCENDING)
-                {
-                    if (this._container.children[i][index] > this._container.children[i + 1][index])
-                    {
-                        this.swap(this.getAt(i), this.getAt(i + 1));
-                        temp = this._container.children[i];
-                        this._container.children[i] = this._container.children[i + 1];
-                        this._container.children[i + 1] = temp;
-                        swapped = true;
-                    }
-                }
-                else
-                {
-                    if (this._container.children[i][index] < this._container.children[i + 1][index])
-                    {
-                        this.swap(this.getAt(i), this.getAt(i + 1));
-                        temp = this._container.children[i];
-                        this._container.children[i] = this._container.children[i + 1];
-                        this._container.children[i + 1] = temp;
-                        swapped = true;
-                    }
-                }
-            }
-        } while (swapped);
-
-    },
-
-    /**
-    * Iterates over the children of the Group. When a child has a property matching key that equals the given value, it is considered as a match.
-    * Matched children can be sent to the optional callback, or simply returned or counted.
-    * You can add as many callback parameters as you like, which will all be passed to the callback along with the child, after the callbackContext parameter.
-    * 
-    * @method Phaser.Group#iterate
-    * @param {string} key - The child property to check, i.e. 'exists', 'alive', 'health'
-    * @param {any} value - If child.key === this value it will be considered a match. Note that a strict comparison is used.
-    * @param {number} returnType - How to return the data from this method. Either Phaser.Group.RETURN_NONE, Phaser.Group.RETURN_TOTAL or Phaser.Group.RETURN_CHILD.
-    * @param {function} [callback=null] - Optional function that will be called on each matching child. Each child of the Group will be passed to it as its first parameter.
-    * @param {Object} [callbackContext] - The context in which the function should be called (usually 'this').
-    * @return {any} Returns either a numeric total (if RETURN_TOTAL was specified) or the child object.
-    */
-    iterate: function (key, value, returnType, callback, callbackContext, args) {
-
-        if (returnType === Phaser.Group.RETURN_TOTAL && this._container.children.length === 0)
-        {
-            return 0;
-        }
-
-        if (typeof callback === 'undefined')
-        {
-            callback = false;
-        }
-
-        var total = 0;
-
-        if (this._container.children.length > 0 && this._container.first._iNext)
-        {
-            var currentNode = this._container.first._iNext;
-                
-            do
-            {
-                if (currentNode[key] === value)
-                {
-                    total++;
-
-                    if (callback)
-                    {
-                        args[0] = currentNode;
-                        callback.apply(callbackContext, args);
-                    }
-
-                    if (returnType === Phaser.Group.RETURN_CHILD)
-                    {
-                        return currentNode;
-                    }
-                }
-
-                currentNode = currentNode._iNext;
-            }
-            while (currentNode != this._container.last._iNext);
-        }
-
-        if (returnType === Phaser.Group.RETURN_TOTAL)
-        {
-            return total;
-        }
-        else if (returnType === Phaser.Group.RETURN_CHILD)
-        {
-            return null;
-        }
-
-    },
-
-    /**
-    * Call this function to retrieve the first object with exists == (the given state) in the Group.
-    *
-    * @method Phaser.Group#getFirstExists
-    * @param {boolean} state - True or false.
-    * @return {Any} The first child, or null if none found.
-    */
-    getFirstExists: function (state) {
-
-        if (typeof state !== 'boolean')
-        {
-            state = true;
-        }
-
-        return this.iterate('exists', state, Phaser.Group.RETURN_CHILD);
-
-    },
-
-    /**
-    * Call this function to retrieve the first object with alive === true in the group.
-    * This is handy for checking if everything has been wiped out, or choosing a squad leader, etc.
-    *
-    * @method Phaser.Group#getFirstAlive
-    * @return {Any} The first alive child, or null if none found.
-    */
-    getFirstAlive: function () {
-
-        return this.iterate('alive', true, Phaser.Group.RETURN_CHILD);
-
-    },
-
-    /**
-    * Call this function to retrieve the first object with alive === false in the group.
-    * This is handy for checking if everything has been wiped out, or choosing a squad leader, etc.
-    *
-    * @method Phaser.Group#getFirstDead
-    * @return {Any} The first dead child, or null if none found.
-    */
-    getFirstDead: function () {
-
-        return this.iterate('alive', false, Phaser.Group.RETURN_CHILD);
-
-    },
-
-    /**
-    * Call this function to find out how many members of the group are alive.
-    *
-    * @method Phaser.Group#countLiving
-    * @return {number} The number of children flagged as alive.
-    */
-    countLiving: function () {
-
-        return this.iterate('alive', true, Phaser.Group.RETURN_TOTAL);
-
-    },
-
-    /**
-    * Call this function to find out how many members of the group are dead.
-    *
-    * @method Phaser.Group#countDead
-    * @return {number} The number of children flagged as dead.
-    */
-    countDead: function () {
-
-        return this.iterate('alive', false, Phaser.Group.RETURN_TOTAL);
-
-    },
-
-    /**
-    * Returns a member at random from the group.
-    *
-    * @method Phaser.Group#getRandom
-    * @param {number} startIndex - Optional offset off the front of the array. Default value is 0, or the beginning of the array.
-    * @param {number} length - Optional restriction on the number of values you want to randomly select from.
-    * @return {Any} A random child of this Group.
-    */
-    getRandom: function (startIndex, length) {
-
-        if (this._container.children.length === 0)
-        {
-            return null;
-        }
-
-        startIndex = startIndex || 0;
-        length = length || this._container.children.length;
-
-        return this.game.math.getRandom(this._container.children, startIndex, length);
-
-    },
-
-    /**
-    * Removes the given child from this Group and sets its group property to null.
-    *
-    * @method Phaser.Group#remove
-    * @param {Any} child - The child to remove.
-    * @return {boolean} true if the child was removed from this Group, otherwise false.
-    */
-    remove: function (child) {
-
-        if (child.group !== this)
-        {
-            return false;
-        }
+    }
+
+    if (this.cursor === null)
+    {
+        this.cursor = child;
+    }
+
+    return child;
+
+}
+
+/**
+* Adds an existing object to this Group. The object can be an instance of Phaser.Sprite, Phaser.Button or any other display object.
+* The child is added to the Group at the location specified by the index value, this allows you to control child ordering.
+*
+* @method Phaser.Group#addAt
+* @param {*} child - An instance of Phaser.Sprite, Phaser.Button or any other display object..
+* @param {number} index - The index within the Group to insert the child to.
+* @return {*} The child that was added to the Group.
+*/
+Phaser.Group.prototype.addAt = function (child, index) {
+
+    if (child.parent !== this)
+    {
+        this.addChildAt(child, index);
 
         if (child.events)
         {
-            child.events.onRemovedFromGroup.dispatch(child, this);
+            child.events.onAddedToGroup.dispatch(child, this);
         }
+    }
 
-        //  Check it's actually in the container
-        if (child.parent === this._container)
+    if (this.cursor === null)
+    {
+        this.cursor = child;
+    }
+
+    return child;
+
+}
+
+/**
+* Returns the child found at the given index within this Group.
+*
+* @method Phaser.Group#getAt
+* @param {number} index - The index to return the child from.
+* @return {*} The child that was found at the given index.
+*/
+Phaser.Group.prototype.getAt = function (index) {
+
+    return this.getChildAt(index);
+
+}
+
+/**
+* Automatically creates a new Phaser.Sprite object and adds it to the top of this Group.
+* Useful if you don't need to create the Sprite instances before-hand.
+*
+* @method Phaser.Group#create
+* @param {number} x - The x coordinate to display the newly created Sprite at. The value is in relation to the Group.x point.
+* @param {number} y - The y coordinate to display the newly created Sprite at. The value is in relation to the Group.y point.
+* @param {string} key - The Game.cache key of the image that this Sprite will use.
+* @param {number|string} [frame] - If the Sprite image contains multiple frames you can specify which one to use here.
+* @param {boolean} [exists=true] - The default exists state of the Sprite.
+* @return {Phaser.Sprite} The child that was created.
+*/
+Phaser.Group.prototype.create = function (x, y, key, frame, exists) {
+
+    if (typeof exists === 'undefined') { exists = true; }
+
+    var child = new Phaser.Sprite(this.game, x, y, key, frame);
+
+    child.exists = exists;
+    child.visible = exists;
+    child.alive = exists;
+
+    this.addChild(child);
+        
+    if (child.events)
+    {
+        child.events.onAddedToGroup.dispatch(child, this);
+    }
+
+    if (this.cursor === null)
+    {
+        this.cursor = child;
+    }
+
+    return child;
+
+}
+
+/**
+* Automatically creates multiple Phaser.Sprite objects and adds them to the top of this Group.
+* Useful if you need to quickly generate a pool of identical sprites, such as bullets. By default the sprites will be set to not exist
+* and will be positioned at 0, 0 (relative to the Group.x/y)
+*
+* @method Phaser.Group#createMultiple
+* @param {number} quantity - The number of Sprites to create.
+* @param {string} key - The Game.cache key of the image that this Sprite will use.
+* @param {number|string} [frame] - If the Sprite image contains multiple frames you can specify which one to use here.
+* @param {boolean} [exists=false] - The default exists state of the Sprite.
+*/
+Phaser.Group.prototype.createMultiple = function (quantity, key, frame, exists) {
+
+    if (typeof exists === 'undefined') { exists = false; }
+
+    for (var i = 0; i < quantity; i++)
+    {
+        this.create(0, 0, key, frame, exists);
+    }
+
+}
+
+/**
+* Advances the Group cursor to the next object in the Group. If it's at the end of the Group it wraps around to the first object.
+*
+* @method Phaser.Group#next
+*/
+Phaser.Group.prototype.next = function () {
+
+    if (this.cursor)
+    {
+        //  Wrap the cursor?
+        if (this._cursorIndex === this.children.length)
         {
-            this._container.removeChild(child);
-        }
-
-        if (this.cursor == child)
-        {
-            if (this._container._iNext)
-            {
-                this.cursor = this._container._iNext;
-            }
-            else
-            {
-                this.cursor = null;
-            }
-        }
-
-        child.group = null;
-
-        return true;
-
-    },
-
-    /**
-    * Removes all children from this Group, setting all group properties to null.
-    * The Group container remains on the display list.
-    *
-    * @method Phaser.Group#removeAll
-    */
-    removeAll: function () {
-
-        if (this._container.children.length === 0)
-        {
-            return;
-        }
-
-        do
-        {
-            if (this._container.children[0].events)
-            {
-                this._container.children[0].events.onRemovedFromGroup.dispatch(this._container.children[0], this);
-            }
-            this._container.removeChild(this._container.children[0]);
-        }
-        while (this._container.children.length > 0);
-
-        this.cursor = null;
-
-    },
-
-    /**
-    * Removes all children from this Group whos index falls beteen the given startIndex and endIndex values.
-    *
-    * @method Phaser.Group#removeBetween
-    * @param {number} startIndex - The index to start removing children from.
-    * @param {number} endIndex - The index to stop removing children from. Must be higher than startIndex and less than the length of the Group.
-    */
-    removeBetween: function (startIndex, endIndex) {
-
-        if (this._container.children.length === 0)
-        {
-            return;
-        }
-
-        if (startIndex > endIndex || startIndex < 0 || endIndex > this._container.children.length)
-        {
-            return false;
-        }
-
-        for (var i = startIndex; i < endIndex; i++)
-        {
-            var child = this._container.children[i];
-            child.events.onRemovedFromGroup.dispatch(child, this);
-            this._container.removeChild(child);
-    
-            if (this.cursor == child)
-            {
-                if (this._container._iNext)
-                {
-                    this.cursor = this._container._iNext;
-                }
-                else
-                {
-                    this.cursor = null;
-                }
-            }
-        }
-
-    },
-
-    /**
-    * Destroys this Group. Removes all children, then removes the container from the display list and nulls references.
-    *
-    * @method Phaser.Group#destroy
-    * @param {boolean} [destroyChildren=false] - Should every child of this Group have its destroy method called?
-    */
-    destroy: function (destroyChildren) {
-
-        if (typeof destroyChildren === 'undefined') { destroyChildren = false; }
-
-        if (destroyChildren)
-        {
-            if (this._container.children.length > 0)
-            {
-                do
-                {
-                    if (this._container.children[0].group)
-                    {
-                        this._container.children[0].destroy();
-                    }
-                }
-                while (this._container.children.length > 0);
-            }
+            this._cursorIndex = 0;
         }
         else
         {
-            this.removeAll();
+            this._cursorIndex++;
         }
-    
-        this._container.parent.removeChild(this._container);
 
-        this._container = null;
-
-        this.game = null;
-
-        this.exists = false;
-
-        this.cursor = null;
-
-    },
-
-    validate: function () {
-
-        var testObject = this.game.stage._stage.last._iNext;
-        var displayObject = this.game.stage._stage;
-        var nextObject = null;
-        var prevObject = null;
-        var count = 0;
-
-        do
-        {
-            if (count > 0)
-            {
-                //  check next
-                if (displayObject !== nextObject)
-                {
-                    console.log('check next fail');
-                    return false;
-                }
-
-                //  check previous
-                if (displayObject._iPrev !== prevObject)
-                {
-                    console.log('check previous fail');
-                    return false;
-                }
-            }
-
-            //  Set the next object
-            nextObject = displayObject._iNext;
-            prevObject = displayObject;
-
-            displayObject = displayObject._iNext;
-
-            count++;
-
-        }
-        while(displayObject != testObject)
-
-        return true;
-
+        this.cursor = this.children[this._cursorIndex];
     }
 
-};
+}
 
-Phaser.Group.prototype.constructor = Phaser.Group;
+/**
+* Moves the Group cursor to the previous object in the Group. If it's at the start of the Group it wraps around to the last object.
+*
+* @method Phaser.Group#previous
+*/
+Phaser.Group.prototype.previous = function () {
+
+    if (this.cursor)
+    {
+        //  Wrap the cursor?
+        if (this._cursorIndex === 0)
+        {
+            this._cursorIndex = this.children.length - 1;
+        }
+        else
+        {
+            this._cursorIndex--;
+        }
+
+        this.cursor = this.children[this._cursorIndex];
+    }
+
+}
+
+/**
+* Swaps the position of two children in this Group. Both children must be in this Group.
+* You cannot swap a child with itself, or swap un-parented children, doing so will return false.
+*
+* @method Phaser.Group#swap
+* @param {*} child1 - The first child to swap.
+* @param {*} child2 - The second child to swap.
+*/
+Phaser.Group.prototype.swap = function (child1, child2) {
+
+    return this.swapChildren(child1, child2);
+    
+}
+
+/**
+* Brings the given child to the top of this Group so it renders above all other children.
+*
+* @method Phaser.Group#bringToTop
+* @param {*} child - The child to bring to the top of this Group.
+* @return {*} The child that was moved.
+*/
+Phaser.Group.prototype.bringToTop = function (child) {
+
+    if (child.parent === this)
+    {
+        this.remove(child);
+        this.add(child);
+    }
+
+    return child;
+
+}
+
+/**
+* Get the index position of the given child in this Group.
+*
+* @method Phaser.Group#getIndex
+* @param {*} child - The child to get the index for.
+* @return {number} The index of the child or -1 if it's not a member of this Group.
+*/
+Phaser.Group.prototype.getIndex = function (child) {
+
+    return this.children.indexOf(child);
+
+}
+
+/**
+* Replaces a child of this Group with the given newChild. The newChild cannot be a member of this Group.
+*
+* @method Phaser.Group#replace
+* @param {*} oldChild - The child in this Group that will be replaced.
+* @param {*} newChild - The child to be inserted into this group.
+*/
+Phaser.Group.prototype.replace = function (oldChild, newChild) {
+
+    var index = this.getIndex(oldChild);
+    
+    if (index !== -1)
+    {
+        if (newChild.parent !== undefined)
+        {
+            newChild.events.onRemovedFromGroup.dispatch(newChild, this);
+            newChild.parent.removeChild(newChild);
+        }
+
+        this.removeChild(oldChild);
+        this.addChildAt(newChild, index);
+
+        newChild.events.onAddedToGroup.dispatch(newChild, this);
+
+        if (this.cursor === oldChild)
+        {
+            this.cursor = newChild;
+        }
+    }
+
+}
+
+/**
+* Sets the given property to the given value on the child. The operation controls the assignment of the value.
+*
+* @method Phaser.Group#setProperty
+* @param {*} child - The child to set the property value on.
+* @param {array} key - An array of strings that make up the property that will be set.
+* @param {*} value - The value that will be set.
+* @param {number} [operation=0] - Controls how the value is assigned. A value of 0 replaces the value with the new one. A value of 1 adds it, 2 subtracts it, 3 multiplies it and 4 divides it.
+*/
+Phaser.Group.prototype.setProperty = function (child, key, value, operation) {
+
+    operation = operation || 0;
+
+    //  As ugly as this approach looks, and although it's limited to a depth of only 4, it's extremely fast.
+    //  Much faster than a for loop or object iteration. There are no checks, so if the key isn't valid then it'll fail
+    //  but as you are likely to call this from inner loops that have to perform well, I'll take that trade off.
+
+    //  0 = Equals
+    //  1 = Add
+    //  2 = Subtract
+    //  3 = Multiply
+    //  4 = Divide
+
+    var len = key.length;
+
+    if (len == 1)
+    {
+        if (operation === 0) { child[key[0]] = value; }
+        else if (operation == 1) { child[key[0]] += value; }
+        else if (operation == 2) { child[key[0]] -= value; }
+        else if (operation == 3) { child[key[0]] *= value; }
+        else if (operation == 4) { child[key[0]] /= value; }
+    }
+    else if (len == 2)
+    {
+        if (operation === 0) { child[key[0]][key[1]] = value; }
+        else if (operation == 1) { child[key[0]][key[1]] += value; }
+        else if (operation == 2) { child[key[0]][key[1]] -= value; }
+        else if (operation == 3) { child[key[0]][key[1]] *= value; }
+        else if (operation == 4) { child[key[0]][key[1]] /= value; }
+    }
+    else if (len == 3)
+    {
+        if (operation === 0) { child[key[0]][key[1]][key[2]] = value; }
+        else if (operation == 1) { child[key[0]][key[1]][key[2]] += value; }
+        else if (operation == 2) { child[key[0]][key[1]][key[2]] -= value; }
+        else if (operation == 3) { child[key[0]][key[1]][key[2]] *= value; }
+        else if (operation == 4) { child[key[0]][key[1]][key[2]] /= value; }
+    }
+    else if (len == 4)
+    {
+        if (operation === 0) { child[key[0]][key[1]][key[2]][key[3]] = value; }
+        else if (operation == 1) { child[key[0]][key[1]][key[2]][key[3]] += value; }
+        else if (operation == 2) { child[key[0]][key[1]][key[2]][key[3]] -= value; }
+        else if (operation == 3) { child[key[0]][key[1]][key[2]][key[3]] *= value; }
+        else if (operation == 4) { child[key[0]][key[1]][key[2]][key[3]] /= value; }
+    }
+
+}
+
+/**
+* This function allows you to quickly set a property on a single child of this Group to a new value.
+* The operation parameter controls how the new value is assigned to the property, from simple replacement to addition and multiplication.
+*
+* @method Phaser.Group#set
+* @param {Phaser.Sprite} child - The child to set the property on.
+* @param {string} key - The property, as a string, to be set. For example: 'body.velocity.x'
+* @param {*} value - The value that will be set.
+* @param {boolean} [checkAlive=false] - If set then the child will only be updated if alive=true.
+* @param {boolean} [checkVisible=false] - If set then the child will only be updated if visible=true.
+* @param {number} [operation=0] - Controls how the value is assigned. A value of 0 replaces the value with the new one. A value of 1 adds it, 2 subtracts it, 3 multiplies it and 4 divides it.
+*/
+Phaser.Group.prototype.set = function (child, key, value, checkAlive, checkVisible, operation) {
+
+    key = key.split('.');
+
+    if (typeof checkAlive === 'undefined') { checkAlive = false; }
+    if (typeof checkVisible === 'undefined') { checkVisible = false; }
+
+    if ((checkAlive === false || (checkAlive && child.alive)) && (checkVisible === false || (checkVisible && child.visible)))
+    {
+        this.setProperty(child, key, value, operation);
+    }
+
+}
+
+/**
+* This function allows you to quickly set the same property across all children of this Group to a new value.
+* The operation parameter controls how the new value is assigned to the property, from simple replacement to addition and multiplication.
+*
+* @method Phaser.Group#setAll
+* @param {string} key - The property, as a string, to be set. For example: 'body.velocity.x'
+* @param {*} value - The value that will be set.
+* @param {boolean} [checkAlive=false] - If set then only children with alive=true will be updated.
+* @param {boolean} [checkVisible=false] - If set then only children with visible=true will be updated.
+* @param {number} [operation=0] - Controls how the value is assigned. A value of 0 replaces the value with the new one. A value of 1 adds it, 2 subtracts it, 3 multiplies it and 4 divides it.
+*/
+Phaser.Group.prototype.setAll = function (key, value, checkAlive, checkVisible, operation) {
+
+    key = key.split('.');
+
+    if (typeof checkAlive === 'undefined') { checkAlive = false; }
+    if (typeof checkVisible === 'undefined') { checkVisible = false; }
+
+    operation = operation || 0;
+
+    for (var i = 0, len = this.children.length; i < len; i++)
+    {
+        if ((!checkAlive || (checkAlive && this.children[i].alive)) && (!checkVisible || (checkVisible && this.children[i].visible)))
+        {
+            this.setProperty(this.children[i], key, value, operation);
+        }
+    }
+
+}
+
+/**
+* Adds the amount to the given property on all children in this Group.
+* Group.addAll('x', 10) will add 10 to the child.x value.
+*
+* @method Phaser.Group#addAll
+* @param {string} property - The property to increment, for example 'body.velocity.x' or 'angle'.
+* @param {number} amount - The amount to increment the property by. If child.x = 10 then addAll('x', 40) would make child.x = 50.
+* @param {boolean} checkAlive - If true the property will only be changed if the child is alive.
+* @param {boolean} checkVisible - If true the property will only be changed if the child is visible.
+*/
+Phaser.Group.prototype.addAll = function (property, amount, checkAlive, checkVisible) {
+
+    this.setAll(property, amount, checkAlive, checkVisible, 1);
+
+}
+
+/**
+* Subtracts the amount from the given property on all children in this Group.
+* Group.subAll('x', 10) will minus 10 from the child.x value.
+*
+* @method Phaser.Group#subAll
+* @param {string} property - The property to decrement, for example 'body.velocity.x' or 'angle'.
+* @param {number} amount - The amount to subtract from the property. If child.x = 50 then subAll('x', 40) would make child.x = 10.
+* @param {boolean} checkAlive - If true the property will only be changed if the child is alive.
+* @param {boolean} checkVisible - If true the property will only be changed if the child is visible.
+*/
+Phaser.Group.prototype.subAll = function (property, amount, checkAlive, checkVisible) {
+
+    this.setAll(property, amount, checkAlive, checkVisible, 2);
+
+}
+
+/**
+* Multiplies the given property by the amount on all children in this Group.
+* Group.multiplyAll('x', 2) will x2 the child.x value.
+*
+* @method Phaser.Group#multiplyAll
+* @param {string} property - The property to multiply, for example 'body.velocity.x' or 'angle'.
+* @param {number} amount - The amount to multiply the property by. If child.x = 10 then multiplyAll('x', 2) would make child.x = 20.
+* @param {boolean} checkAlive - If true the property will only be changed if the child is alive.
+* @param {boolean} checkVisible - If true the property will only be changed if the child is visible.
+*/
+Phaser.Group.prototype.multiplyAll = function (property, amount, checkAlive, checkVisible) {
+
+    this.setAll(property, amount, checkAlive, checkVisible, 3);
+
+}
+
+/**
+* Divides the given property by the amount on all children in this Group.
+* Group.divideAll('x', 2) will half the child.x value.
+*
+* @method Phaser.Group#divideAll
+* @param {string} property - The property to divide, for example 'body.velocity.x' or 'angle'.
+* @param {number} amount - The amount to divide the property by. If child.x = 100 then divideAll('x', 2) would make child.x = 50.
+* @param {boolean} checkAlive - If true the property will only be changed if the child is alive.
+* @param {boolean} checkVisible - If true the property will only be changed if the child is visible.
+*/
+Phaser.Group.prototype.divideAll = function (property, amount, checkAlive, checkVisible) {
+
+    this.setAll(property, amount, checkAlive, checkVisible, 4);
+
+}
+
+/**
+* Calls a function on all of the children that have exists=true in this Group.
+* After the existsValue parameter you can add as many parameters as you like, which will all be passed to the child callback.
+* 
+* @method Phaser.Group#callAllExists
+* @param {function} callback - The function that exists on the children that will be called.
+* @param {boolean} existsValue - Only children with exists=existsValue will be called.
+* @param {...*} parameter - Additional parameters that will be passed to the callback.
+*/
+Phaser.Group.prototype.callAllExists = function (callback, existsValue) {
+
+    var args = Array.prototype.splice.call(arguments, 2);
+
+    for (var i = 0, len = this.children.length; i < len; i++)
+    {
+        if (this.children[i].exists === existsValue && this.children[i][callback])
+        {
+            this.children[i][callback].apply(this.children[i], args);
+        }
+    }
+
+}
+
+/**
+* Returns a reference to a function that exists on a child of the Group based on the given callback array.
+* 
+* @method Phaser.Group#callbackFromArray
+* @param {object} child - The object to inspect.
+* @param {array} callback - The array of function names.
+* @param {number} length - The size of the array (pre-calculated in callAll).
+* @protected
+*/
+Phaser.Group.prototype.callbackFromArray = function (child, callback, length) {
+
+    //  Kinda looks like a Christmas tree
+
+    if (length == 1)
+    {
+        if (child[callback[0]])
+        {
+            return child[callback[0]];
+        }
+    }
+    else if (length == 2)
+    {
+        if (child[callback[0]][callback[1]])
+        {
+            return child[callback[0]][callback[1]];
+        }
+    }
+    else if (length == 3)
+    {
+        if (child[callback[0]][callback[1]][callback[2]])
+        {
+            return child[callback[0]][callback[1]][callback[2]];
+        }
+    }
+    else if (length == 4)
+    {
+        if (child[callback[0]][callback[1]][callback[2]][callback[3]])
+        {
+            return child[callback[0]][callback[1]][callback[2]][callback[3]];
+        }
+    }
+    else
+    {
+        if (child[callback])
+        {
+            return child[callback];
+        }
+    }
+
+    return false;
+
+}
+
+/**
+* Calls a function on all of the children regardless if they are dead or alive (see callAllExists if you need control over that)
+* After the method parameter and context you can add as many extra parameters as you like, which will all be passed to the child.
+* 
+* @method Phaser.Group#callAll
+* @param {string} method - A string containing the name of the function that will be called. The function must exist on the child.
+* @param {string} [context=null] - A string containing the context under which the method will be executed. Set to null to default to the child.
+* @param {...*} parameter - Additional parameters that will be passed to the method.
+*/
+Phaser.Group.prototype.callAll = function (method, context) {
+
+    if (typeof method === 'undefined')
+    {
+        return;
+    }
+
+    //  Extract the method into an array
+    method = method.split('.');
+
+    var methodLength = method.length;
+
+    if (typeof context === 'undefined')
+    {
+        context = null;
+    }
+    else
+    {
+        //  Extract the context into an array
+        if (typeof context === 'string')
+        {
+            context = context.split('.');
+            var contextLength = context.length;
+        }
+    }
+
+    var args = Array.prototype.splice.call(arguments, 2);
+    var callback = null;
+    var callbackContext = null;
+
+    for (var i = 0, len = this.children.length; i < len; i++)
+    {
+        callback = this.callbackFromArray(this.children[i], method, methodLength);
+
+        if (context && callback)
+        {
+            callbackContext = this.callbackFromArray(this.children[i], context, contextLength);
+
+            if (callback)
+            {
+                callback.apply(callbackContext, args);
+            }
+        }
+        else if (callback)
+        {
+            callback.apply(this.children[i], args);
+        }
+    }
+
+}
+
+/**
+* Allows you to call your own function on each member of this Group. You must pass the callback and context in which it will run.
+* After the checkExists parameter you can add as many parameters as you like, which will all be passed to the callback along with the child.
+* For example: Group.forEach(awardBonusGold, this, true, 100, 500)
+* Note: Currently this will skip any children which are Groups themselves.
+* 
+* @method Phaser.Group#forEach
+* @param {function} callback - The function that will be called. Each child of the Group will be passed to it as its first parameter.
+* @param {Object} callbackContext - The context in which the function should be called (usually 'this').
+* @param {boolean} checkExists - If set only children with exists=true will be passed to the callback, otherwise all children will be passed.
+*/
+Phaser.Group.prototype.forEach = function (callback, callbackContext, checkExists) {
+
+    if (typeof checkExists === 'undefined')
+    {
+        checkExists = false;
+    }
+
+    var args = Array.prototype.splice.call(arguments, 3);
+    args.unshift(null);
+
+    for (var i = 0, len = this.children.length; i < len; i++)
+    {
+        if (!checkExists || (checkExists && this.children[i].exists))
+        {
+            args[0] = this.children[i];
+            callback.apply(callbackContext, args);
+        }
+    }
+
+}
+
+/**
+* Allows you to call your own function on each alive member of this Group (where child.alive=true). You must pass the callback and context in which it will run.
+* You can add as many parameters as you like, which will all be passed to the callback along with the child.
+* For example: Group.forEachAlive(causeDamage, this, 500)
+* 
+* @method Phaser.Group#forEachAlive
+* @param {function} callback - The function that will be called. Each child of the Group will be passed to it as its first parameter.
+* @param {Object} callbackContext - The context in which the function should be called (usually 'this').
+*/
+Phaser.Group.prototype.forEachExists = function (callback, callbackContext) {
+
+    var args = Array.prototype.splice.call(arguments, 2);
+    args.unshift(null);
+
+    this.iterate('exists', true, Phaser.Group.RETURN_TOTAL, callback, callbackContext, args);
+
+}
+
+/**
+* Allows you to call your own function on each alive member of this Group (where child.alive=true). You must pass the callback and context in which it will run.
+* You can add as many parameters as you like, which will all be passed to the callback along with the child.
+* For example: Group.forEachAlive(causeDamage, this, 500)
+* 
+* @method Phaser.Group#forEachAlive
+* @param {function} callback - The function that will be called. Each child of the Group will be passed to it as its first parameter.
+* @param {Object} callbackContext - The context in which the function should be called (usually 'this').
+*/
+Phaser.Group.prototype.forEachAlive = function (callback, callbackContext) {
+
+    var args = Array.prototype.splice.call(arguments, 2);
+    args.unshift(null);
+
+    this.iterate('alive', true, Phaser.Group.RETURN_TOTAL, callback, callbackContext, args);
+
+}
+
+/**
+* Allows you to call your own function on each dead member of this Group (where alive=false). You must pass the callback and context in which it will run.
+* You can add as many parameters as you like, which will all be passed to the callback along with the child.
+* For example: Group.forEachDead(bringToLife, this)
+* 
+* @method Phaser.Group#forEachDead
+* @param {function} callback - The function that will be called. Each child of the Group will be passed to it as its first parameter.
+* @param {Object} callbackContext - The context in which the function should be called (usually 'this').
+*/
+Phaser.Group.prototype.forEachDead = function (callback, callbackContext) {
+
+    var args = Array.prototype.splice.call(arguments, 2);
+    args.unshift(null);
+
+    this.iterate('alive', false, Phaser.Group.RETURN_TOTAL, callback, callbackContext, args);
+
+}
+
+/**
+* Call this function to sort the group according to a particular value and order.
+* For example to depth sort Sprites for Zelda-style game you might call `group.sort('y', Phaser.Group.SORT_ASCENDING)` at the bottom of your `State.update()`.
+*
+* @method Phaser.Group#sort
+* @param {string} [index='y'] - The `string` name of the property you want to sort on.
+* @param {number} [order=Phaser.Group.SORT_ASCENDING] - The `Group` constant that defines the sort order. Possible values are Phaser.Group.SORT_ASCENDING and Phaser.Group.SORT_DESCENDING.
+*/
+Phaser.Group.prototype.sort = function (index, order) {
+
+    if (typeof index === 'undefined') { index = 'y'; }
+    if (typeof order === 'undefined') { order = Phaser.Group.SORT_ASCENDING; }
+
+
+}
+
+Phaser.Group.prototype.sortHandler = function (a, b) {
+
+}
+
+/**
+* Iterates over the children of the Group. When a child has a property matching key that equals the given value, it is considered as a match.
+* Matched children can be sent to the optional callback, or simply returned or counted.
+* You can add as many callback parameters as you like, which will all be passed to the callback along with the child, after the callbackContext parameter.
+* 
+* @method Phaser.Group#iterate
+* @param {string} key - The child property to check, i.e. 'exists', 'alive', 'health'
+* @param {any} value - If child.key === this value it will be considered a match. Note that a strict comparison is used.
+* @param {number} returnType - How to return the data from this method. Either Phaser.Group.RETURN_NONE, Phaser.Group.RETURN_TOTAL or Phaser.Group.RETURN_CHILD.
+* @param {function} [callback=null] - Optional function that will be called on each matching child. Each child of the Group will be passed to it as its first parameter.
+* @param {Object} [callbackContext] - The context in which the function should be called (usually 'this').
+* @return {any} Returns either a numeric total (if RETURN_TOTAL was specified) or the child object.
+*/
+Phaser.Group.prototype.iterate = function (key, value, returnType, callback, callbackContext, args) {
+
+    if (returnType === Phaser.Group.RETURN_TOTAL && this.children.length === 0)
+    {
+        return 0;
+    }
+
+    if (typeof callback === 'undefined')
+    {
+        callback = false;
+    }
+
+    var total = 0;
+
+    for (var i = 0, len = this.children.length; i < len; i++)
+    {
+        if (this.children[i][key] === value)
+        {
+            total++;
+
+            if (callback)
+            {
+                args[0] = this.children[i];
+                callback.apply(callbackContext, args);
+            }
+
+            if (returnType === Phaser.Group.RETURN_CHILD)
+            {
+                return this.children[i];
+            }
+        }
+    }
+
+    if (returnType === Phaser.Group.RETURN_TOTAL)
+    {
+        return total;
+    }
+    else if (returnType === Phaser.Group.RETURN_CHILD)
+    {
+        return null;
+    }
+
+}
+
+/**
+* Call this function to retrieve the first object with exists == (the given state) in the Group.
+*
+* @method Phaser.Group#getFirstExists
+* @param {boolean} state - True or false.
+* @return {Any} The first child, or null if none found.
+*/
+Phaser.Group.prototype.getFirstExists = function (state) {
+
+    if (typeof state !== 'boolean')
+    {
+        state = true;
+    }
+
+    return this.iterate('exists', state, Phaser.Group.RETURN_CHILD);
+
+}
+
+/**
+* Call this function to retrieve the first object with alive === true in the group.
+* This is handy for checking if everything has been wiped out, or choosing a squad leader, etc.
+*
+* @method Phaser.Group#getFirstAlive
+* @return {Any} The first alive child, or null if none found.
+*/
+Phaser.Group.prototype.getFirstAlive = function () {
+
+    return this.iterate('alive', true, Phaser.Group.RETURN_CHILD);
+
+}
+
+/**
+* Call this function to retrieve the first object with alive === false in the group.
+* This is handy for checking if everything has been wiped out, or choosing a squad leader, etc.
+*
+* @method Phaser.Group#getFirstDead
+* @return {Any} The first dead child, or null if none found.
+*/
+Phaser.Group.prototype.getFirstDead = function () {
+
+    return this.iterate('alive', false, Phaser.Group.RETURN_CHILD);
+
+}
+
+/**
+* Call this function to find out how many members of the group are alive.
+*
+* @method Phaser.Group#countLiving
+* @return {number} The number of children flagged as alive.
+*/
+Phaser.Group.prototype.countLiving = function () {
+
+    return this.iterate('alive', true, Phaser.Group.RETURN_TOTAL);
+
+}
+
+/**
+* Call this function to find out how many members of the group are dead.
+*
+* @method Phaser.Group#countDead
+* @return {number} The number of children flagged as dead.
+*/
+Phaser.Group.prototype.countDead = function () {
+
+    return this.iterate('alive', false, Phaser.Group.RETURN_TOTAL);
+
+}
+
+/**
+* Returns a member at random from the group.
+*
+* @method Phaser.Group#getRandom
+* @param {number} startIndex - Optional offset off the front of the array. Default value is 0, or the beginning of the array.
+* @param {number} length - Optional restriction on the number of values you want to randomly select from.
+* @return {Any} A random child of this Group.
+*/
+Phaser.Group.prototype.getRandom = function (startIndex, length) {
+
+    if (this.children.length === 0)
+    {
+        return null;
+    }
+
+    startIndex = startIndex || 0;
+    length = length || this.children.length;
+
+    return this.game.math.getRandom(this.children, startIndex, length);
+
+}
+
+/**
+* Removes the given child from this Group and sets its group property to null.
+*
+* @method Phaser.Group#remove
+* @param {Any} child - The child to remove.
+* @return {boolean} true if the child was removed from this Group, otherwise false.
+*/
+Phaser.Group.prototype.remove = function (child) {
+
+    if (this.children.length === 0)
+    {
+        return;
+    }
+
+    if (child.events)
+    {
+        child.events.onRemovedFromGroup.dispatch(child, this);
+    }
+
+    this.removeChild(child);
+
+    if (this.cursor === child)
+    {
+        this.next();
+    }
+
+    return true;
+
+}
+
+/**
+* Removes all children from this Group, setting all group properties to null.
+* The Group container remains on the display list.
+*
+* @method Phaser.Group#removeAll
+*/
+Phaser.Group.prototype.removeAll = function () {
+
+    if (this.children.length === 0)
+    {
+        return;
+    }
+
+    do
+    {
+        if (this.children[0].events)
+        {
+            this.children[0].events.onRemovedFromGroup.dispatch(this.children[0], this);
+        }
+
+        this.removeChild(this.children[0]);
+    }
+    while (this.children.length > 0);
+
+    this.cursor = null;
+
+}
+
+/**
+* Removes all children from this Group whos index falls beteen the given startIndex and endIndex values.
+*
+* @method Phaser.Group#removeBetween
+* @param {number} startIndex - The index to start removing children from.
+* @param {number} endIndex - The index to stop removing children from. Must be higher than startIndex and less than the length of the Group.
+*/
+Phaser.Group.prototype.removeBetween = function (startIndex, endIndex) {
+
+    if (this.children.length === 0)
+    {
+        return;
+    }
+
+    if (startIndex > endIndex || startIndex < 0 || endIndex > this.children.length)
+    {
+        return false;
+    }
+
+    for (var i = startIndex; i < endIndex; i++)
+    {
+        if (this.children[i].events)
+        {
+            this.children[i].events.onRemovedFromGroup.dispatch(this.children[i], this);
+        }
+
+        this.removeChild(this.children[i]);
+
+        if (this.cursor === child)
+        {
+            this.cursor = null;
+        }
+    }
+
+}
+
+/**
+* Destroys this Group. Removes all children, then removes the container from the display list and nulls references.
+*
+* @method Phaser.Group#destroy
+* @param {boolean} [destroyChildren=false] - Should every child of this Group have its destroy method called?
+*/
+Phaser.Group.prototype.destroy = function (destroyChildren) {
+
+    if (typeof destroyChildren === 'undefined') { destroyChildren = false; }
+
+    if (destroyChildren)
+    {
+        if (this.children.length > 0)
+        {
+            do
+            {
+                if (this.children[0].group)
+                {
+                    this.children[0].destroy();
+                }
+            }
+            while (this.children.length > 0);
+        }
+    }
+    else
+    {
+        this.removeAll();
+    }
+
+    this.parent.removeChild(this);
+
+    this.game = null;
+
+    this.exists = false;
+
+    this.cursor = null;
+
+}
 
 /**
 * @name Phaser.Group#total
@@ -12388,14 +6546,7 @@ Object.defineProperty(Phaser.Group.prototype, "total", {
 
     get: function () {
 
-        if (this._container)
-        {
-            return this.iterate('exists', true, Phaser.Group.RETURN_TOTAL);
-        }
-        else
-        {
-            return 0;
-        }
+        return this.iterate('exists', true, Phaser.Group.RETURN_TOTAL);
 
     }
 
@@ -12410,51 +6561,8 @@ Object.defineProperty(Phaser.Group.prototype, "length", {
 
     get: function () {
 
-        if (this._container)
-        {
-            return this._container.children.length;
-        }
-        else
-        {
-            return 0;
-        }
+        return this.children.length;
 
-    }
-
-});
-
-/**
-* The x coordinate of the Group container. You can adjust the Group container itself by modifying its coordinates.
-* This will have no impact on the x/y coordinates of its children, but it will update their worldTransform and on-screen position.
-* @name Phaser.Group#x
-* @property {number} x - The x coordinate of the Group container.
-*/
-Object.defineProperty(Phaser.Group.prototype, "x", {
-
-    get: function () {
-        return this._container.position.x;
-    },
-
-    set: function (value) {
-        this._container.position.x = value;
-    }
-
-});
-
-/**
-* The y coordinate of the Group container. You can adjust the Group container itself by modifying its coordinates.
-* This will have no impact on the x/y coordinates of its children, but it will update their worldTransform and on-screen position.
-* @name Phaser.Group#y
-* @property {number} y - The y coordinate of the Group container.
-*/
-Object.defineProperty(Phaser.Group.prototype, "y", {
-
-    get: function () {
-        return this._container.position.y;
-    },
-
-    set: function (value) {
-        this._container.position.y = value;
     }
 
 });
@@ -12468,14 +6576,30 @@ Object.defineProperty(Phaser.Group.prototype, "y", {
 Object.defineProperty(Phaser.Group.prototype, "angle", {
 
     get: function() {
-        return Phaser.Math.radToDeg(this._container.rotation);
+        return Phaser.Math.radToDeg(this.rotation);
     },
 
     set: function(value) {
-        this._container.rotation = Phaser.Math.degToRad(value);
+        this.rotation = Phaser.Math.degToRad(value);
     }
 
 });
+
+//  Documentation stubs
+
+/**
+* The x coordinate of the Group container. You can adjust the Group container itself by modifying its coordinates.
+* This will have no impact on the x/y coordinates of its children, but it will update their worldTransform and on-screen position.
+* @name Phaser.Group#x
+* @property {number} x - The x coordinate of the Group container.
+*/
+
+/**
+* The y coordinate of the Group container. You can adjust the Group container itself by modifying its coordinates.
+* This will have no impact on the x/y coordinates of its children, but it will update their worldTransform and on-screen position.
+* @name Phaser.Group#y
+* @property {number} y - The y coordinate of the Group container.
+*/
 
 /**
 * The angle of rotation of the Group container. This will adjust the Group container itself by modifying its rotation.
@@ -12483,49 +6607,16 @@ Object.defineProperty(Phaser.Group.prototype, "angle", {
 * @name Phaser.Group#rotation
 * @property {number} rotation - The angle of rotation given in radians.
 */
-Object.defineProperty(Phaser.Group.prototype, "rotation", {
-
-    get: function () {
-        return this._container.rotation;
-    },
-
-    set: function (value) {
-        this._container.rotation = value;
-    }
-
-});
 
 /**
 * @name Phaser.Group#visible
 * @property {boolean} visible - The visible state of the Group. Non-visible Groups and all of their children are not rendered.
 */
-Object.defineProperty(Phaser.Group.prototype, "visible", {
-
-    get: function () {
-        return this._container.visible;
-    },
-
-    set: function (value) {
-        this._container.visible = value;
-    }
-
-});
 
 /**
 * @name Phaser.Group#alpha
 * @property {number} alpha - The alpha value of the Group container.
 */
-Object.defineProperty(Phaser.Group.prototype, "alpha", {
-
-    get: function () {
-        return this._container.alpha;
-    },
-
-    set: function (value) {
-        this._container.alpha = value;
-    }
-
-});
 
 /**
 * @author       Richard Davey <rich@photonstorm.com>
@@ -12583,38 +6674,30 @@ Phaser.World.prototype.boot = function () {
 
     this.camera = new Phaser.Camera(this.game, 0, 0, 0, this.game.width, this.game.height);
 
-    this.camera.displayObject = this._container;
+    this.camera.displayObject = this;
 
     this.game.camera = this.camera;
+
+    this.game.stage._stage.addChild(this);
 
 }
 
 /**
 * This is called automatically after the plugins preUpdate and before the State.update.
-* Most objects have preUpdate methods and it's where initial movement, drawing and calculations are done.
+* Most objects have preUpdate methods and it's where initial movement and positioning is done.
 * 
 * @method Phaser.World#preUpdate
 */
 Phaser.World.prototype.preUpdate = function () {
     
-    if (this.game.stage._stage.first._iNext)
+    this.currentRenderOrderID = 0;
+
+    for (var i = 0, len = this.children.length; i < len; i++)
     {
-        var currentNode = this.game.stage._stage.first._iNext;
-        
-        do
+        if (this.children[i]['preUpdate'])
         {
-            // If preUpdate exists, and it returns false, skip PIXI child objects
-            if (currentNode['preUpdate'] && !currentNode.preUpdate())
-            {
-                currentNode = currentNode.last._iNext;
-            }
-            else
-            {
-                currentNode = currentNode._iNext;
-            }
-            
+            this.children[i].preUpdate();
         }
-        while (currentNode != this.game.stage._stage.last._iNext)
     }
 
 }
@@ -12627,26 +6710,12 @@ Phaser.World.prototype.preUpdate = function () {
 */
 Phaser.World.prototype.update = function () {
 
-    this.currentRenderOrderID = 0;
-    
-    if (this.game.stage._stage.first._iNext)
+    for (var i = 0, len = this.children.length; i < len; i++)
     {
-        var currentNode = this.game.stage._stage.first._iNext;
-        
-        do
+        if (this.children[i]['update'])
         {
-            // If update exists, and it returns false, skip PIXI child objects
-            if (currentNode['update'] && !currentNode.update())
-            {
-                currentNode = currentNode.last._iNext;
-            }
-            else
-            {
-                currentNode = currentNode._iNext;
-            }
-            
+            this.children[i].update();
         }
-        while (currentNode != this.game.stage._stage.last._iNext)
     }
 
 }
@@ -12667,40 +6736,24 @@ Phaser.World.prototype.postUpdate = function () {
 
         this.camera.update();
 
-        if (this.game.stage._stage.first._iNext)
+        for (var i = 0, len = this.children.length; i < len; i++)
         {
-            var currentNode = this.game.stage._stage.first._iNext;
-            
-            do
+            if (this.children[i]['postUpdate'])
             {
-                if (currentNode['postUpdate'] && currentNode !== this.camera.target)
-                {
-                    currentNode.postUpdate();
-                }
-                
-                currentNode = currentNode._iNext;
+                this.children[i].postUpdate();
             }
-            while (currentNode != this.game.stage._stage.last._iNext)
         }
     }
     else
     {
         this.camera.update();
 
-        if (this.game.stage._stage.first._iNext)
+        for (var i = 0, len = this.children.length; i < len; i++)
         {
-            var currentNode = this.game.stage._stage.first._iNext;
-            
-            do
+            if (this.children[i]['postUpdate'])
             {
-                if (currentNode['postUpdate'])
-                {
-                    currentNode.postUpdate();
-                }
-                
-                currentNode = currentNode._iNext;
+                this.children[i].postUpdate();
             }
-            while (currentNode != this.game.stage._stage.last._iNext)
         }
     }
 
@@ -12745,8 +6798,7 @@ Phaser.World.prototype.setBounds = function (x, y, width, height) {
 */
 Phaser.World.prototype.destroy = function () {
 
-    this.camera.x = 0;
-    this.camera.y = 0;
+    this.camera.reset();
 
     this.game.input.reset(true);
 
@@ -12856,21 +6908,6 @@ Object.defineProperty(Phaser.World.prototype, "randomY", {
 
 });
 
-/**
-* @name Phaser.World#visible
-* @property {boolean} visible - Gets or sets the visible state of the World.
-*/
-Object.defineProperty(Phaser.World.prototype, "visible", {
-
-    get: function () {
-        return this._container.visible;
-    },
-
-    set: function (value) {
-        this._container.visible = value;
-    }
-
-});
 
 /**
 * @author       Richard Davey <rich@photonstorm.com>
@@ -13053,7 +7090,8 @@ Phaser.Game = function (width, height, renderer, parent, state, transparent, ant
     this.world = null;
 
     /**
-    * @property {Phaser.Physics.PhysicsManager} physics - Reference to the physics manager.
+    * // {Phaser.Physics.Arcade.ArcadePhysics} physics - Reference to the physics manager.
+    * @property {Phaser.Physics.World} physics - Reference to the physics world.
     * @default
     */
     this.physics = null;
@@ -13320,7 +7358,7 @@ Phaser.Game.prototype = {
             this.tweens = new Phaser.TweenManager(this);
             this.input = new Phaser.Input(this);
             this.sound = new Phaser.SoundManager(this);
-            this.physics = new Phaser.Physics.Arcade(this);
+            this.physics = new Phaser.Physics.World(this);
             this.particles = new Phaser.Particles(this);
             this.plugins = new Phaser.PluginManager(this, this);
             this.net = new Phaser.Net(this);
@@ -13342,7 +7380,6 @@ Phaser.Game.prototype = {
 
             this.raf = new Phaser.RequestAnimationFrame(this);
             this.raf.start();
-
         }
 
     },
@@ -13490,9 +7527,10 @@ Phaser.Game.prototype = {
                 this.sound.update();
                 this.input.update();
                 this.state.update();
-                this.world.update();
+                this.physics.update();
                 this.particles.update();            
                 this.plugins.update();
+                this.world.update();
 
                 this.world.postUpdate();
                 this.plugins.postUpdate();
@@ -13659,6 +7697,257 @@ Phaser.Input = function (game) {
     * @property {object} moveCallbackContext - The context in which the moveCallback will be sent. Defaults to Phaser.Input but can be set to any valid JS object.
     */
     this.moveCallbackContext = this;
+
+    /**
+    * @property {number} pollRate - How often should the input pointers be checked for updates? A value of 0 means every single frame (60fps); a value of 1 means every other frame (30fps) and so on.
+    * @default
+    */
+    this.pollRate = 0;
+    
+    /**
+    * @property {number} _pollCounter - Internal var holding the current poll counter.
+    * @private
+    */
+    this._pollCounter = 0;
+
+    /**
+    * @property {Phaser.Point} _oldPosition - A point object representing the previous position of the Pointer.
+    * @private
+    */
+    this._oldPosition = null;
+
+    /**
+    * @property {number} _x - x coordinate of the most recent Pointer event
+    * @private
+    */
+    this._x = 0;
+
+    /**
+    * @property {number} _y - Y coordinate of the most recent Pointer event
+    * @private
+    */
+    this._y = 0;
+
+    /**
+    * You can disable all Input by setting Input.disabled = true. While set all new input related events will be ignored.
+    * If you need to disable just one type of input; for example mouse; use Input.mouse.disabled = true instead
+    * @property {boolean} disabled
+    * @default
+    */
+    this.disabled = false;
+
+    /**
+    * @property {number} multiInputOverride - Controls the expected behaviour when using a mouse and touch together on a multi-input device.
+    * @default 
+    */
+    this.multiInputOverride = Phaser.Input.MOUSE_TOUCH_COMBINE;
+
+    /**
+    * @property {Phaser.Point} position - A point object representing the current position of the Pointer.
+    * @default 
+    */
+    this.position = null;
+
+    /**
+    * @property {Phaser.Point} speed - A point object representing the speed of the Pointer. Only really useful in single Pointer games; otherwise see the Pointer objects directly.
+    */
+    this.speed = null;
+
+    /**
+    * A Circle object centered on the x/y screen coordinates of the Input.
+    * Default size of 44px (Apples recommended "finger tip" size) but can be changed to anything.
+    * @property {Phaser.Circle} circle
+    */
+    this.circle = null;
+
+    /**
+    * @property {Phaser.Point} scale - The scale by which all input coordinates are multiplied; calculated by the StageScaleMode. In an un-scaled game the values will be x = 1 and y = 1.
+    */
+    this.scale = null;
+
+    /**
+    * @property {number} maxPointers - The maximum number of Pointers allowed to be active at any one time. For lots of games it's useful to set this to 1.
+    * @default
+    */
+    this.maxPointers = 10;
+
+    /**
+    * @property {number} currentPointers - The current number of active Pointers.
+    * @default
+    */
+    this.currentPointers = 0;
+
+    /**
+    * @property {number} tapRate - The number of milliseconds that the Pointer has to be pressed down and then released to be considered a tap or click.
+    * @default
+    */
+    this.tapRate = 200;
+
+    /**
+    * @property {number} doubleTapRate - The number of milliseconds between taps of the same Pointer for it to be considered a double tap / click.
+    * @default
+    */
+    this.doubleTapRate = 300;
+
+    /**
+    * @property {number} holdRate - The number of milliseconds that the Pointer has to be pressed down for it to fire a onHold event.
+    * @default
+    */
+    this.holdRate = 2000;
+
+    /**
+    * @property {number} justPressedRate - The number of milliseconds below which the Pointer is considered justPressed.
+    * @default
+    */
+    this.justPressedRate = 200;
+
+    /**
+    * @property {number} justReleasedRate - The number of milliseconds below which the Pointer is considered justReleased .
+    * @default
+    */
+    this.justReleasedRate = 200;
+
+    /**
+    * Sets if the Pointer objects should record a history of x/y coordinates they have passed through.
+    * The history is cleared each time the Pointer is pressed down.
+    * The history is updated at the rate specified in Input.pollRate
+    * @property {boolean} recordPointerHistory
+    * @default
+    */
+    this.recordPointerHistory = false;
+
+    /**
+    * @property {number} recordRate - The rate in milliseconds at which the Pointer objects should update their tracking history.
+    * @default
+    */
+    this.recordRate = 100;
+
+    /**
+    * The total number of entries that can be recorded into the Pointer objects tracking history.
+    * If the Pointer is tracking one event every 100ms; then a trackLimit of 100 would store the last 10 seconds worth of history.
+    * @property {number} recordLimit
+    * @default
+    */
+    this.recordLimit = 100;
+
+    /**
+    * @property {Phaser.Pointer} pointer1 - A Pointer object.
+    */
+    this.pointer1 = null;
+
+    /**
+    * @property {Phaser.Pointer} pointer2 - A Pointer object.
+    */
+    this.pointer2 = null;
+
+    /**
+    * @property {Phaser.Pointer} pointer3 - A Pointer object.
+    */
+    this.pointer3 = null;
+
+    /**
+    * @property {Phaser.Pointer} pointer4 - A Pointer object.
+    */
+    this.pointer4 = null;
+
+    /**
+    * @property {Phaser.Pointer} pointer5 - A Pointer object.
+    */
+    this.pointer5 = null;
+
+    /**
+    * @property {Phaser.Pointer} pointer6 - A Pointer object.
+    */
+    this.pointer6 = null;
+
+    /**
+    * @property {Phaser.Pointer} pointer7 - A Pointer object.
+    */
+    this.pointer7 = null;
+
+    /**
+    * @property {Phaser.Pointer} pointer8 - A Pointer object.
+    */
+    this.pointer8 = null;
+
+    /**
+    * @property {Phaser.Pointer} pointer9 - A Pointer object.
+    */
+    this.pointer9 = null;
+
+    /**
+    * @property {Phaser.Pointer} pointer10 - A Pointer object.
+    */
+    this.pointer10 = null;
+
+    /**
+    * The most recently active Pointer object.
+    * When you've limited max pointers to 1 this will accurately be either the first finger touched or mouse.
+    * @property {Phaser.Pointer} activePointer
+    */
+    this.activePointer = null;
+
+    /**
+    * @property {Pointer} mousePointer - The mouse has its own unique Phaser.Pointer object which you can use if making a desktop specific game.
+    */
+    this.mousePointer = null;
+    
+    /**
+    * @property {Phaser.Mouse} mouse - The Mouse Input manager.
+    */
+    this.mouse = null;
+    
+    /**
+    * @property {Phaser.Keyboard} keyboard - The Keyboard Input manager.
+    */
+    this.keyboard = null;
+    
+    /**
+    * @property {Phaser.Touch} touch - the Touch Input manager.
+    */
+    this.touch = null;
+    
+    /**
+    * @property {Phaser.MSPointer} mspointer - The MSPointer Input manager.
+    */
+    this.mspointer = null;
+
+    /**
+    * @property {Phaser.Gamepad} gamepad - The Gamepad Input manager.
+    */
+    this.gamepad = null;
+
+    /**
+    * @property {Phaser.Signal} onDown - A Signal that is dispatched each time a pointer is pressed down.
+    */
+    this.onDown = null;
+    
+    /**
+    * @property {Phaser.Signal} onUp - A Signal that is dispatched each time a pointer is released.
+    */
+    this.onUp = null;
+    
+    /**
+    * @property {Phaser.Signal} onTap - A Signal that is dispatched each time a pointer is tapped.
+    */
+    this.onTap = null;
+    
+    /**
+    * @property {Phaser.Signal} onHold - A Signal that is dispatched each time a pointer is held down.
+    */
+    this.onHold = null;
+
+    /**
+    * A linked list of interactive objects; the InputHandler components (belonging to Sprites) register themselves with this.
+    * @property {Phaser.LinkedList} interactiveItems
+    */
+    this.interactiveItems = new Phaser.LinkedList();
+
+    /**
+    * @property {Phaser.Point} _localPoint - Internal cache var.
+    * @private
+    */
+    this._localPoint = new Phaser.Point();
     
 };
 
@@ -13681,300 +7970,6 @@ Phaser.Input.TOUCH_OVERRIDES_MOUSE = 1;
 Phaser.Input.MOUSE_TOUCH_COMBINE = 2;
 
 Phaser.Input.prototype = {
-
-    /**
-    * How often should the input pointers be checked for updates?
-    * A value of 0 means every single frame (60fps), a value of 1 means every other frame (30fps) and so on.
-    * @property {number} pollRate 
-    * @default
-    */
-    pollRate: 0,
-    
-    /**
-    * @property {number} _pollCounter - Internal var holding the current poll counter.
-    * @private
-    * @default
-    */
-    _pollCounter: 0,
-
-    /**
-    * @property {Phaser.Point} _oldPosition - A point object representing the previous position of the Pointer.
-    * @private
-    * @default 
-    */
-    _oldPosition: null,
-
-    /**
-    * @property {number} _x - x coordinate of the most recent Pointer event
-    * @private
-    * @default
-    */
-    _x: 0,
-
-    /**
-    * @property {number} _y - Y coordinate of the most recent Pointer event
-    * @private
-    * @default
-    */
-    _y: 0,
-
-    /**
-    * You can disable all Input by setting Input.disabled: true. While set all new input related events will be ignored.
-    * If you need to disable just one type of input, for example mouse, use Input.mouse.disabled: true instead
-    * @property {boolean} disabled
-    * @default
-    */
-    disabled: false,
-
-    /**
-    * Controls the expected behaviour when using a mouse and touch together on a multi-input device.
-    * @property {Description} multiInputOverride
-    */
-    multiInputOverride: Phaser.Input.MOUSE_TOUCH_COMBINE,
-
-    /**
-    * @property {Phaser.Point} position - A point object representing the current position of the Pointer.
-    * @default 
-    */
-    position: null,
-
-    /**
-    * A point object representing the speed of the Pointer. Only really useful in single Pointer games, otherwise see the Pointer objects directly.
-    * @property {Phaser.Point} speed
-    */
-    speed: null,
-
-    /**
-    * A Circle object centered on the x/y screen coordinates of the Input.
-    * Default size of 44px (Apples recommended "finger tip" size) but can be changed to anything.
-    * @property {Phaser.Circle} circle
-    */
-    circle: null,
-
-    /**
-    * The scale by which all input coordinates are multiplied, calculated by the StageScaleMode.
-    * In an un-scaled game the values will be x: 1 and y: 1.
-    * @property {Phaser.Point} scale
-    */
-    scale: null,
-
-    /**
-    * The maximum number of Pointers allowed to be active at any one time.
-    * For lots of games it's useful to set this to 1.
-    * @property {number} maxPointers
-    * @default
-    */
-    maxPointers: 10,
-
-    /**
-    * The current number of active Pointers.
-    * @property {number} currentPointers
-    * @default
-    */
-    currentPointers: 0,
-
-    /**
-    * The number of milliseconds that the Pointer has to be pressed down and then released to be considered a tap or clicke
-    * @property {number} tapRate
-    * @default
-    */
-    tapRate: 200,
-
-    /**
-    * The number of milliseconds between taps of the same Pointer for it to be considered a double tap / click
-    * @property {number} doubleTapRate
-    * @default
-    */
-    doubleTapRate: 300,
-
-    /**
-    * The number of milliseconds that the Pointer has to be pressed down for it to fire a onHold event
-    * @property {number} holdRate
-    * @default
-    */
-    holdRate: 2000,
-
-    /**
-    * The number of milliseconds below which the Pointer is considered justPressed
-    * @property {number} justPressedRate
-    * @default
-    */
-    justPressedRate: 200,
-
-    /**
-    * The number of milliseconds below which the Pointer is considered justReleased 
-    * @property {number} justReleasedRate
-    * @default
-    */
-    justReleasedRate: 200,
-
-    /**
-    * Sets if the Pointer objects should record a history of x/y coordinates they have passed through.
-    * The history is cleared each time the Pointer is pressed down.
-    * The history is updated at the rate specified in Input.pollRate
-    * @property {boolean} recordPointerHistory
-    * @default
-    */
-    recordPointerHistory: false,
-
-    /**
-    * The rate in milliseconds at which the Pointer objects should update their tracking history
-    * @property {number} recordRate
-    * @default
-    */
-    recordRate: 100,
-
-    /**
-    * The total number of entries that can be recorded into the Pointer objects tracking history.
-    * If the Pointer is tracking one event every 100ms, then a trackLimit of 100 would store the last 10 seconds worth of history.
-    * @property {number} recordLimit
-    * @default
-    */
-    recordLimit: 100,
-
-    /**
-    * A Pointer object
-    * @property {Phaser.Pointer} pointer1
-    */
-    pointer1: null,
-
-    /**
-    * A Pointer object
-    * @property {Phaser.Pointer} pointer2
-    */
-    pointer2: null,
-
-    /**
-    * A Pointer object  
-    * @property {Phaser.Pointer} pointer3
-    */
-    pointer3: null,
-
-    /**
-    * A Pointer object
-    * @property {Phaser.Pointer} pointer4
-    */
-    pointer4: null,
-
-    /**
-    * A Pointer object
-    * @property {Phaser.Pointer} pointer5
-    */
-    pointer5: null,
-
-    /**
-    * A Pointer object
-    * @property {Phaser.Pointer} pointer6
-    */
-    pointer6: null,
-
-    /**
-    * A Pointer object  
-    * @property {Phaser.Pointer} pointer7
-    */
-    pointer7: null,
-
-    /**
-    * A Pointer object
-    * @property {Phaser.Pointer} pointer8
-    */
-    pointer8: null,
-
-    /**
-    * A Pointer object
-    * @property {Phaser.Pointer} pointer9
-    */
-    pointer9: null,
-
-    /**
-    * A Pointer object.
-    * @property {Phaser.Pointer} pointer10
-    */
-    pointer10: null,
-
-    /**
-    * The most recently active Pointer object.
-    * When you've limited max pointers to 1 this will accurately be either the first finger touched or mouse.
-    * @property {Phaser.Pointer} activePointer
-    * @default
-    */
-    activePointer: null,
-
-    /**
-    * The mouse has its own unique Phaser.Pointer object which you can use if making a desktop specific game.
-    * @property {Pointer} mousePointer
-    * @default
-    */
-    mousePointer: null,
-    
-    /**
-    * The Mouse Input manager.
-    * @property {Phaser.Mouse} mouse - The Mouse Input manager.
-    * @default
-    */
-    mouse: null,
-    
-    /**
-    * The Keyboard Input manager.
-    * @property {Phaser.Keyboard} keyboard - The Keyboard Input manager.
-    * @default
-    */
-    keyboard: null,
-    
-    /**
-    * The Touch Input manager.
-    * @property {Phaser.Touch} touch - the Touch Input manager.
-    * @default
-    */
-    touch: null,
-    
-    /**
-    * The MSPointer Input manager.
-    * @property {Phaser.MSPointer} mspointer - The MSPointer Input manager.
-    * @default
-    */
-    mspointer: null,
-
-    /**
-     * The Gamepad Input manager.
-     * @property {Phaser.Gamepad} gamepad - The Gamepad Input manager.
-     * @default
-     */
-    gamepad: null,
-
-    /**
-    * A Signal that is dispatched each time a pointer is pressed down.
-    * @property {Phaser.Signal} onDown
-    * @default
-    */
-    onDown: null,
-    
-    /**
-    * A Signal that is dispatched each time a pointer is released.
-    * @property {Phaser.Signal} onUp
-    * @default
-    */
-    onUp: null,
-    
-    /**
-    * A Signal that is dispatched each time a pointer is tapped.
-    * @property {Phaser.Signal} onTap
-    * @default
-    */
-    onTap: null,
-    
-    /**
-    * A Signal that is dispatched each time a pointer is held down.
-    * @property {Phaser.Signal} onHold
-    * @default
-    */
-    onHold: null,
-
-    /**
-    * A linked list of interactive objects, the InputHandler components (belonging to Sprites) register themselves with this.
-    * @property {Phaser.LinkedList} interactiveItems
-    */
-    interactiveItems: new Phaser.LinkedList(),
 
     /**
     * Starts the Input Manager running.
@@ -14149,7 +8144,7 @@ Phaser.Input.prototype = {
 
         if (this.game.canvas.style.cursor !== 'none')
         {
-            this.game.canvas.style.cursor = 'default';
+            this.game.canvas.style.cursor = 'inherit';
         }
 
         if (hard === true)
@@ -14343,6 +8338,81 @@ Phaser.Input.prototype = {
 
         return null;
 
+    },
+
+    /**
+    * This will return the local coordinates of the specified displayObject based on the given Pointer.
+    * @method Phaser.Input#getLocalPosition
+    * @param {Phaser.Sprite|Phaser.Image} displayObject - The DisplayObject to get the local coordinates for.
+    * @param {Phaser.Pointer} pointer - The Pointer to use in the check against the displayObject.
+    * @return {Phaser.Point} A point containing the coordinates of the Pointer position relative to the DisplayObject.
+    */
+    getLocalPosition: function (displayObject, pointer, output) {
+
+        if (typeof output === 'undefined') { output = new Phaser.Point(); }
+
+        var wt = displayObject.worldTransform;
+        var id = 1 / (wt.a * wt.d + wt.b * -wt.c);
+
+        return output.setTo(
+            wt.d * id * pointer.x + -wt.b * id * pointer.y + (wt.ty * wt.b - wt.tx * wt.d) * id,
+            wt.a * id * pointer.y + -wt.c * id * pointer.x + (-wt.ty * wt.a + wt.tx * wt.c) * id
+        );
+        
+    },
+
+    /**
+     * Tests if the current mouse coordinates hit a sprite
+     *
+     * @method hitTest
+     * @param displayObject {DisplayObject} The displayObject to test for a hit
+     */
+    hitTest: function (displayObject, pointer, localPoint) {
+
+        if (!displayObject.worldVisible)
+        {
+            return false;
+        }
+
+        this.getLocalPosition(displayObject, pointer, this._localPoint);
+
+        localPoint.copyFrom(this._localPoint);
+
+        if (displayObject.hitArea && displayObject.hitArea.contains)
+        {
+            if (displayObject.hitArea.contains(this._localPoint.x, this._localPoint.y))
+            {
+                return true;
+            }
+
+            return false;
+        }
+        else if (displayObject instanceof PIXI.Sprite)
+        {
+            var width = displayObject.texture.frame.width;
+            var height = displayObject.texture.frame.height;
+            var x1 = -width * displayObject.anchor.x;
+
+            if (this._localPoint.x > x1 && this._localPoint.x < x1 + width)
+            {
+                var y1 = -height * displayObject.anchor.y;
+
+                if (this._localPoint.y > y1 && this._localPoint.y < y1 + height)
+                {
+                    return true;
+                }
+            }
+        }
+
+        for (var i = 0, len = displayObject.children.length; i < len; i++)
+        {
+            if (this.hitTest(displayObject.children[i], pointer, localPoint))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 };
@@ -14620,7 +8690,7 @@ Phaser.Key.prototype = {
 
     /**
     * Returns the "just released" state of the Key. Just released is considered as being true if the key was released within the duration given (default 250ms)
-    * @method Phaser.Key#justReleased
+    * @method Phaser.Key#justPressed
     * @param {number} [duration=250] - The duration below which the key is considered as being just released.
     * @return {boolean} True if the key is just released otherwise false.
     */
@@ -16025,7 +10095,7 @@ Phaser.Pointer.prototype = {
             while (currentNode != null)
         }
 
-        if (this._highestRenderObject == null)
+        if (this._highestRenderObject === null)
         {
             //  The pointer isn't currently over anything, check if we've got a lingering previous target
             if (this.targetObject)
@@ -16037,7 +10107,7 @@ Phaser.Pointer.prototype = {
         }
         else
         {
-            if (this.targetObject == null)
+            if (this.targetObject === null)
             {
                 //  And now set the new one
                 // console.log('And now set the new one');
@@ -16048,7 +10118,7 @@ Phaser.Pointer.prototype = {
             {
                 //  We've got a target from the last update
                 // console.log("We've got a target from the last update");
-                if (this.targetObject == this._highestRenderObject)
+                if (this.targetObject === this._highestRenderObject)
                 {
                     //  Same target as before, so update it
                     // console.log("Same target as before, so update it");
@@ -16653,1185 +10723,6 @@ Phaser.Touch.prototype = {
 };
 
 Phaser.Touch.prototype.constructor = Phaser.Touch;
-
-/**
-* @author       Richard Davey <rich@photonstorm.com>
-* @copyright    2014 Photon Storm Ltd.
-* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
-*/
-
-/**
-* The Input Handler is bound to a specific Sprite and is responsible for managing all Input events on that Sprite.
-* @class Phaser.InputHandler
-* @constructor
-* @param {Phaser.Sprite} sprite - The Sprite object to which this Input Handler belongs.
-*/
-Phaser.InputHandler = function (sprite) {
-
-    /**
-    * @property {Phaser.Sprite} sprite - The Sprite object to which this Input Handler belongs.
-    */
-    this.sprite = sprite;
-
-    /**
-    * @property {Phaser.Game} game - A reference to the currently running game. 
-    */
-    this.game = sprite.game;
-
-    /**
-    * @property {boolean} enabled - If enabled the Input Handler will process input requests and monitor pointer activity.
-    * @default
-    */
-    this.enabled = false;
-
-    /**
-    * @property {number} priorityID - The PriorityID controls which Sprite receives an Input event first if they should overlap.
-    * @default
-    */
-    this.priorityID = 0;
-    
-    /**
-    * @property {boolean} useHandCursor - On a desktop browser you can set the 'hand' cursor to appear when moving over the Sprite.
-    * @default
-    */
-    this.useHandCursor = false;
-    
-    /**
-    * @property {boolean} isDragged - true if the Sprite is being currently dragged.
-    * @default
-    */
-    this.isDragged = false;
-    
-    /**
-    * @property {boolean} allowHorizontalDrag - Controls if the Sprite is allowed to be dragged horizontally.
-    * @default
-    */
-    this.allowHorizontalDrag = true;
-    
-    /**
-    * @property {boolean} allowVerticalDrag - Controls if the Sprite is allowed to be dragged vertically.
-    * @default
-    */
-    this.allowVerticalDrag = true;
-    
-    /**
-    * @property {boolean} bringToTop - If true when this Sprite is clicked or dragged it will automatically be bought to the top of the Group it is within.
-    * @default
-    */
-    this.bringToTop = false;
-
-    /**
-    * @property {Phaser.Point} snapOffset - A Point object that contains by how far the Sprite snap is offset.
-    * @default
-    */
-    this.snapOffset = null;
-    
-    /**
-    * @property {boolean} snapOnDrag - When the Sprite is dragged this controls if the center of the Sprite will snap to the pointer on drag or not.
-    * @default
-    */
-    this.snapOnDrag = false;
-    
-    /**
-    * @property {boolean} snapOnRelease - When the Sprite is dragged this controls if the Sprite will be snapped on release.
-    * @default
-    */
-    this.snapOnRelease = false;
-    
-    /**
-    * @property {number} snapX - When a Sprite has snapping enabled this holds the width of the snap grid.
-    * @default
-    */
-    this.snapX = 0;
-    
-    /**
-    * @property {number} snapY - When a Sprite has snapping enabled this holds the height of the snap grid.
-    * @default
-    */
-    this.snapY = 0;
-
-    /**
-    * @property {number} snapOffsetX - This defines the top-left X coordinate of the snap grid.
-    * @default
-    */
-    this.snapOffsetX = 0;
-    
-    /**
-    * @property {number} snapOffsetY - This defines the top-left Y coordinate of the snap grid..
-    * @default
-    */
-    this.snapOffsetY = 0;
-
-    /**
-    * @property {number} pixelPerfect - Should we use pixel perfect hit detection? Warning: expensive. Only enable if you really need it!
-    * @default
-    */
-    this.pixelPerfect = false;
-
-    /**
-    * @property {number} pixelPerfectAlpha - The alpha tolerance threshold. If the alpha value of the pixel matches or is above this value, it's considered a hit.
-    * @default
-    */
-    this.pixelPerfectAlpha = 255;
-
-    /**
-    * @property {boolean} draggable - Is this sprite allowed to be dragged by the mouse? true = yes, false = no
-    * @default 
-    */
-    this.draggable = false;
-
-    /**
-    * @property {Phaser.Rectangle} boundsRect - A region of the game world within which the sprite is restricted during drag.
-    * @default 
-    */
-    this.boundsRect = null;
-
-    /**
-    * @property {Phaser.Sprite} boundsSprite - A Sprite the bounds of which this sprite is restricted during drag.
-    * @default
-    */
-    this.boundsSprite = null;
-
-    /**
-    * If this object is set to consume the pointer event then it will stop all propogation from this object on.
-    * For example if you had a stack of 6 sprites with the same priority IDs and one consumed the event, none of the others would receive it.
-    * @property {boolean} consumePointerEvent
-    * @default
-    */
-    this.consumePointerEvent = false;
-
-    /**
-    * @property {Phaser.Point} _tempPoint - Description.
-    * @private
-    */
-    this._tempPoint = new Phaser.Point();
-
-    this._pointerData = [];
-
-    this._pointerData.push({
-        id: 0,
-        x: 0,
-        y: 0,
-        isDown: false,
-        isUp: false,
-        isOver: false,
-        isOut: false,
-        timeOver: 0,
-        timeOut: 0,
-        timeDown: 0,
-        timeUp: 0,
-        downDuration: 0,
-        isDragged: false
-    });
-
-};
-
-Phaser.InputHandler.prototype = {
-
-    /**
-    * Starts the Input Handler running. This is called automatically when you enable input on a Sprite, or can be called directly if you need to set a specific priority.
-    * @method Phaser.InputHandler#start
-    * @param {number} priority - Higher priority sprites take click priority over low-priority sprites when they are stacked on-top of each other.
-    * @param {boolean} useHandCursor - If true the Sprite will show the hand cursor on mouse-over (doesn't apply to mobile browsers)
-    * @return {Phaser.Sprite} The Sprite object to which the Input Handler is bound.
-    */
-    start: function (priority, useHandCursor) {
-
-        priority = priority || 0;
-        if (typeof useHandCursor == 'undefined') { useHandCursor = false; }
-
-        //  Turning on
-        if (this.enabled === false)
-        {
-            //  Register, etc
-            this.game.input.interactiveItems.add(this);
-            this.useHandCursor = useHandCursor;
-            this.priorityID = priority;
-
-            for (var i = 0; i < 10; i++)
-            {
-                this._pointerData[i] = {
-                    id: i,
-                    x: 0,
-                    y: 0,
-                    isDown: false,
-                    isUp: false,
-                    isOver: false,
-                    isOut: false,
-                    timeOver: 0,
-                    timeOut: 0,
-                    timeDown: 0,
-                    timeUp: 0,
-                    downDuration: 0,
-                    isDragged: false
-                };
-            }
-
-            this.snapOffset = new Phaser.Point();
-            this.enabled = true;
-
-            //  Create the signals the Input component will emit
-            if (this.sprite.events && this.sprite.events.onInputOver == null)
-            {
-                this.sprite.events.onInputOver = new Phaser.Signal();
-                this.sprite.events.onInputOut = new Phaser.Signal();
-                this.sprite.events.onInputDown = new Phaser.Signal();
-                this.sprite.events.onInputUp = new Phaser.Signal();
-                this.sprite.events.onDragStart = new Phaser.Signal();
-                this.sprite.events.onDragStop = new Phaser.Signal();
-            }
-        }
-
-        return this.sprite;
-
-    },
-
-    /**
-    * Resets the Input Handler and disables it.
-    * @method Phaser.InputHandler#reset
-    */
-    reset: function () {
-
-        this.enabled = false;
-
-        for (var i = 0; i < 10; i++)
-        {
-            this._pointerData[i] = {
-                id: i,
-                x: 0,
-                y: 0,
-                isDown: false,
-                isUp: false,
-                isOver: false,
-                isOut: false,
-                timeOver: 0,
-                timeOut: 0,
-                timeDown: 0,
-                timeUp: 0,
-                downDuration: 0,
-                isDragged: false
-            };
-        }
-    },
-
-    /**
-    * Stops the Input Handler from running.
-    * @method Phaser.InputHandler#stop
-    */
-    stop: function () {
-
-        //  Turning off
-        if (this.enabled === false)
-        {
-            return;
-        }
-        else
-        {
-            //  De-register, etc
-            this.enabled = false;
-            this.game.input.interactiveItems.remove(this);
-        }
-
-    },
-
-    /**
-    * Clean up memory.
-    * @method Phaser.InputHandler#destroy
-    */
-    destroy: function () {
-
-        if (this.enabled)
-        {
-            this.enabled = false;
-
-            this.game.input.interactiveItems.remove(this);
-
-            this.stop();
-
-            this.sprite = null;
-        }
-    },
-
-    /**
-    * The x coordinate of the Input pointer, relative to the top-left of the parent Sprite.
-    * This value is only set when the pointer is over this Sprite.
-    * @method Phaser.InputHandler#pointerX
-    * @param {Phaser.Pointer} pointer
-    * @return {number} The x coordinate of the Input pointer.
-    */
-    pointerX: function (pointer) {
-
-        pointer = pointer || 0;
-
-        return this._pointerData[pointer].x;
-
-    },
-
-    /**
-    * The y coordinate of the Input pointer, relative to the top-left of the parent Sprite
-    * This value is only set when the pointer is over this Sprite.
-    * @method Phaser.InputHandler#pointerY
-    * @param {Phaser.Pointer} pointer
-    * @return {number} The y coordinate of the Input pointer.
-    */
-    pointerY: function (pointer) {
-
-        pointer = pointer || 0;
-
-        return this._pointerData[pointer].y;
-
-    },
-
-    /**
-    * If the Pointer is touching the touchscreen, or the mouse button is held down, isDown is set to true.
-    * @method Phaser.InputHandler#pointerDown
-    * @param {Phaser.Pointer} pointer
-    * @return {boolean}
-    */
-    pointerDown: function (pointer) {
-
-        pointer = pointer || 0;
-
-        return this._pointerData[pointer].isDown;
-
-    },
-
-    /**
-    * If the Pointer is not touching the touchscreen, or the mouse button is up, isUp is set to true
-    * @method Phaser.InputHandler#pointerUp
-    * @param {Phaser.Pointer} pointer
-    * @return {boolean}
-    */
-    pointerUp: function (pointer) {
-
-        pointer = pointer || 0;
-
-        return this._pointerData[pointer].isUp;
-
-    },
-
-    /**
-    * A timestamp representing when the Pointer first touched the touchscreen.
-    * @method Phaser.InputHandler#pointerTimeDown
-    * @param {Phaser.Pointer} pointer
-    * @return {number}
-    */
-    pointerTimeDown: function (pointer) {
-
-        pointer = pointer || 0;
-
-        return this._pointerData[pointer].timeDown;
-
-    },
-
-    /**
-    * A timestamp representing when the Pointer left the touchscreen.
-    * @method Phaser.InputHandler#pointerTimeUp
-    * @param {Phaser.Pointer} pointer
-    * @return {number}
-    */
-    pointerTimeUp: function (pointer) {
-
-        pointer = pointer || 0;
-
-        return this._pointerData[pointer].timeUp;
-
-    },
-
-    /**
-    * Is the Pointer over this Sprite?
-    * @method Phaser.InputHandler#pointerOver
-    * @param {number} [index] - The ID number of a Pointer to check. If you don't provide a number it will check all Pointers.
-    * @return {boolean} True if the given pointer (if a index was given, or any pointer if not) is over this object.
-    */
-    pointerOver: function (index) {
-
-        if (this.enabled)
-        {
-            if (typeof index === 'undefined')
-            {
-                for (var i = 0; i < 10; i++)
-                {
-                    if (this._pointerData[i].isOver)
-                    {
-                        return true;
-                    }
-                }
-            }
-            else
-            {
-                return this._pointerData[index].isOver;
-            }
-        }
-
-        return false;
-
-    },
-
-    /**
-    * Is the Pointer outside of this Sprite?
-    * @method Phaser.InputHandler#pointerOut
-    * @param {number} [index] - The ID number of a Pointer to check. If you don't provide a number it will check all Pointers.
-    * @return {boolean} True if the given pointer (if a index was given, or any pointer if not) is out of this object.
-    */
-    pointerOut: function (index) {
-
-        if (this.enabled)
-        {
-            if (typeof index === 'undefined')
-            {
-                for (var i = 0; i < 10; i++)
-                {
-                    if (this._pointerData[i].isOut)
-                    {
-                        return true;
-                    }
-                }
-            }
-            else
-            {
-                return this._pointerData[index].isOut;
-            }
-        }
-
-        return false;
-
-    },
-
-    /**
-    * A timestamp representing when the Pointer first touched the touchscreen.
-    * @method Phaser.InputHandler#pointerTimeOver
-    * @param {Phaser.Pointer} pointer
-    * @return {number}
-    */
-    pointerTimeOver: function (pointer) {
-
-        pointer = pointer || 0;
-
-        return this._pointerData[pointer].timeOver;
-
-    },
-
-    /**
-    * A timestamp representing when the Pointer left the touchscreen.
-    * @method Phaser.InputHandler#pointerTimeOut
-    * @param {Phaser.Pointer} pointer
-    * @return {number}
-    */
-    pointerTimeOut: function (pointer) {
-
-        pointer = pointer || 0;
-
-        return this._pointerData[pointer].timeOut;
-
-    },
-
-    /**
-    * Is this sprite being dragged by the mouse or not?
-    * @method Phaser.InputHandler#pointerDragged
-    * @param {Phaser.Pointer} pointer
-    * @return {number}
-    */
-    pointerDragged: function (pointer) {
-
-        pointer = pointer || 0;
-
-        return this._pointerData[pointer].isDragged;
-
-    },
-
-    /**
-    * Checks if the given pointer is over this Sprite.
-    * @method Phaser.InputHandler#checkPointerOver
-    * @param {Phaser.Pointer} pointer
-    * @return {boolean}
-    */
-    checkPointerOver: function (pointer) {
-
-        if (this.enabled === false || this.sprite.visible === false || (this.sprite.group && this.sprite.group.visible === false))
-        {
-            return false;
-        }
-
-        this.sprite.getLocalUnmodifiedPosition(this._tempPoint, pointer.x, pointer.y);
-
-        if (this._tempPoint.x >= 0 && this._tempPoint.x <= this.sprite.currentFrame.width && this._tempPoint.y >= 0 && this._tempPoint.y <= this.sprite.currentFrame.height)
-        {
-            if (this.pixelPerfect)
-            {
-                return this.checkPixel(this._tempPoint.x, this._tempPoint.y);
-            }
-            else
-            {
-                return true;
-            }
-        }
-
-    },
-
-    /**
-    * Runs a pixel perfect check against the given x/y coordinates of the Sprite this InputHandler is bound to.
-    * It compares the alpha value of the pixel and if >= InputHandler.pixelPerfectAlpha it returns true.
-    * @method Phaser.InputHandler#checkPixel
-    * @param {number} x - The x coordinate to check.
-    * @param {number} y - The y coordinate to check.
-    * @return {boolean} true if there is the alpha of the pixel is >= InputHandler.pixelPerfectAlpha
-    */
-    checkPixel: function (x, y) {
-
-        //  Grab a pixel from our image into the hitCanvas and then test it
-        if (this.sprite.texture.baseTexture.source)
-        {
-            this.game.input.hitContext.clearRect(0, 0, 1, 1);
-
-            x += this.sprite.texture.frame.x;
-            y += this.sprite.texture.frame.y;
-
-            this.game.input.hitContext.drawImage(this.sprite.texture.baseTexture.source, x, y, 1, 1, 0, 0, 1, 1);
-            
-            var rgb = this.game.input.hitContext.getImageData(0, 0, 1, 1);
-
-            if (rgb.data[3] >= this.pixelPerfectAlpha)
-            {
-                return true;
-            }
-        }
-
-        return false;
-
-    },
-
-    /**
-    * Update.
-    * @method Phaser.InputHandler#update
-    * @param {Phaser.Pointer} pointer
-    */
-    update: function (pointer) {
-
-        if (this.enabled === false || this.sprite.visible === false || (this.sprite.group && this.sprite.group.visible === false))
-        {
-            this._pointerOutHandler(pointer);
-            return false;
-        }
-
-        if (this.draggable && this._draggedPointerID == pointer.id)
-        {
-            return this.updateDrag(pointer);
-        }
-        else if (this._pointerData[pointer.id].isOver === true)
-        {
-            if (this.checkPointerOver(pointer))
-            {
-                this._pointerData[pointer.id].x = pointer.x - this.sprite.x;
-                this._pointerData[pointer.id].y = pointer.y - this.sprite.y;
-                return true;
-            }
-            else
-            {
-                this._pointerOutHandler(pointer);
-                return false;
-            }
-        }
-    },
-
-    /**
-    * Internal method handling the pointer over event.
-    * @method Phaser.InputHandler#_pointerOverHandler
-    * @private
-    * @param {Phaser.Pointer} pointer
-    */
-    _pointerOverHandler: function (pointer) {
-
-        if (this._pointerData[pointer.id].isOver === false)
-        {
-            this._pointerData[pointer.id].isOver = true;
-            this._pointerData[pointer.id].isOut = false;
-            this._pointerData[pointer.id].timeOver = this.game.time.now;
-            this._pointerData[pointer.id].x = pointer.x - this.sprite.x;
-            this._pointerData[pointer.id].y = pointer.y - this.sprite.y;
-
-            if (this.useHandCursor && this._pointerData[pointer.id].isDragged === false)
-            {
-                this.game.canvas.style.cursor = "pointer";
-            }
-
-            this.sprite.events.onInputOver.dispatch(this.sprite, pointer);
-        }
-    },
-
-    /**
-    * Internal method handling the pointer out event.
-    * @method Phaser.InputHandler#_pointerOutHandler
-    * @private
-    * @param {Phaser.Pointer} pointer
-    */
-    _pointerOutHandler: function (pointer) {
-
-        this._pointerData[pointer.id].isOver = false;
-        this._pointerData[pointer.id].isOut = true;
-        this._pointerData[pointer.id].timeOut = this.game.time.now;
-
-        if (this.useHandCursor && this._pointerData[pointer.id].isDragged === false)
-        {
-            this.game.canvas.style.cursor = "default";
-        }
-
-        if (this.sprite && this.sprite.events)
-        {
-            this.sprite.events.onInputOut.dispatch(this.sprite, pointer);
-        }
-
-    },
-
-    /**
-    * Internal method handling the touched event.
-    * @method Phaser.InputHandler#_touchedHandler
-    * @private
-    * @param {Phaser.Pointer} pointer
-    */
-    _touchedHandler: function (pointer) {
-
-        if (this._pointerData[pointer.id].isDown === false && this._pointerData[pointer.id].isOver === true)
-        {
-            this._pointerData[pointer.id].isDown = true;
-            this._pointerData[pointer.id].isUp = false;
-            this._pointerData[pointer.id].timeDown = this.game.time.now;
-            this.sprite.events.onInputDown.dispatch(this.sprite, pointer);
-
-            //  Start drag
-            if (this.draggable && this.isDragged === false)
-            {
-                this.startDrag(pointer);
-            }
-
-            if (this.bringToTop)
-            {
-                this.sprite.bringToTop();
-            }
-        }
-
-        //  Consume the event?
-        return this.consumePointerEvent;
-
-    },
-
-    /**
-    * Internal method handling the pointer released event.
-    * @method Phaser.InputHandler#_releasedHandler
-    * @private
-    * @param {Phaser.Pointer} pointer
-    */
-    _releasedHandler: function (pointer) {
-
-        //  If was previously touched by this Pointer, check if still is AND still over this item
-        if (this._pointerData[pointer.id].isDown && pointer.isUp)
-        {
-            this._pointerData[pointer.id].isDown = false;
-            this._pointerData[pointer.id].isUp = true;
-            this._pointerData[pointer.id].timeUp = this.game.time.now;
-            this._pointerData[pointer.id].downDuration = this._pointerData[pointer.id].timeUp - this._pointerData[pointer.id].timeDown;
-
-            //  Only release the InputUp signal if the pointer is still over this sprite
-            if (this.checkPointerOver(pointer))
-            {
-                //  Release the inputUp signal and provide optional parameter if pointer is still over the sprite or not
-                this.sprite.events.onInputUp.dispatch(this.sprite, pointer, true);
-            }
-            else
-            {
-                //  Release the inputUp signal and provide optional parameter if pointer is still over the sprite or not
-                this.sprite.events.onInputUp.dispatch(this.sprite, pointer, false);
-
-                //  Pointer outside the sprite? Reset the cursor
-                if (this.useHandCursor)
-                {
-                    this.game.canvas.style.cursor = "default";
-                }
-            }
-
-            //  Stop drag
-            if (this.draggable && this.isDragged && this._draggedPointerID == pointer.id)
-            {
-                this.stopDrag(pointer);
-            }
-        }
-
-    },
-
-    /**
-    * Updates the Pointer drag on this Sprite.
-    * @method Phaser.InputHandler#updateDrag
-    * @param {Phaser.Pointer} pointer
-    * @return {boolean}
-    */
-    updateDrag: function (pointer) {
-
-        if (pointer.isUp)
-        {
-            this.stopDrag(pointer);
-            return false;
-        }
-
-        if (this.sprite.fixedToCamera)
-        {
-            if (this.allowHorizontalDrag)
-            {
-                this.sprite.cameraOffset.x = pointer.x + this._dragPoint.x + this.dragOffset.x;
-            }
-
-            if (this.allowVerticalDrag)
-            {
-                this.sprite.cameraOffset.y = pointer.y + this._dragPoint.y + this.dragOffset.y;
-            }
-
-            if (this.boundsRect)
-            {
-                this.checkBoundsRect();
-            }
-
-            if (this.boundsSprite)
-            {
-                this.checkBoundsSprite();
-            }
-
-            if (this.snapOnDrag)
-            {
-                this.sprite.cameraOffset.x = Math.round((this.sprite.cameraOffset.x - (this.snapOffsetX % this.snapX)) / this.snapX) * this.snapX + (this.snapOffsetX % this.snapX);
-                this.sprite.cameraOffset.y = Math.round((this.sprite.cameraOffset.y - (this.snapOffsetY % this.snapY)) / this.snapY) * this.snapY + (this.snapOffsetY % this.snapY);
-            }
-        }
-        else
-        {
-            if (this.allowHorizontalDrag)
-            {
-                this.sprite.x = pointer.x + this._dragPoint.x + this.dragOffset.x;
-            }
-
-            if (this.allowVerticalDrag)
-            {
-                this.sprite.y = pointer.y + this._dragPoint.y + this.dragOffset.y;
-            }
-
-            if (this.boundsRect)
-            {
-                this.checkBoundsRect();
-            }
-
-            if (this.boundsSprite)
-            {
-                this.checkBoundsSprite();
-            }
-
-            if (this.snapOnDrag)
-            {
-                this.sprite.x = Math.round((this.sprite.x - (this.snapOffsetX % this.snapX)) / this.snapX) * this.snapX + (this.snapOffsetX % this.snapX);
-                this.sprite.y = Math.round((this.sprite.y - (this.snapOffsetY % this.snapY)) / this.snapY) * this.snapY + (this.snapOffsetY % this.snapY);
-            }
-        }
-
-        return true;
-
-    },
-
-    /**
-    * Returns true if the pointer has entered the Sprite within the specified delay time (defaults to 500ms, half a second)
-    * @method Phaser.InputHandler#justOver
-    * @param {Phaser.Pointer} pointer
-    * @param {number} delay - The time below which the pointer is considered as just over.
-    * @return {boolean}
-    */
-    justOver: function (pointer, delay) {
-
-        pointer = pointer || 0;
-        delay = delay || 500;
-
-        return (this._pointerData[pointer].isOver && this.overDuration(pointer) < delay);
-
-    },
-
-    /**
-    * Returns true if the pointer has left the Sprite within the specified delay time (defaults to 500ms, half a second)
-    * @method Phaser.InputHandler#justOut
-    * @param {Phaser.Pointer} pointer
-    * @param {number} delay - The time below which the pointer is considered as just out.
-    * @return {boolean}
-    */
-    justOut: function (pointer, delay) {
-
-        pointer = pointer || 0;
-        delay = delay || 500;
-
-        return (this._pointerData[pointer].isOut && (this.game.time.now - this._pointerData[pointer].timeOut < delay));
-
-    },
-
-    /**
-    * Returns true if the pointer has entered the Sprite within the specified delay time (defaults to 500ms, half a second)
-    * @method Phaser.InputHandler#justPressed
-    * @param {Phaser.Pointer} pointer
-    * @param {number} delay - The time below which the pointer is considered as just over.
-    * @return {boolean}
-    */
-    justPressed: function (pointer, delay) {
-
-        pointer = pointer || 0;
-        delay = delay || 500;
-
-        return (this._pointerData[pointer].isDown && this.downDuration(pointer) < delay);
-
-    },
-
-    /**
-    * Returns true if the pointer has left the Sprite within the specified delay time (defaults to 500ms, half a second)
-    * @method Phaser.InputHandler#justReleased
-    * @param {Phaser.Pointer} pointer
-    * @param {number} delay - The time below which the pointer is considered as just out.
-    * @return {boolean}
-    */
-    justReleased: function (pointer, delay) {
-
-        pointer = pointer || 0;
-        delay = delay || 500;
-
-        return (this._pointerData[pointer].isUp && (this.game.time.now - this._pointerData[pointer].timeUp < delay));
-
-    },
-
-    /**
-    * If the pointer is currently over this Sprite this returns how long it has been there for in milliseconds.
-    * @method Phaser.InputHandler#overDuration
-    * @param {Phaser.Pointer} pointer
-    * @return {number} The number of milliseconds the pointer has been over the Sprite, or -1 if not over.
-    */
-    overDuration: function (pointer) {
-
-        pointer = pointer || 0;
-
-        if (this._pointerData[pointer].isOver)
-        {
-            return this.game.time.now - this._pointerData[pointer].timeOver;
-        }
-
-        return -1;
-
-    },
-
-    /**
-    * If the pointer is currently over this Sprite this returns how long it has been there for in milliseconds.
-    * @method Phaser.InputHandler#downDuration
-    * @param {Phaser.Pointer} pointer
-    * @return {number} The number of milliseconds the pointer has been pressed down on the Sprite, or -1 if not over.
-    */
-    downDuration: function (pointer) {
-
-        pointer = pointer || 0;
-
-        if (this._pointerData[pointer].isDown)
-        {
-            return this.game.time.now - this._pointerData[pointer].timeDown;
-        }
-
-        return -1;
-
-    },
-
-    /**
-    * Make this Sprite draggable by the mouse. You can also optionally set mouseStartDragCallback and mouseStopDragCallback
-    * @method Phaser.InputHandler#enableDrag
-    * @param {boolean} [lockCenter=false] - If false the Sprite will drag from where you click it minus the dragOffset. If true it will center itself to the tip of the mouse pointer.
-    * @param {boolean} [bringToTop=false] - If true the Sprite will be bought to the top of the rendering list in its current Group.
-    * @param {boolean} [pixelPerfect=false] - If true it will use a pixel perfect test to see if you clicked the Sprite. False uses the bounding box.
-    * @param {boolean} [alphaThreshold=255] - If using pixel perfect collision this specifies the alpha level from 0 to 255 above which a collision is processed.
-    * @param {Phaser.Rectangle} [boundsRect=null] - If you want to restrict the drag of this sprite to a specific Rectangle, pass the Phaser.Rectangle here, otherwise it's free to drag anywhere.
-    * @param {Phaser.Sprite} [boundsSprite=null] - If you want to restrict the drag of this sprite to within the bounding box of another sprite, pass it here.
-    */
-    enableDrag: function (lockCenter, bringToTop, pixelPerfect, alphaThreshold, boundsRect, boundsSprite) {
-
-        if (typeof lockCenter == 'undefined') { lockCenter = false; }
-        if (typeof bringToTop == 'undefined') { bringToTop = false; }
-        if (typeof pixelPerfect == 'undefined') { pixelPerfect = false; }
-        if (typeof alphaThreshold == 'undefined') { alphaThreshold = 255; }
-        if (typeof boundsRect == 'undefined') { boundsRect = null; }
-        if (typeof boundsSprite == 'undefined') { boundsSprite = null; }
-
-        this._dragPoint = new Phaser.Point();
-        this.draggable = true;
-        this.bringToTop = bringToTop;
-        this.dragOffset = new Phaser.Point();
-        this.dragFromCenter = lockCenter;
-
-        this.pixelPerfect = pixelPerfect;
-        this.pixelPerfectAlpha = alphaThreshold;
-
-        if (boundsRect)
-        {
-            this.boundsRect = boundsRect;
-        }
-
-        if (boundsSprite)
-        {
-            this.boundsSprite = boundsSprite;
-        }
-
-    },
-
-    /**
-    * Stops this sprite from being able to be dragged. If it is currently the target of an active drag it will be stopped immediately. Also disables any set callbacks.
-    * @method Phaser.InputHandler#disableDrag
-    */
-    disableDrag: function () {
-
-        if (this._pointerData)
-        {
-            for (var i = 0; i < 10; i++)
-            {
-                this._pointerData[i].isDragged = false;
-            }
-        }
-
-        this.draggable = false;
-        this.isDragged = false;
-        this._draggedPointerID = -1;
-
-    },
-
-    /**
-    * Called by Pointer when drag starts on this Sprite. Should not usually be called directly.
-    * @method Phaser.InputHandler#startDrag
-    * @param {Phaser.Pointer} pointer
-    */
-    startDrag: function (pointer) {
-
-        this.isDragged = true;
-        this._draggedPointerID = pointer.id;
-        this._pointerData[pointer.id].isDragged = true;
-
-        if (this.sprite.fixedToCamera)
-        {
-            if (this.dragFromCenter)
-            {
-                this.sprite.centerOn(pointer.x, pointer.y);
-                this._dragPoint.setTo(this.sprite.cameraOffset.x - pointer.x, this.sprite.cameraOffset.y - pointer.y);
-            }
-            else
-            {
-                this._dragPoint.setTo(this.sprite.cameraOffset.x - pointer.x, this.sprite.cameraOffset.y - pointer.y);
-            }
-        }
-        else
-        {
-            if (this.dragFromCenter)
-            {
-                this.sprite.centerOn(pointer.x, pointer.y);
-                this._dragPoint.setTo(this.sprite.x - pointer.x, this.sprite.y - pointer.y);
-            }
-            else
-            {
-                this._dragPoint.setTo(this.sprite.x - pointer.x, this.sprite.y - pointer.y);
-            }
-        }
-
-        this.updateDrag(pointer);
-        
-        if (this.bringToTop)
-        {
-            this.sprite.bringToTop();
-        }
-
-        this.sprite.events.onDragStart.dispatch(this.sprite, pointer);
-
-    },
-
-    /**
-    * Called by Pointer when drag is stopped on this Sprite. Should not usually be called directly.
-    * @method Phaser.InputHandler#stopDrag
-    * @param {Phaser.Pointer} pointer
-    */
-    stopDrag: function (pointer) {
-
-        this.isDragged = false;
-        this._draggedPointerID = -1;
-        this._pointerData[pointer.id].isDragged = false;
-        
-        if (this.snapOnRelease)
-        {
-            if (this.sprite.fixedToCamera)
-            {
-                this.sprite.cameraOffset.x = Math.round((this.sprite.cameraOffset.x - (this.snapOffsetX % this.snapX)) / this.snapX) * this.snapX + (this.snapOffsetX % this.snapX);
-                this.sprite.cameraOffset.y = Math.round((this.sprite.cameraOffset.y - (this.snapOffsetY % this.snapY)) / this.snapY) * this.snapY + (this.snapOffsetY % this.snapY);
-            }
-            else
-            {
-                this.sprite.x = Math.round((this.sprite.x - (this.snapOffsetX % this.snapX)) / this.snapX) * this.snapX + (this.snapOffsetX % this.snapX);
-                this.sprite.y = Math.round((this.sprite.y - (this.snapOffsetY % this.snapY)) / this.snapY) * this.snapY + (this.snapOffsetY % this.snapY);
-            }
-        }
-
-        this.sprite.events.onDragStop.dispatch(this.sprite, pointer);
-        this.sprite.events.onInputUp.dispatch(this.sprite, pointer);
-
-        if (this.checkPointerOver(pointer) === false)
-        {
-            this._pointerOutHandler(pointer);
-        }
-
-    },
-
-    /**
-    * Restricts this sprite to drag movement only on the given axis. Note: If both are set to false the sprite will never move!
-    * @method Phaser.InputHandler#setDragLock
-    * @param {boolean} [allowHorizontal=true] - To enable the sprite to be dragged horizontally set to true, otherwise false.
-    * @param {boolean} [allowVertical=true] - To enable the sprite to be dragged vertically set to true, otherwise false.
-    */
-    setDragLock: function (allowHorizontal, allowVertical) {
-
-        if (typeof allowHorizontal == 'undefined') { allowHorizontal = true; }
-        if (typeof allowVertical == 'undefined') { allowVertical = true; }
-
-        this.allowHorizontalDrag = allowHorizontal;
-        this.allowVerticalDrag = allowVertical;
-
-    },
-
-    /**
-    * Make this Sprite snap to the given grid either during drag or when it's released.
-    * For example 16x16 as the snapX and snapY would make the sprite snap to every 16 pixels.
-    * @method Phaser.InputHandler#enableSnap
-    * @param {number} snapX - The width of the grid cell to snap to.
-    * @param {number} snapY - The height of the grid cell to snap to.
-    * @param {boolean} [onDrag=true] - If true the sprite will snap to the grid while being dragged.
-    * @param {boolean} [onRelease=false] - If true the sprite will snap to the grid when released.
-    * @param {number} [snapOffsetX=0] - Used to offset the top-left starting point of the snap grid.
-    * @param {number} [snapOffsetX=0] - Used to offset the top-left starting point of the snap grid.
-    */
-    enableSnap: function (snapX, snapY, onDrag, onRelease, snappOffsetX, snappOffsetY) {
-
-        if (typeof onDrag == 'undefined') { onDrag = true; }
-        if (typeof onRelease == 'undefined') { onRelease = false; }
-        if (typeof snapOffsetX == 'undefined') { snapOffsetX = 0; }
-        if (typeof snapOffsetY == 'undefined') { snapOffsetY = 0; }
-
-        this.snapX = snapX;
-        this.snapY = snapY;
-        this.snapOffsetX = snapOffsetX;
-        this.snapOffsetY = snapOffsetY;
-        this.snapOnDrag = onDrag;
-        this.snapOnRelease = onRelease;
-
-    },
-
-    /**
-    * Stops the sprite from snapping to a grid during drag or release.
-    * @method Phaser.InputHandler#disableSnap
-    */
-    disableSnap: function () {
-
-        this.snapOnDrag = false;
-        this.snapOnRelease = false;
-
-    },
-
-    /**
-    * Bounds Rect check for the sprite drag
-    * @method Phaser.InputHandler#checkBoundsRect
-    */
-    checkBoundsRect: function () {
-
-        if (this.sprite.fixedToCamera)
-        {
-            if (this.sprite.cameraOffset.x < this.boundsRect.left)
-            {
-                this.sprite.cameraOffset.x = this.boundsRect.cameraOffset.x;
-            }
-            else if ((this.sprite.cameraOffset.x + this.sprite.width) > this.boundsRect.right)
-            {
-                this.sprite.cameraOffset.x = this.boundsRect.right - this.sprite.width;
-            }
-
-            if (this.sprite.cameraOffset.y < this.boundsRect.top)
-            {
-                this.sprite.cameraOffset.y = this.boundsRect.top;
-            }
-            else if ((this.sprite.cameraOffset.y + this.sprite.height) > this.boundsRect.bottom)
-            {
-                this.sprite.cameraOffset.y = this.boundsRect.bottom - this.sprite.height;
-            }
-        }
-        else
-        {
-            if (this.sprite.x < this.boundsRect.left)
-            {
-                this.sprite.x = this.boundsRect.x;
-            }
-            else if ((this.sprite.x + this.sprite.width) > this.boundsRect.right)
-            {
-                this.sprite.x = this.boundsRect.right - this.sprite.width;
-            }
-
-            if (this.sprite.y < this.boundsRect.top)
-            {
-                this.sprite.y = this.boundsRect.top;
-            }
-            else if ((this.sprite.y + this.sprite.height) > this.boundsRect.bottom)
-            {
-                this.sprite.y = this.boundsRect.bottom - this.sprite.height;
-            }
-        }
-
-    },
-
-    /**
-    * Parent Sprite Bounds check for the sprite drag.
-    * @method Phaser.InputHandler#checkBoundsSprite
-    */
-    checkBoundsSprite: function () {
-
-        if (this.sprite.fixedToCamera && this.boundsSprite.fixedToCamera)
-        {
-            if (this.sprite.cameraOffset.x < this.boundsSprite.camerOffset.x)
-            {
-                this.sprite.cameraOffset.x = this.boundsSprite.camerOffset.x;
-            }
-            else if ((this.sprite.cameraOffset.x + this.sprite.width) > (this.boundsSprite.camerOffset.x + this.boundsSprite.width))
-            {
-                this.sprite.cameraOffset.x = (this.boundsSprite.camerOffset.x + this.boundsSprite.width) - this.sprite.width;
-            }
-
-            if (this.sprite.cameraOffset.y < this.boundsSprite.camerOffset.y)
-            {
-                this.sprite.cameraOffset.y = this.boundsSprite.camerOffset.y;
-            }
-            else if ((this.sprite.cameraOffset.y + this.sprite.height) > (this.boundsSprite.camerOffset.y + this.boundsSprite.height))
-            {
-                this.sprite.cameraOffset.y = (this.boundsSprite.camerOffset.y + this.boundsSprite.height) - this.sprite.height;
-            }
-        }
-        else
-        {
-            if (this.sprite.x < this.boundsSprite.x)
-            {
-                this.sprite.x = this.boundsSprite.x;
-            }
-            else if ((this.sprite.x + this.sprite.width) > (this.boundsSprite.x + this.boundsSprite.width))
-            {
-                this.sprite.x = (this.boundsSprite.x + this.boundsSprite.width) - this.sprite.width;
-            }
-
-            if (this.sprite.y < this.boundsSprite.y)
-            {
-                this.sprite.y = this.boundsSprite.y;
-            }
-            else if ((this.sprite.y + this.sprite.height) > (this.boundsSprite.y + this.boundsSprite.height))
-            {
-                this.sprite.y = (this.boundsSprite.y + this.boundsSprite.height) - this.sprite.height;
-            }
-        }
-
-    }
-
-};
-
-Phaser.InputHandler.prototype.constructor = Phaser.InputHandler;
 
 /**
 * @author       @karlmacklin <tacklemcclean@gmail.com>
@@ -18531,7 +11422,7 @@ Phaser.SinglePad.prototype = {
 
     /**
     * Add callbacks to the this Gamepad to handle connect/disconnect/button down/button up/axis change/float value buttons
-    * @method Phaser.SinglePad#addCallbacks
+    * @method Phaser.Gamepad#addCallbacks
     * @param {Object} context - The context under which the callbacks are run.
     * @param {Object} callbacks - Object that takes six different callbak methods:
     * onConnectCallback, onDisconnectCallback, onDownCallback, onUpCallback, onAxisCallback, onFloatCallback
@@ -19165,6 +12056,1261 @@ Phaser.GamepadButton.prototype.constructor = Phaser.GamepadButton;
 */
 
 /**
+* The Input Handler is bound to a specific Sprite and is responsible for managing all Input events on that Sprite.
+* @class Phaser.InputHandler
+* @constructor
+* @param {Phaser.Sprite} sprite - The Sprite object to which this Input Handler belongs.
+*/
+Phaser.InputHandler = function (sprite) {
+
+    /**
+    * @property {Phaser.Sprite} sprite - The Sprite object to which this Input Handler belongs.
+    */
+    this.sprite = sprite;
+
+    /**
+    * @property {Phaser.Game} game - A reference to the currently running game. 
+    */
+    this.game = sprite.game;
+
+    /**
+    * @property {boolean} enabled - If enabled the Input Handler will process input requests and monitor pointer activity.
+    * @default
+    */
+    this.enabled = false;
+
+    /**
+    * @property {number} priorityID - The PriorityID controls which Sprite receives an Input event first if they should overlap.
+    * @default
+    */
+    this.priorityID = 0;
+    
+    /**
+    * @property {boolean} useHandCursor - On a desktop browser you can set the 'hand' cursor to appear when moving over the Sprite.
+    * @default
+    */
+    this.useHandCursor = false;
+    
+    /**
+    * @property {boolean} isDragged - true if the Sprite is being currently dragged.
+    * @default
+    */
+    this.isDragged = false;
+    
+    /**
+    * @property {boolean} allowHorizontalDrag - Controls if the Sprite is allowed to be dragged horizontally.
+    * @default
+    */
+    this.allowHorizontalDrag = true;
+    
+    /**
+    * @property {boolean} allowVerticalDrag - Controls if the Sprite is allowed to be dragged vertically.
+    * @default
+    */
+    this.allowVerticalDrag = true;
+    
+    /**
+    * @property {boolean} bringToTop - If true when this Sprite is clicked or dragged it will automatically be bought to the top of the Group it is within.
+    * @default
+    */
+    this.bringToTop = false;
+
+    /**
+    * @property {Phaser.Point} snapOffset - A Point object that contains by how far the Sprite snap is offset.
+    * @default
+    */
+    this.snapOffset = null;
+    
+    /**
+    * @property {boolean} snapOnDrag - When the Sprite is dragged this controls if the center of the Sprite will snap to the pointer on drag or not.
+    * @default
+    */
+    this.snapOnDrag = false;
+    
+    /**
+    * @property {boolean} snapOnRelease - When the Sprite is dragged this controls if the Sprite will be snapped on release.
+    * @default
+    */
+    this.snapOnRelease = false;
+    
+    /**
+    * @property {number} snapX - When a Sprite has snapping enabled this holds the width of the snap grid.
+    * @default
+    */
+    this.snapX = 0;
+    
+    /**
+    * @property {number} snapY - When a Sprite has snapping enabled this holds the height of the snap grid.
+    * @default
+    */
+    this.snapY = 0;
+
+    /**
+    * @property {number} snapOffsetX - This defines the top-left X coordinate of the snap grid.
+    * @default
+    */
+    this.snapOffsetX = 0;
+    
+    /**
+    * @property {number} snapOffsetY - This defines the top-left Y coordinate of the snap grid..
+    * @default
+    */
+    this.snapOffsetY = 0;
+
+    /**
+    * Set to true to use pixel perfect hit detection when checking if the pointer is over this Sprite.
+    * The x/y coordinates of the pointer are tested against the image in combination with the InputHandler.pixelPerfectAlpha value.
+    * Warning: This is expensive, especially on mobile (where it's not even needed!) so only enable if required. Also see the less-expensive InputHandler.pixelPerfectClick.
+    * @property {number} pixelPerfectOver - Use a pixel perfect check when testing for pointer over.
+    * @default
+    */
+    this.pixelPerfectOver = false;
+
+    /**
+    * Set to true to use pixel perfect hit detection when checking if the pointer is over this Sprite when it's clicked or touched.
+    * The x/y coordinates of the pointer are tested against the image in combination with the InputHandler.pixelPerfectAlpha value.
+    * Warning: This is expensive so only enable if you really need it.
+    * @property {number} pixelPerfectClick - Use a pixel perfect check when testing for clicks or touches on the Sprite.
+    * @default
+    */
+    this.pixelPerfectClick = false;
+
+    /**
+    * @property {number} pixelPerfectAlpha - The alpha tolerance threshold. If the alpha value of the pixel matches or is above this value, it's considered a hit.
+    * @default
+    */
+    this.pixelPerfectAlpha = 255;
+
+    /**
+    * @property {boolean} draggable - Is this sprite allowed to be dragged by the mouse? true = yes, false = no
+    * @default 
+    */
+    this.draggable = false;
+
+    /**
+    * @property {Phaser.Rectangle} boundsRect - A region of the game world within which the sprite is restricted during drag.
+    * @default 
+    */
+    this.boundsRect = null;
+
+    /**
+    * @property {Phaser.Sprite} boundsSprite - A Sprite the bounds of which this sprite is restricted during drag.
+    * @default
+    */
+    this.boundsSprite = null;
+
+    /**
+    * If this object is set to consume the pointer event then it will stop all propogation from this object on.
+    * For example if you had a stack of 6 sprites with the same priority IDs and one consumed the event, none of the others would receive it.
+    * @property {boolean} consumePointerEvent
+    * @default
+    */
+    this.consumePointerEvent = false;
+
+    /**
+    * @property {Phaser.Point} _tempPoint - Internal cache var.
+    * @private
+    */
+    this._tempPoint = new Phaser.Point();
+
+    /**
+    * @property {array} _pointerData - Internal cache var.
+    * @private
+    */
+    this._pointerData = [];
+
+    this._pointerData.push({
+        id: 0,
+        x: 0,
+        y: 0,
+        isDown: false,
+        isUp: false,
+        isOver: false,
+        isOut: false,
+        timeOver: 0,
+        timeOut: 0,
+        timeDown: 0,
+        timeUp: 0,
+        downDuration: 0,
+        isDragged: false
+    });
+
+};
+
+Phaser.InputHandler.prototype = {
+
+    /**
+    * Starts the Input Handler running. This is called automatically when you enable input on a Sprite, or can be called directly if you need to set a specific priority.
+    * @method Phaser.InputHandler#start
+    * @param {number} priority - Higher priority sprites take click priority over low-priority sprites when they are stacked on-top of each other.
+    * @param {boolean} useHandCursor - If true the Sprite will show the hand cursor on mouse-over (doesn't apply to mobile browsers)
+    * @return {Phaser.Sprite} The Sprite object to which the Input Handler is bound.
+    */
+    start: function (priority, useHandCursor) {
+
+        priority = priority || 0;
+        if (typeof useHandCursor == 'undefined') { useHandCursor = false; }
+
+        //  Turning on
+        if (this.enabled === false)
+        {
+            //  Register, etc
+            this.game.input.interactiveItems.add(this);
+            this.useHandCursor = useHandCursor;
+            this.priorityID = priority;
+
+            for (var i = 0; i < 10; i++)
+            {
+                this._pointerData[i] = {
+                    id: i,
+                    x: 0,
+                    y: 0,
+                    isDown: false,
+                    isUp: false,
+                    isOver: false,
+                    isOut: false,
+                    timeOver: 0,
+                    timeOut: 0,
+                    timeDown: 0,
+                    timeUp: 0,
+                    downDuration: 0,
+                    isDragged: false
+                };
+            }
+
+            this.snapOffset = new Phaser.Point();
+            this.enabled = true;
+
+            //  Create the signals the Input component will emit
+            if (this.sprite.events && this.sprite.events.onInputOver === null)
+            {
+                this.sprite.events.onInputOver = new Phaser.Signal();
+                this.sprite.events.onInputOut = new Phaser.Signal();
+                this.sprite.events.onInputDown = new Phaser.Signal();
+                this.sprite.events.onInputUp = new Phaser.Signal();
+                this.sprite.events.onDragStart = new Phaser.Signal();
+                this.sprite.events.onDragStop = new Phaser.Signal();
+            }
+        }
+
+        return this.sprite;
+
+    },
+
+    /**
+    * Resets the Input Handler and disables it.
+    * @method Phaser.InputHandler#reset
+    */
+    reset: function () {
+
+        this.enabled = false;
+
+        for (var i = 0; i < 10; i++)
+        {
+            this._pointerData[i] = {
+                id: i,
+                x: 0,
+                y: 0,
+                isDown: false,
+                isUp: false,
+                isOver: false,
+                isOut: false,
+                timeOver: 0,
+                timeOut: 0,
+                timeDown: 0,
+                timeUp: 0,
+                downDuration: 0,
+                isDragged: false
+            };
+        }
+    },
+
+    /**
+    * Stops the Input Handler from running.
+    * @method Phaser.InputHandler#stop
+    */
+    stop: function () {
+
+        //  Turning off
+        if (this.enabled === false)
+        {
+            return;
+        }
+        else
+        {
+            //  De-register, etc
+            this.enabled = false;
+            this.game.input.interactiveItems.remove(this);
+        }
+
+    },
+
+    /**
+    * Clean up memory.
+    * @method Phaser.InputHandler#destroy
+    */
+    destroy: function () {
+
+        if (this.enabled)
+        {
+            this.enabled = false;
+
+            this.game.input.interactiveItems.remove(this);
+
+            this._pointerData.length = 0;
+            this.boundsRect = null;
+            this.boundsSprite = null;
+            this.sprite = null;
+        }
+
+    },
+
+    /**
+    * The x coordinate of the Input pointer, relative to the top-left of the parent Sprite.
+    * This value is only set when the pointer is over this Sprite.
+    * @method Phaser.InputHandler#pointerX
+    * @param {Phaser.Pointer} pointer
+    * @return {number} The x coordinate of the Input pointer.
+    */
+    pointerX: function (pointer) {
+
+        pointer = pointer || 0;
+
+        return this._pointerData[pointer].x;
+
+    },
+
+    /**
+    * The y coordinate of the Input pointer, relative to the top-left of the parent Sprite
+    * This value is only set when the pointer is over this Sprite.
+    * @method Phaser.InputHandler#pointerY
+    * @param {Phaser.Pointer} pointer
+    * @return {number} The y coordinate of the Input pointer.
+    */
+    pointerY: function (pointer) {
+
+        pointer = pointer || 0;
+
+        return this._pointerData[pointer].y;
+
+    },
+
+    /**
+    * If the Pointer is touching the touchscreen, or the mouse button is held down, isDown is set to true.
+    * @method Phaser.InputHandler#pointerDown
+    * @param {Phaser.Pointer} pointer
+    * @return {boolean}
+    */
+    pointerDown: function (pointer) {
+
+        pointer = pointer || 0;
+
+        return this._pointerData[pointer].isDown;
+
+    },
+
+    /**
+    * If the Pointer is not touching the touchscreen, or the mouse button is up, isUp is set to true
+    * @method Phaser.InputHandler#pointerUp
+    * @param {Phaser.Pointer} pointer
+    * @return {boolean}
+    */
+    pointerUp: function (pointer) {
+
+        pointer = pointer || 0;
+
+        return this._pointerData[pointer].isUp;
+
+    },
+
+    /**
+    * A timestamp representing when the Pointer first touched the touchscreen.
+    * @method Phaser.InputHandler#pointerTimeDown
+    * @param {Phaser.Pointer} pointer
+    * @return {number}
+    */
+    pointerTimeDown: function (pointer) {
+
+        pointer = pointer || 0;
+
+        return this._pointerData[pointer].timeDown;
+
+    },
+
+    /**
+    * A timestamp representing when the Pointer left the touchscreen.
+    * @method Phaser.InputHandler#pointerTimeUp
+    * @param {Phaser.Pointer} pointer
+    * @return {number}
+    */
+    pointerTimeUp: function (pointer) {
+
+        pointer = pointer || 0;
+
+        return this._pointerData[pointer].timeUp;
+
+    },
+
+    /**
+    * Is the Pointer over this Sprite?
+    * @method Phaser.InputHandler#pointerOver
+    * @param {number} [index] - The ID number of a Pointer to check. If you don't provide a number it will check all Pointers.
+    * @return {boolean} True if the given pointer (if a index was given, or any pointer if not) is over this object.
+    */
+    pointerOver: function (index) {
+
+        if (this.enabled)
+        {
+            if (typeof index === 'undefined')
+            {
+                for (var i = 0; i < 10; i++)
+                {
+                    if (this._pointerData[i].isOver)
+                    {
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                return this._pointerData[index].isOver;
+            }
+        }
+
+        return false;
+
+    },
+
+    /**
+    * Is the Pointer outside of this Sprite?
+    * @method Phaser.InputHandler#pointerOut
+    * @param {number} [index] - The ID number of a Pointer to check. If you don't provide a number it will check all Pointers.
+    * @return {boolean} True if the given pointer (if a index was given, or any pointer if not) is out of this object.
+    */
+    pointerOut: function (index) {
+
+        if (this.enabled)
+        {
+            if (typeof index === 'undefined')
+            {
+                for (var i = 0; i < 10; i++)
+                {
+                    if (this._pointerData[i].isOut)
+                    {
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                return this._pointerData[index].isOut;
+            }
+        }
+
+        return false;
+
+    },
+
+    /**
+    * A timestamp representing when the Pointer first touched the touchscreen.
+    * @method Phaser.InputHandler#pointerTimeOver
+    * @param {Phaser.Pointer} pointer
+    * @return {number}
+    */
+    pointerTimeOver: function (pointer) {
+
+        pointer = pointer || 0;
+
+        return this._pointerData[pointer].timeOver;
+
+    },
+
+    /**
+    * A timestamp representing when the Pointer left the touchscreen.
+    * @method Phaser.InputHandler#pointerTimeOut
+    * @param {Phaser.Pointer} pointer
+    * @return {number}
+    */
+    pointerTimeOut: function (pointer) {
+
+        pointer = pointer || 0;
+
+        return this._pointerData[pointer].timeOut;
+
+    },
+
+    /**
+    * Is this sprite being dragged by the mouse or not?
+    * @method Phaser.InputHandler#pointerTimeOut
+    * @param {Phaser.Pointer} pointer
+    * @return {number}
+    */
+    pointerDragged: function (pointer) {
+
+        pointer = pointer || 0;
+
+        return this._pointerData[pointer].isDragged;
+
+    },
+
+    /**
+    * Checks if the given pointer is over this Sprite.
+    * @method Phaser.InputHandler#checkPointerOver
+    * @param {Phaser.Pointer} pointer
+    * @return {boolean}
+    */
+    checkPointerOver: function (pointer) {
+
+        if (this.enabled === false || this.sprite.visible === false || this.sprite.parent.visible === false)
+        {
+            return false;
+        }
+
+        //  Need to pass it a temp point, in case we need it again for the pixel check
+        if (this.game.input.hitTest(this.sprite, pointer, this._tempPoint))
+        {
+            if (this.pixelPerfectOver)
+            {
+                return this.checkPixel(this._tempPoint.x, this._tempPoint.y);
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        return false;
+
+    },
+
+    /**
+    * Runs a pixel perfect check against the given x/y coordinates of the Sprite this InputHandler is bound to.
+    * It compares the alpha value of the pixel and if >= InputHandler.pixelPerfectAlpha it returns true.
+    * @method Phaser.InputHandler#checkPixel
+    * @param {number} x - The x coordinate to check.
+    * @param {number} y - The y coordinate to check.
+    * @param {Phaser.Pointer} [pointer] - The pointer to get the x/y coordinate from if not passed as the first two parameters.
+    * @return {boolean} true if there is the alpha of the pixel is >= InputHandler.pixelPerfectAlpha
+    */
+    checkPixel: function (x, y, pointer) {
+
+        //  Grab a pixel from our image into the hitCanvas and then test it
+        if (this.sprite.texture.baseTexture.source)
+        {
+            this.game.input.hitContext.clearRect(0, 0, 1, 1);
+
+            if (x === null && y === null)
+            {
+                //  Use the pointer parameter
+                this.game.input.getLocalPosition(this.sprite, pointer, this._tempPoint);
+
+                var x = this._tempPoint.x;
+                var y = this._tempPoint.y;
+            }
+
+            if (this.sprite.anchor.x !== 0)
+            {
+                x -= -this.sprite.texture.frame.width * this.sprite.anchor.x;
+            }
+
+            if (this.sprite.anchor.y !== 0)
+            {
+                y -= -this.sprite.texture.frame.height * this.sprite.anchor.y;
+            }
+
+            x += this.sprite.texture.frame.x;
+            y += this.sprite.texture.frame.y;
+
+            this.game.input.hitContext.drawImage(this.sprite.texture.baseTexture.source, x, y, 1, 1, 0, 0, 1, 1);
+            
+            var rgb = this.game.input.hitContext.getImageData(0, 0, 1, 1);
+
+            if (rgb.data[3] >= this.pixelPerfectAlpha)
+            {
+                return true;
+            }
+        }
+
+        return false;
+
+    },
+
+    /**
+    * Update.
+    * @method Phaser.InputHandler#update
+    * @protected
+    * @param {Phaser.Pointer} pointer
+    */
+    update: function (pointer) {
+
+        if (this.sprite === null)
+        {
+            //  Abort. We've been destroyed.
+            return;
+        }
+
+        if (this.enabled === false || this.sprite.visible === false || (this.sprite.group && this.sprite.group.visible === false))
+        {
+            this._pointerOutHandler(pointer);
+            return false;
+        }
+
+        if (this.draggable && this._draggedPointerID == pointer.id)
+        {
+            return this.updateDrag(pointer);
+        }
+        else if (this._pointerData[pointer.id].isOver === true)
+        {
+            if (this.checkPointerOver(pointer))
+            {
+                this._pointerData[pointer.id].x = pointer.x - this.sprite.x;
+                this._pointerData[pointer.id].y = pointer.y - this.sprite.y;
+                return true;
+            }
+            else
+            {
+                this._pointerOutHandler(pointer);
+                return false;
+            }
+        }
+    },
+
+    /**
+    * Internal method handling the pointer over event.
+    * @method Phaser.InputHandler#_pointerOverHandler
+    * @private
+    * @param {Phaser.Pointer} pointer
+    */
+    _pointerOverHandler: function (pointer) {
+
+        if (this.sprite === null)
+        {
+            //  Abort. We've been destroyed.
+            return;
+        }
+
+        if (this._pointerData[pointer.id].isOver === false)
+        {
+            this._pointerData[pointer.id].isOver = true;
+            this._pointerData[pointer.id].isOut = false;
+            this._pointerData[pointer.id].timeOver = this.game.time.now;
+            this._pointerData[pointer.id].x = pointer.x - this.sprite.x;
+            this._pointerData[pointer.id].y = pointer.y - this.sprite.y;
+
+            if (this.useHandCursor && this._pointerData[pointer.id].isDragged === false)
+            {
+                this.game.canvas.style.cursor = "pointer";
+            }
+
+            this.sprite.events.onInputOver.dispatch(this.sprite, pointer);
+        }
+
+    },
+
+    /**
+    * Internal method handling the pointer out event.
+    * @method Phaser.InputHandler#_pointerOutHandler
+    * @private
+    * @param {Phaser.Pointer} pointer
+    */
+    _pointerOutHandler: function (pointer) {
+
+        if (this.sprite === null)
+        {
+            //  Abort. We've been destroyed.
+            return;
+        }
+
+        this._pointerData[pointer.id].isOver = false;
+        this._pointerData[pointer.id].isOut = true;
+        this._pointerData[pointer.id].timeOut = this.game.time.now;
+
+        if (this.useHandCursor && this._pointerData[pointer.id].isDragged === false)
+        {
+            this.game.canvas.style.cursor = "default";
+        }
+
+        if (this.sprite && this.sprite.events)
+        {
+            this.sprite.events.onInputOut.dispatch(this.sprite, pointer);
+        }
+
+    },
+
+    /**
+    * Internal method handling the touched event.
+    * @method Phaser.InputHandler#_touchedHandler
+    * @private
+    * @param {Phaser.Pointer} pointer
+    */
+    _touchedHandler: function (pointer) {
+
+        if (this.sprite === null)
+        {
+            //  Abort. We've been destroyed.
+            return;
+        }
+
+        if (this._pointerData[pointer.id].isDown === false && this._pointerData[pointer.id].isOver === true)
+        {
+            if (this.pixelPerfectClick && !this.checkPixel(null, null, pointer))
+            {
+                return;
+            }
+
+            this._pointerData[pointer.id].isDown = true;
+            this._pointerData[pointer.id].isUp = false;
+            this._pointerData[pointer.id].timeDown = this.game.time.now;
+            this.sprite.events.onInputDown.dispatch(this.sprite, pointer);
+
+            //  Start drag
+            if (this.draggable && this.isDragged === false)
+            {
+                this.startDrag(pointer);
+            }
+
+            if (this.bringToTop)
+            {
+                this.sprite.bringToTop();
+            }
+        }
+
+        //  Consume the event?
+        return this.consumePointerEvent;
+
+    },
+
+    /**
+    * Internal method handling the pointer released event.
+    * @method Phaser.InputHandler#_releasedHandler
+    * @private
+    * @param {Phaser.Pointer} pointer
+    */
+    _releasedHandler: function (pointer) {
+
+        if (this.sprite === null)
+        {
+            //  Abort. We've been destroyed.
+            return;
+        }
+
+        //  If was previously touched by this Pointer, check if still is AND still over this item
+        if (this._pointerData[pointer.id].isDown && pointer.isUp)
+        {
+            this._pointerData[pointer.id].isDown = false;
+            this._pointerData[pointer.id].isUp = true;
+            this._pointerData[pointer.id].timeUp = this.game.time.now;
+            this._pointerData[pointer.id].downDuration = this._pointerData[pointer.id].timeUp - this._pointerData[pointer.id].timeDown;
+
+            //  Only release the InputUp signal if the pointer is still over this sprite
+            if (this.checkPointerOver(pointer))
+            {
+                //  Release the inputUp signal and provide optional parameter if pointer is still over the sprite or not
+                this.sprite.events.onInputUp.dispatch(this.sprite, pointer, true);
+            }
+            else
+            {
+                //  Release the inputUp signal and provide optional parameter if pointer is still over the sprite or not
+                this.sprite.events.onInputUp.dispatch(this.sprite, pointer, false);
+
+                //  Pointer outside the sprite? Reset the cursor
+                if (this.useHandCursor)
+                {
+                    this.game.canvas.style.cursor = "default";
+                }
+            }
+
+            //  Stop drag
+            if (this.draggable && this.isDragged && this._draggedPointerID == pointer.id)
+            {
+                this.stopDrag(pointer);
+            }
+        }
+
+    },
+
+    /**
+    * Updates the Pointer drag on this Sprite.
+    * @method Phaser.InputHandler#updateDrag
+    * @param {Phaser.Pointer} pointer
+    * @return {boolean}
+    */
+    updateDrag: function (pointer) {
+
+        if (pointer.isUp)
+        {
+            this.stopDrag(pointer);
+            return false;
+        }
+
+        if (this.sprite.fixedToCamera)
+        {
+            if (this.allowHorizontalDrag)
+            {
+                this.sprite.cameraOffset.x = pointer.x + this._dragPoint.x + this.dragOffset.x;
+            }
+
+            if (this.allowVerticalDrag)
+            {
+                this.sprite.cameraOffset.y = pointer.y + this._dragPoint.y + this.dragOffset.y;
+            }
+
+            if (this.boundsRect)
+            {
+                this.checkBoundsRect();
+            }
+
+            if (this.boundsSprite)
+            {
+                this.checkBoundsSprite();
+            }
+
+            if (this.snapOnDrag)
+            {
+                this.sprite.cameraOffset.x = Math.round((this.sprite.cameraOffset.x - (this.snapOffsetX % this.snapX)) / this.snapX) * this.snapX + (this.snapOffsetX % this.snapX);
+                this.sprite.cameraOffset.y = Math.round((this.sprite.cameraOffset.y - (this.snapOffsetY % this.snapY)) / this.snapY) * this.snapY + (this.snapOffsetY % this.snapY);
+            }
+        }
+        else
+        {
+            if (this.allowHorizontalDrag)
+            {
+                this.sprite.x = pointer.x + this._dragPoint.x + this.dragOffset.x;
+            }
+
+            if (this.allowVerticalDrag)
+            {
+                this.sprite.y = pointer.y + this._dragPoint.y + this.dragOffset.y;
+            }
+
+            if (this.boundsRect)
+            {
+                this.checkBoundsRect();
+            }
+
+            if (this.boundsSprite)
+            {
+                this.checkBoundsSprite();
+            }
+
+            if (this.snapOnDrag)
+            {
+                this.sprite.x = Math.round((this.sprite.x - (this.snapOffsetX % this.snapX)) / this.snapX) * this.snapX + (this.snapOffsetX % this.snapX);
+                this.sprite.y = Math.round((this.sprite.y - (this.snapOffsetY % this.snapY)) / this.snapY) * this.snapY + (this.snapOffsetY % this.snapY);
+            }
+        }
+
+        return true;
+
+    },
+
+    /**
+    * Returns true if the pointer has entered the Sprite within the specified delay time (defaults to 500ms, half a second)
+    * @method Phaser.InputHandler#justOver
+    * @param {Phaser.Pointer} pointer
+    * @param {number} delay - The time below which the pointer is considered as just over.
+    * @return {boolean}
+    */
+    justOver: function (pointer, delay) {
+
+        pointer = pointer || 0;
+        delay = delay || 500;
+
+        return (this._pointerData[pointer].isOver && this.overDuration(pointer) < delay);
+
+    },
+
+    /**
+    * Returns true if the pointer has left the Sprite within the specified delay time (defaults to 500ms, half a second)
+    * @method Phaser.InputHandler#justOut
+    * @param {Phaser.Pointer} pointer
+    * @param {number} delay - The time below which the pointer is considered as just out.
+    * @return {boolean}
+    */
+    justOut: function (pointer, delay) {
+
+        pointer = pointer || 0;
+        delay = delay || 500;
+
+        return (this._pointerData[pointer].isOut && (this.game.time.now - this._pointerData[pointer].timeOut < delay));
+
+    },
+
+    /**
+    * Returns true if the pointer has touched or clicked on the Sprite within the specified delay time (defaults to 500ms, half a second)
+    * @method Phaser.InputHandler#justPressed
+    * @param {Phaser.Pointer} pointer
+    * @param {number} delay - The time below which the pointer is considered as just over.
+    * @return {boolean}
+    */
+    justPressed: function (pointer, delay) {
+
+        pointer = pointer || 0;
+        delay = delay || 500;
+
+        return (this._pointerData[pointer].isDown && this.downDuration(pointer) < delay);
+
+    },
+
+    /**
+    * Returns true if the pointer was touching this Sprite, but has been released within the specified delay time (defaults to 500ms, half a second)
+    * @method Phaser.InputHandler#justReleased
+    * @param {Phaser.Pointer} pointer
+    * @param {number} delay - The time below which the pointer is considered as just out.
+    * @return {boolean}
+    */
+    justReleased: function (pointer, delay) {
+
+        pointer = pointer || 0;
+        delay = delay || 500;
+
+        return (this._pointerData[pointer].isUp && (this.game.time.now - this._pointerData[pointer].timeUp < delay));
+
+    },
+
+    /**
+    * If the pointer is currently over this Sprite this returns how long it has been there for in milliseconds.
+    * @method Phaser.InputHandler#overDuration
+    * @param {Phaser.Pointer} pointer
+    * @return {number} The number of milliseconds the pointer has been over the Sprite, or -1 if not over.
+    */
+    overDuration: function (pointer) {
+
+        pointer = pointer || 0;
+
+        if (this._pointerData[pointer].isOver)
+        {
+            return this.game.time.now - this._pointerData[pointer].timeOver;
+        }
+
+        return -1;
+
+    },
+
+    /**
+    * If the pointer is currently over this Sprite this returns how long it has been there for in milliseconds.
+    * @method Phaser.InputHandler#downDuration
+    * @param {Phaser.Pointer} pointer
+    * @return {number} The number of milliseconds the pointer has been pressed down on the Sprite, or -1 if not over.
+    */
+    downDuration: function (pointer) {
+
+        pointer = pointer || 0;
+
+        if (this._pointerData[pointer].isDown)
+        {
+            return this.game.time.now - this._pointerData[pointer].timeDown;
+        }
+
+        return -1;
+
+    },
+
+    /**
+    * Make this Sprite draggable by the mouse. You can also optionally set mouseStartDragCallback and mouseStopDragCallback
+    * @method Phaser.InputHandler#enableDrag
+    * @param {boolean} [lockCenter=false] - If false the Sprite will drag from where you click it minus the dragOffset. If true it will center itself to the tip of the mouse pointer.
+    * @param {boolean} [bringToTop=false] - If true the Sprite will be bought to the top of the rendering list in its current Group.
+    * @param {boolean} [pixelPerfect=false] - If true it will use a pixel perfect test to see if you clicked the Sprite. False uses the bounding box.
+    * @param {boolean} [alphaThreshold=255] - If using pixel perfect collision this specifies the alpha level from 0 to 255 above which a collision is processed.
+    * @param {Phaser.Rectangle} [boundsRect=null] - If you want to restrict the drag of this sprite to a specific Rectangle, pass the Phaser.Rectangle here, otherwise it's free to drag anywhere.
+    * @param {Phaser.Sprite} [boundsSprite=null] - If you want to restrict the drag of this sprite to within the bounding box of another sprite, pass it here.
+    */
+    enableDrag: function (lockCenter, bringToTop, pixelPerfect, alphaThreshold, boundsRect, boundsSprite) {
+
+        if (typeof lockCenter == 'undefined') { lockCenter = false; }
+        if (typeof bringToTop == 'undefined') { bringToTop = false; }
+        if (typeof pixelPerfect == 'undefined') { pixelPerfect = false; }
+        if (typeof alphaThreshold == 'undefined') { alphaThreshold = 255; }
+        if (typeof boundsRect == 'undefined') { boundsRect = null; }
+        if (typeof boundsSprite == 'undefined') { boundsSprite = null; }
+
+        this._dragPoint = new Phaser.Point();
+        this.draggable = true;
+        this.bringToTop = bringToTop;
+        this.dragOffset = new Phaser.Point();
+        this.dragFromCenter = lockCenter;
+
+        this.pixelPerfect = pixelPerfect;
+        this.pixelPerfectAlpha = alphaThreshold;
+
+        if (boundsRect)
+        {
+            this.boundsRect = boundsRect;
+        }
+
+        if (boundsSprite)
+        {
+            this.boundsSprite = boundsSprite;
+        }
+
+    },
+
+    /**
+    * Stops this sprite from being able to be dragged. If it is currently the target of an active drag it will be stopped immediately. Also disables any set callbacks.
+    * @method Phaser.InputHandler#disableDrag
+    */
+    disableDrag: function () {
+
+        if (this._pointerData)
+        {
+            for (var i = 0; i < 10; i++)
+            {
+                this._pointerData[i].isDragged = false;
+            }
+        }
+
+        this.draggable = false;
+        this.isDragged = false;
+        this._draggedPointerID = -1;
+
+    },
+
+    /**
+    * Called by Pointer when drag starts on this Sprite. Should not usually be called directly.
+    * @method Phaser.InputHandler#startDrag
+    * @param {Phaser.Pointer} pointer
+    */
+    startDrag: function (pointer) {
+
+        this.isDragged = true;
+        this._draggedPointerID = pointer.id;
+        this._pointerData[pointer.id].isDragged = true;
+
+        if (this.sprite.fixedToCamera)
+        {
+            if (this.dragFromCenter)
+            {
+                this.sprite.centerOn(pointer.x, pointer.y);
+                this._dragPoint.setTo(this.sprite.cameraOffset.x - pointer.x, this.sprite.cameraOffset.y - pointer.y);
+            }
+            else
+            {
+                this._dragPoint.setTo(this.sprite.cameraOffset.x - pointer.x, this.sprite.cameraOffset.y - pointer.y);
+            }
+        }
+        else
+        {
+            if (this.dragFromCenter)
+            {
+                this.sprite.centerOn(pointer.x, pointer.y);
+                this._dragPoint.setTo(this.sprite.x - pointer.x, this.sprite.y - pointer.y);
+            }
+            else
+            {
+                this._dragPoint.setTo(this.sprite.x - pointer.x, this.sprite.y - pointer.y);
+            }
+        }
+
+        this.updateDrag(pointer);
+        
+        if (this.bringToTop)
+        {
+            this.sprite.bringToTop();
+        }
+
+        this.sprite.events.onDragStart.dispatch(this.sprite, pointer);
+
+    },
+
+    /**
+    * Called by Pointer when drag is stopped on this Sprite. Should not usually be called directly.
+    * @method Phaser.InputHandler#stopDrag
+    * @param {Phaser.Pointer} pointer
+    */
+    stopDrag: function (pointer) {
+
+        this.isDragged = false;
+        this._draggedPointerID = -1;
+        this._pointerData[pointer.id].isDragged = false;
+        
+        if (this.snapOnRelease)
+        {
+            if (this.sprite.fixedToCamera)
+            {
+                this.sprite.cameraOffset.x = Math.round((this.sprite.cameraOffset.x - (this.snapOffsetX % this.snapX)) / this.snapX) * this.snapX + (this.snapOffsetX % this.snapX);
+                this.sprite.cameraOffset.y = Math.round((this.sprite.cameraOffset.y - (this.snapOffsetY % this.snapY)) / this.snapY) * this.snapY + (this.snapOffsetY % this.snapY);
+            }
+            else
+            {
+                this.sprite.x = Math.round((this.sprite.x - (this.snapOffsetX % this.snapX)) / this.snapX) * this.snapX + (this.snapOffsetX % this.snapX);
+                this.sprite.y = Math.round((this.sprite.y - (this.snapOffsetY % this.snapY)) / this.snapY) * this.snapY + (this.snapOffsetY % this.snapY);
+            }
+        }
+
+        this.sprite.events.onDragStop.dispatch(this.sprite, pointer);
+        this.sprite.events.onInputUp.dispatch(this.sprite, pointer);
+
+        if (this.checkPointerOver(pointer) === false)
+        {
+            this._pointerOutHandler(pointer);
+        }
+
+    },
+
+    /**
+    * Restricts this sprite to drag movement only on the given axis. Note: If both are set to false the sprite will never move!
+    * @method Phaser.InputHandler#setDragLock
+    * @param {boolean} [allowHorizontal=true] - To enable the sprite to be dragged horizontally set to true, otherwise false.
+    * @param {boolean} [allowVertical=true] - To enable the sprite to be dragged vertically set to true, otherwise false.
+    */
+    setDragLock: function (allowHorizontal, allowVertical) {
+
+        if (typeof allowHorizontal == 'undefined') { allowHorizontal = true; }
+        if (typeof allowVertical == 'undefined') { allowVertical = true; }
+
+        this.allowHorizontalDrag = allowHorizontal;
+        this.allowVerticalDrag = allowVertical;
+
+    },
+
+    /**
+    * Make this Sprite snap to the given grid either during drag or when it's released.
+    * For example 16x16 as the snapX and snapY would make the sprite snap to every 16 pixels.
+    * @method Phaser.InputHandler#enableSnap
+    * @param {number} snapX - The width of the grid cell to snap to.
+    * @param {number} snapY - The height of the grid cell to snap to.
+    * @param {boolean} [onDrag=true] - If true the sprite will snap to the grid while being dragged.
+    * @param {boolean} [onRelease=false] - If true the sprite will snap to the grid when released.
+    * @param {number} [snapOffsetX=0] - Used to offset the top-left starting point of the snap grid.
+    * @param {number} [snapOffsetX=0] - Used to offset the top-left starting point of the snap grid.
+    */
+    enableSnap: function (snapX, snapY, onDrag, onRelease, snappOffsetX, snappOffsetY) {
+
+        if (typeof onDrag == 'undefined') { onDrag = true; }
+        if (typeof onRelease == 'undefined') { onRelease = false; }
+        if (typeof snapOffsetX == 'undefined') { snapOffsetX = 0; }
+        if (typeof snapOffsetY == 'undefined') { snapOffsetY = 0; }
+
+        this.snapX = snapX;
+        this.snapY = snapY;
+        this.snapOffsetX = snapOffsetX;
+        this.snapOffsetY = snapOffsetY;
+        this.snapOnDrag = onDrag;
+        this.snapOnRelease = onRelease;
+
+    },
+
+    /**
+    * Stops the sprite from snapping to a grid during drag or release.
+    * @method Phaser.InputHandler#disableSnap
+    */
+    disableSnap: function () {
+
+        this.snapOnDrag = false;
+        this.snapOnRelease = false;
+
+    },
+
+    /**
+    * Bounds Rect check for the sprite drag
+    * @method Phaser.InputHandler#checkBoundsRect
+    */
+    checkBoundsRect: function () {
+
+        if (this.sprite.fixedToCamera)
+        {
+            if (this.sprite.cameraOffset.x < this.boundsRect.left)
+            {
+                this.sprite.cameraOffset.x = this.boundsRect.cameraOffset.x;
+            }
+            else if ((this.sprite.cameraOffset.x + this.sprite.width) > this.boundsRect.right)
+            {
+                this.sprite.cameraOffset.x = this.boundsRect.right - this.sprite.width;
+            }
+
+            if (this.sprite.cameraOffset.y < this.boundsRect.top)
+            {
+                this.sprite.cameraOffset.y = this.boundsRect.top;
+            }
+            else if ((this.sprite.cameraOffset.y + this.sprite.height) > this.boundsRect.bottom)
+            {
+                this.sprite.cameraOffset.y = this.boundsRect.bottom - this.sprite.height;
+            }
+        }
+        else
+        {
+            if (this.sprite.x < this.boundsRect.left)
+            {
+                this.sprite.x = this.boundsRect.x;
+            }
+            else if ((this.sprite.x + this.sprite.width) > this.boundsRect.right)
+            {
+                this.sprite.x = this.boundsRect.right - this.sprite.width;
+            }
+
+            if (this.sprite.y < this.boundsRect.top)
+            {
+                this.sprite.y = this.boundsRect.top;
+            }
+            else if ((this.sprite.y + this.sprite.height) > this.boundsRect.bottom)
+            {
+                this.sprite.y = this.boundsRect.bottom - this.sprite.height;
+            }
+        }
+
+    },
+
+    /**
+    * Parent Sprite Bounds check for the sprite drag.
+    * @method Phaser.InputHandler#checkBoundsSprite
+    */
+    checkBoundsSprite: function () {
+
+        if (this.sprite.fixedToCamera && this.boundsSprite.fixedToCamera)
+        {
+            if (this.sprite.cameraOffset.x < this.boundsSprite.camerOffset.x)
+            {
+                this.sprite.cameraOffset.x = this.boundsSprite.camerOffset.x;
+            }
+            else if ((this.sprite.cameraOffset.x + this.sprite.width) > (this.boundsSprite.camerOffset.x + this.boundsSprite.width))
+            {
+                this.sprite.cameraOffset.x = (this.boundsSprite.camerOffset.x + this.boundsSprite.width) - this.sprite.width;
+            }
+
+            if (this.sprite.cameraOffset.y < this.boundsSprite.camerOffset.y)
+            {
+                this.sprite.cameraOffset.y = this.boundsSprite.camerOffset.y;
+            }
+            else if ((this.sprite.cameraOffset.y + this.sprite.height) > (this.boundsSprite.camerOffset.y + this.boundsSprite.height))
+            {
+                this.sprite.cameraOffset.y = (this.boundsSprite.camerOffset.y + this.boundsSprite.height) - this.sprite.height;
+            }
+        }
+        else
+        {
+            if (this.sprite.x < this.boundsSprite.x)
+            {
+                this.sprite.x = this.boundsSprite.x;
+            }
+            else if ((this.sprite.x + this.sprite.width) > (this.boundsSprite.x + this.boundsSprite.width))
+            {
+                this.sprite.x = (this.boundsSprite.x + this.boundsSprite.width) - this.sprite.width;
+            }
+
+            if (this.sprite.y < this.boundsSprite.y)
+            {
+                this.sprite.y = this.boundsSprite.y;
+            }
+            else if ((this.sprite.y + this.sprite.height) > (this.boundsSprite.y + this.boundsSprite.height))
+            {
+                this.sprite.y = (this.boundsSprite.y + this.boundsSprite.height) - this.sprite.height;
+            }
+        }
+
+    }
+
+};
+
+Phaser.InputHandler.prototype.constructor = Phaser.InputHandler;
+
+/**
+* @author       Richard Davey <rich@photonstorm.com>
+* @copyright    2014 Photon Storm Ltd.
+* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
+*/
+
+/**
 * @class Phaser.Events
 *
 * @classdesc The Events component is a collection of events fired by the parent game object.
@@ -19283,6 +13429,26 @@ Phaser.GameObjectFactory.prototype = {
     },
 
     /**
+    * Create a new `Image` object. An Image is a light-weight object you can use to display anything that doesn't need physics or animation.
+    * It can still rotate, scale, crop and receive input events. This makes it perfect for logos, backgrounds, simple buttons and other non-Sprite graphics.
+    *
+    * @method Phaser.GameObjectFactory#image
+    * @param {number} x - X position of the image.
+    * @param {number} y - Y position of the image.
+    * @param {string|Phaser.RenderTexture|PIXI.Texture} key - This is the image or texture used by the Sprite during rendering. It can be a string which is a reference to the Cache entry, or an instance of a RenderTexture or PIXI.Texture.
+    * @param {string|number} [frame] - If the sprite uses an image from a texture atlas or sprite sheet you can pass the frame here. Either a number for a frame ID or a string for a frame name.
+    * @param {Phaser.Group} [group] - Optional Group to add the object to. If not specified it will be added to the World group.
+    * @returns {Phaser.Sprite} the newly created sprite object.
+    */
+    image: function (x, y, key, frame, group) {
+
+        if (typeof group === 'undefined') { group = this.world; }
+
+        return group.add(new Phaser.Image(this.game, x, y, key, frame));
+
+    },
+
+    /**
     * Create a new Sprite with specific position and sprite sheet key.
     *
     * @method Phaser.GameObjectFactory#sprite
@@ -19296,24 +13462,6 @@ Phaser.GameObjectFactory.prototype = {
     sprite: function (x, y, key, frame, group) {
 
         if (typeof group === 'undefined') { group = this.world; }
-
-        return group.create(x, y, key, frame);
-
-    },
-
-    /**
-    * DEPRECATED - will be removed in Phaser 1.2
-    * Create a new Sprite with specific position and sprite sheet key that will automatically be added as a child of the given parent.
-    *
-    * @method Phaser.GameObjectFactory#child
-    * @param {Phaser.Group} group - The Group to add this child to.
-    * @param {number} x - X position of the new sprite.
-    * @param {number} y - Y position of the new sprite.
-    * @param {string|RenderTexture} [key] - The image key as defined in the Game.Cache to use as the texture for this sprite OR a RenderTexture.
-    * @param  {string|number} [frame] - If the sprite uses an image from a texture atlas or sprite sheet you can pass the frame here. Either a number for a frame ID or a string for a frame name.
-    * @returns {Phaser.Sprite} the newly created sprite object.
-    */
-    child: function (group, x, y, key, frame) {
 
         return group.create(x, y, key, frame);
 
@@ -19512,32 +13660,51 @@ Phaser.GameObjectFactory.prototype = {
     * A dynamic initially blank canvas to which images can be drawn.
     *
     * @method Phaser.GameObjectFactory#renderTexture
-    * @param {string} key - Asset key for the render texture.
-    * @param {number} width - the width of the render texture.
-    * @param {number} height - the height of the render texture.
-    * @return {Phaser.RenderTexture} The newly created renderTexture object.
+    * @param {number} [width=100] - the width of the RenderTexture.
+    * @param {number} [height=100] - the height of the RenderTexture.
+    * @param {string} [key=''] - Asset key for the RenderTexture when stored in the Cache (see addToCache parameter).
+    * @param {boolean} [addToCache=false] - Should this RenderTexture be added to the Game.Cache? If so you can retrieve it with Cache.getTexture(key)
+    * @return {Phaser.RenderTexture} The newly created RenderTexture object.
     */
-    renderTexture: function (key, width, height) {
+    renderTexture: function (width, height, key, addToCache) {
 
-        var texture = new Phaser.RenderTexture(this.game, key, width, height);
+        if (typeof addToCache === 'undefined') { addToCache = false; }
+        if (typeof key === 'undefined' || key === '') { key = this.game.rnd.uuid(); }
 
-        this.game.cache.addRenderTexture(key, texture);
+        var texture = new Phaser.RenderTexture(this.game, width, height, key);
+
+        if (addToCache)
+        {
+            this.game.cache.addRenderTexture(key, texture);
+        }
 
         return texture;
 
     },
 
     /**
-    * Experimental: A BitmapData object which can be manipulated and drawn to like a traditional Canvas object and used to texture Sprites.
+    * A BitmapData object which can be manipulated and drawn to like a traditional Canvas object and used to texture Sprites.
     *
     * @method Phaser.GameObjectFactory#bitmapData
-    * @param {number} [width=256] - The width of the BitmapData in pixels.
-    * @param {number} [height=256] - The height of the BitmapData in pixels.
+    * @param {number} [width=100] - The width of the BitmapData in pixels.
+    * @param {number} [height=100] - The height of the BitmapData in pixels.
+    * @param {string} [key=''] - Asset key for the BitmapData when stored in the Cache (see addToCache parameter).
+    * @param {boolean} [addToCache=false] - Should this BitmapData be added to the Game.Cache? If so you can retrieve it with Cache.getBitmapData(key)
     * @return {Phaser.BitmapData} The newly created BitmapData object.
     */
-    bitmapData: function (width, height) {
+    bitmapData: function (width, height, addToCache) {
 
-        return new Phaser.BitmapData(this.game, width, height);
+        if (typeof addToCache === 'undefined') { addToCache = false; }
+        if (typeof key === 'undefined' || key === '') { key = this.game.rnd.uuid(); }
+
+        var texture = new Phaser.BitmapData(this.game, key, width, height);
+
+        if (addToCache)
+        {
+            this.game.cache.addBitmapData(key, texture);
+        }
+
+        return texture;
 
     },
 
@@ -19584,13 +13751,14 @@ Phaser.GameObjectFactory.prototype.constructor = Phaser.GameObjectFactory;
 *
 * @constructor
 * @param {Phaser.Game} game - A reference to the currently running game.
-* @param {number} [width=256] - The width of the BitmapData in pixels.
-* @param {number} [height=256] - The height of the BitmapData in pixels.
+* @param {string} key - Internal Phaser reference key for the render texture.
+* @param {number} [width=100] - The width of the BitmapData in pixels.
+* @param {number} [height=100] - The height of the BitmapData in pixels.
 */
-Phaser.BitmapData = function (game, width, height) {
+Phaser.BitmapData = function (game, key, width, height) {
 
-    if (typeof width === 'undefined') { width = 256; }
-    if (typeof height === 'undefined') { height = 256; }
+    if (typeof width === 'undefined') { width = 100; }
+    if (typeof height === 'undefined') { height = 100; }
 
     /**
     * @property {Phaser.Game} game - A reference to the currently running game. 
@@ -19598,9 +13766,9 @@ Phaser.BitmapData = function (game, width, height) {
     this.game = game;
 
     /**
-    * @property {string} name - The name of the BitmapData.
+    * @property {string} key - The key of the BitmapData in the Cache, if stored there.
     */
-    this.name = '';
+    this.key = key;
 
     /**
     * @property {number} width - The width of the BitmapData in pixels.
@@ -20600,7 +14768,7 @@ Phaser.BitmapData.prototype.lf = Phaser.BitmapData.prototype.beginLinearGradient
 * Shortcut to beginRadialGradientFill.
 * @method Phaser.BitmapData.prototype.rf
 */
-Phaser.BitmapData.prototype.rf = Phaser.BitmapData.prototype.beginRadialGradientFill;
+// Phaser.BitmapData.prototype.rf = Phaser.BitmapData.prototype.beginRadialGradientFill;
     
 /**
 * Shortcut to beginBitmapFill.
@@ -20612,7 +14780,7 @@ Phaser.BitmapData.prototype.rf = Phaser.BitmapData.prototype.beginRadialGradient
 * Shortcut to endFill.
 * @method Phaser.BitmapData.prototype.ef
 */
-Phaser.BitmapData.prototype.ef = Phaser.BitmapData.prototype.endFill;
+// Phaser.BitmapData.prototype.ef = Phaser.BitmapData.prototype.endFill;
 
 /**
 * Shortcut to setStrokeStyle.
@@ -20727,17 +14895,6 @@ Phaser.Sprite = function (game, x, y, key, frame) {
     this.exists = true;
 
     /**
-    * @property {boolean} alive - This is a handy little var your game can use to determine if a sprite is alive or not, it doesn't effect rendering.
-    * @default
-    */
-    this.alive = true;
-
-    /**
-    * @property {Phaser.Group} group - The parent Group of this Sprite. This is usually set after Sprite instantiation by the parent.
-    */
-    this.group = null;
-
-    /**
     * @property {string} name - The user defined name given to this Sprite.
     * @default
     */
@@ -20750,20 +14907,6 @@ Phaser.Sprite = function (game, x, y, key, frame) {
     this.type = Phaser.SPRITE;
 
     /**
-    * @property {number} renderOrderID - Used by the Renderer and Input Manager to control picking order.
-    * @default
-    */
-    this.renderOrderID = -1;
-
-    /**
-    * If you would like the Sprite to have a lifespan once 'born' you can set this to a positive value. Handy for particles, bullets, etc.
-    * The lifespan is decremented by game.time.elapsed each update, once it reaches zero the kill() function is called.
-    * @property {number} lifespan - The lifespan of the Sprite (in ms) before it will be killed.
-    * @default
-    */
-    this.lifespan = 0;
-
-    /**
     * @property {Phaser.Events} events - The Events you can subscribe to that are dispatched when certain things happen on this Sprite or its components.
     */
     this.events = new Phaser.Events(this);
@@ -20774,103 +14917,27 @@ Phaser.Sprite = function (game, x, y, key, frame) {
     this.animations = new Phaser.AnimationManager(this);
 
     /**
-    * @property {Phaser.InputHandler} input - The Input Handler Component.
-    */
-    this.input = new Phaser.InputHandler(this);
-
-    /**
     *  @property {string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture} key - This is the image or texture used by the Sprite during rendering. It can be a string which is a reference to the Cache entry, or an instance of a RenderTexture, BitmapData or PIXI.Texture.
     */
     this.key = key;
 
     /**
-    *  @property {Phaser.Frame} currentFrame - A reference to the currently displayed frame.
+    * @property {number} _frame - Internal cache var.
+    * @private
     */
-    this.currentFrame = null;
-
-    if (key instanceof Phaser.RenderTexture)
-    {
-        PIXI.Sprite.call(this, key);
-
-        this.currentFrame = this.game.cache.getTextureFrame(key.name);
-    }
-    else if (key instanceof Phaser.BitmapData)
-    {
-        PIXI.Sprite.call(this, key.texture, key.textureFrame);
-
-        this.currentFrame = key.textureFrame;
-    }
-    else if (key instanceof PIXI.Texture)
-    {
-        PIXI.Sprite.call(this, key);
-
-        this.currentFrame = frame;
-    }
-    else
-    {
-        if (key === null || typeof key === 'undefined')
-        {
-            key = '__default';
-            this.key = key;
-        }
-        else if (typeof key === 'string' && this.game.cache.checkImageKey(key) === false)
-        {
-            key = '__missing';
-            this.key = key;
-        }
-
-        PIXI.Sprite.call(this, PIXI.TextureCache[key]);
-
-        if (this.game.cache.isSpriteSheet(key))
-        {
-            this.animations.loadFrameData(this.game.cache.getFrameData(key));
-
-            if (frame !== null)
-            {
-                if (typeof frame === 'string')
-                {
-                    this.frameName = frame;
-                }
-                else
-                {
-                    this.frame = frame;
-                }
-            }
-        }
-        else
-        {
-            this.currentFrame = this.game.cache.getFrame(key);
-        }
-    }
+    this._frame = 0;
 
     /**
-    * The rectangular area from the texture that will be rendered.
-    * @property {Phaser.Rectangle} textureRegion
+    * @property {string} _frameName - Internal cache var.
+    * @private
     */
-    this.textureRegion = new Phaser.Rectangle(this.texture.frame.x, this.texture.frame.y, this.texture.frame.width, this.texture.frame.height);
+    this._frameName = '';
 
-    /**
-    * The anchor sets the origin point of the texture.
-    * The default is 0,0 this means the textures origin is the top left 
-    * Setting than anchor to 0.5,0.5 means the textures origin is centered
-    * Setting the anchor to 1,1 would mean the textures origin points will be the bottom right
-    *
-    * @property {Phaser.Point} anchor - The anchor around which rotation and scaling takes place.
-    */
-    this.anchor = new Phaser.Point();
+    PIXI.Sprite.call(this, PIXI.TextureCache['__default']);
 
-    /**
-    * @property {number} x - The x coordinate in world space of this Sprite.
-    */
-    this.x = x;
-    
-    /**
-    * @property {number} y - The y coordinate in world space of this Sprite.
-    */
-    this.y = y;
+    this.loadTexture(key, frame);
 
-    this.position.x = x;
-    this.position.y = y;
+    this.position.set(x, y);
 
     /**
     * @property {Phaser.Point} world - The world coordinates of this Sprite. This differs from the x/y coordinates which are relative to the Sprites container.
@@ -20880,6 +14947,7 @@ Phaser.Sprite = function (game, x, y, key, frame) {
     /**
     * Should this Sprite be automatically culled if out of range of the camera?
     * A culled sprite has its renderable property set to 'false'.
+    * Be advised this is quite an expensive operation, as it has to calculate the bounds of the object every frame, so only enable it if you really need it.
     *
     * @property {boolean} autoCull - A flag indicating if the Sprite should be automatically camera culled or not.
     * @default
@@ -20887,122 +14955,22 @@ Phaser.Sprite = function (game, x, y, key, frame) {
     this.autoCull = false;
 
     /**
-    * @property {Phaser.Point} scale - The scale of the Sprite when rendered. By default it's set to 1 (no scale). You can modify it via scale.x or scale.y or scale.setTo(x, y). A value of 1 means no change to the scale, 0.5 means "half the size", 2 means "twice the size", etc.
+    * A Sprite that is fixed to the camera uses its x/y coordinates as offsets from the top left of the camera.
+    * Note that if this Image is a child of a display object that has changed its position then the offset will be calculated from that.
+    * @property {boolean} fixedToCamera - Fixes this Sprite to the Camera.
+    * @default
     */
-    this.scale = new Phaser.Point(1, 1);
+    this.fixedToCamera = false;
 
     /**
-    * @property {object} _cache - A mini cache for storing all of the calculated values.
-    * @private
+    * @property {Phaser.InputHandler|null} input - The Input Handler for this object. Needs to be enabled with image.inputEnabled = true before you can use it.
     */
-    this._cache = {
+    this.input = null;
 
-        fresh: true,
-        dirty: false,
-
-        //  Transform cache
-        a00: -1,
-        a01: -1,
-        a02: -1,
-        a10: -1,
-        a11: -1,
-        a12: -1,
-        id: -1,
-
-        //  Input specific transform cache
-        i01: -1,
-        i10: -1,
-        idi: -1,
-
-        //  Bounds check
-        left: null,
-        right: null,
-        top: null,
-        bottom: null,
-
-        //  delta cache
-        prevX: x,
-        prevY: y,
-
-        //  The previous calculated position
-        x: -1,
-        y: -1,
-
-        //  The actual scale values based on the worldTransform
-        scaleX: 1,
-        scaleY: 1,
-
-        //  The width/height of the image, based on the un-modified frame size multiplied by the final calculated scale size
-        width: this.currentFrame.sourceSizeW,
-        height: this.currentFrame.sourceSizeH,
-
-        //  The actual width/height of the image if from a trimmed atlas, multiplied by the final calculated scale size
-        halfWidth: Math.floor(this.currentFrame.sourceSizeW / 2),
-        halfHeight: Math.floor(this.currentFrame.sourceSizeH / 2),
-
-        //  The width/height of the image, based on the un-modified frame size multiplied by the final calculated scale size
-        calcWidth: -1,
-        calcHeight: -1,
-
-        //  The current frame details
-        // frameID: this.currentFrame.uuid, frameWidth: this.currentFrame.width, frameHeight: this.currentFrame.height,
-        frameID: -1,
-        frameWidth: this.currentFrame.width,
-        frameHeight: this.currentFrame.height,
-
-        //  If this sprite visible to the camera (regardless of being set to visible or not)
-        cameraVisible: true,
-
-        //  Crop cache
-        cropX: 0,
-        cropY: 0,
-        cropWidth: this.currentFrame.sourceSizeW,
-        cropHeight: this.currentFrame.sourceSizeH
-
-    };
-  
     /**
-    * @property {Phaser.Point} offset - Corner point defaults. Should not typically be modified.
+    * @property {Phaser.Physics.Body|null} body - The Sprites physics Body. Will be null unless physics has been enabled via `Sprite.physicsEnabled = true`.
     */
-    this.offset = new Phaser.Point();
-    
-    /**
-    * @property {Phaser.Point} center - A Point containing the center coordinate of the Sprite. Takes rotation and scale into account.
-    */
-    this.center = new Phaser.Point(x + Math.floor(this._cache.width / 2), y + Math.floor(this._cache.height / 2));
-   
-    /**
-    * @property {Phaser.Point} topLeft - A Point containing the top left coordinate of the Sprite. Takes rotation and scale into account.
-    */
-    this.topLeft = new Phaser.Point(x, y);
-    
-    /**
-    * @property {Phaser.Point} topRight - A Point containing the top right coordinate of the Sprite. Takes rotation and scale into account.
-    */
-    this.topRight = new Phaser.Point(x + this._cache.width, y);
-    
-    /**
-    * @property {Phaser.Point} bottomRight - A Point containing the bottom right coordinate of the Sprite. Takes rotation and scale into account.
-    */
-    this.bottomRight = new Phaser.Point(x + this._cache.width, y + this._cache.height);
-    
-    /**
-    * @property {Phaser.Point} bottomLeft - A Point containing the bottom left coordinate of the Sprite. Takes rotation and scale into account.
-    */
-    this.bottomLeft = new Phaser.Point(x, y + this._cache.height);
-    
-    /**
-    * This Rectangle object fully encompasses the Sprite and is updated in real-time.
-    * The bounds is the full bounding area after rotation and scale have been taken into account. It should not be modified directly.
-    * It's used for Camera culling and physics body alignment.
-    * @property {Phaser.Rectangle} bounds
-    */
-    this.bounds = new Phaser.Rectangle(x, y, this._cache.width, this._cache.height);
-    
-    /**
-    * @property {Phaser.Physics.Arcade.Body} body - By default Sprites have a Phaser.Physics Body attached to them. You can operate physics actions via this property, or null it to skip all physics updates.
-    */
-    this.body = new Phaser.Physics.Arcade.Body(this);
+    this.body = null;
 
     /**
     * @property {number} health - Health value. Used in combination with damage() to allow for quick killing of Sprites.
@@ -21010,54 +14978,27 @@ Phaser.Sprite = function (game, x, y, key, frame) {
     this.health = 1;
 
     /**
-    * @property {boolean} inWorld - This value is set to true if the Sprite is positioned within the World, otherwise false.
-    */
-    this.inWorld = Phaser.Rectangle.intersects(this.bounds, this.game.world.bounds);
-    
-    /**
-    * @property {number} inWorldThreshold - A threshold value applied to the inWorld check. If you don't want a Sprite to be considered "out of the world" until at least 100px away for example then set it to 100.
+    * If you would like the Sprite to have a lifespan once 'born' you can set this to a positive value. Handy for particles, bullets, etc.
+    * The lifespan is decremented by game.time.elapsed each update, once it reaches zero the kill() function is called.
+    * @property {number} lifespan - The lifespan of the Sprite (in ms) before it will be killed.
     * @default
     */
-    this.inWorldThreshold = 0;
+    this.lifespan = 0;
 
     /**
-    * @property {boolean} outOfBoundsKill - If true the Sprite is killed as soon as Sprite.inWorld is false.
+    * If true the Sprite checks if it is still within the world each frame, when it leaves the world it dispatches Sprite.events.onOutOfBounds
+    * and optionally kills the sprite (if Sprite.outOfBoundsKill is true). By default this is disabled because the Sprite has to calculate its
+    * bounds every frame to support it, and not all games need it. Enable it by setting the value to true.
+    * @property {boolean} checkWorldBounds
+    * @default
+    */
+    this.checkWorldBounds = false;
+
+    /**
+    * @property {boolean} outOfBoundsKill - If true Sprite.kill is called as soon as Sprite.inWorld returns false, as long as Sprite.checkWorldBounds is true.
     * @default
     */
     this.outOfBoundsKill = false;
-    
-    /**
-    * @property {boolean} _outOfBoundsFired - Internal flag.
-    * @private
-    * @default
-    */
-    this._outOfBoundsFired = false;
-
-    /**
-    * A Sprite that is fixed to the camera ignores the position of any ancestors in the display list and uses its x/y coordinates as offsets from the top left of the camera.
-    * @property {boolean} fixedToCamera - Fixes this Sprite to the Camera.
-    * @default
-    */
-    this.fixedToCamera = false;
-
-    /**
-    * @property {Phaser.Point} cameraOffset - If this Sprite is fixed to the camera then use this Point to specify how far away from the Camera x/y it's rendered.
-    */
-    this.cameraOffset = new Phaser.Point(x, y);
-
-    /**
-    * You can crop the Sprites texture by modifying the crop properties. For example crop.width = 50 would set the Sprite to only render 50px wide.
-    * The crop is only applied if you have set Sprite.cropEnabled to true.
-    * @property {Phaser.Rectangle} crop - The crop Rectangle applied to the Sprite texture before rendering.
-    * @default
-    */
-    this.crop = new Phaser.Rectangle(0, 0, this._cache.width, this._cache.height);
-
-    /**
-    * @property {boolean} cropEnabled - If true the Sprite.crop property is used to crop the texture before render. Set to false to disable.
-    * @default
-    */
-    this.cropEnabled = false;
 
     /**
     * @property {boolean} debug - Handy flag to use with Game.enableStep
@@ -21065,50 +15006,68 @@ Phaser.Sprite = function (game, x, y, key, frame) {
     */
     this.debug = false;
 
-    this.updateCache();
-    this.updateBounds();
+    /**
+    * A small internal cache:
+    * 0 = previous position.x
+    * 1 = previous position.y
+    * 2 = previous rotation
+    * 3 = renderID
+    * 4 = fresh? (0 = no, 1 = yes)
+    * 5 = outOfBoundsFired (0 = no, 1 = yes)
+    * @property {array} _cache
+    * @private
+    */
+    this._cache = [0, 0, 0, 0, 1, 0];
 
     /**
-    * @property {PIXI.Point} pivot - The pivot point of the displayObject that it rotates around.
+    * @property {Phaser.Rectangle} _bounds - Internal cache var.
+    * @private
     */
+    this._bounds = new Phaser.Rectangle();
 
 };
 
-//  Needed to keep the PIXI.Sprite constructor in the prototype chain (as the core pixi renderer uses an instanceof check sadly)
 Phaser.Sprite.prototype = Object.create(PIXI.Sprite.prototype);
 Phaser.Sprite.prototype.constructor = Phaser.Sprite;
 
 /**
-* Automatically called by World.preUpdate. Handles cache updates, lifespan checks, animation updates and physics updates.
+* Automatically called by World.preUpdate.
 *
 * @method Phaser.Sprite#preUpdate
 * @memberof Phaser.Sprite
+* @return {boolean} True if the Sprite was rendered, otherwise false.
 */
 Phaser.Sprite.prototype.preUpdate = function() {
 
-    if (this._cache.fresh)
+    if (this._cache[4] === 1)
     {
-        this.world.setTo(this.parent.position.x + this.x, this.parent.position.y + this.y);
-        this.worldTransform[2] = this.world.x;
-        this.worldTransform[5] = this.world.y;
-        this._cache.fresh = false;
+        this.world.setTo(this.parent.position.x + this.position.x, this.parent.position.y + this.position.y);
+        this.worldTransform.tx = this.world.x;
+        this.worldTransform.ty = this.world.y;
+        this._cache[0] = this.world.x;
+        this._cache[1] = this.world.y;
+        this._cache[2] = this.rotation;
+        this._cache[4] = 0;
 
-        if (this.body)
-        {
-            this.body.x = (this.world.x - (this.anchor.x * this.width)) + this.body.offset.x;
-            this.body.y = (this.world.y - (this.anchor.y * this.height)) + this.body.offset.y;
-            this.body.preX = this.body.x;
-            this.body.preY = this.body.y;
-        }
+        // if (this.body)
+        // {
+        //     this.body.x = (this.world.x - (this.anchor.x * this.width)) + this.body.offset.x;
+        //     this.body.y = (this.world.y - (this.anchor.y * this.height)) + this.body.offset.y;
+        //     this.body.preX = this.body.x;
+        //     this.body.preY = this.body.y;
+        // }
 
-        return;
+        return false;
     }
 
-    if (!this.exists || (this.group && !this.group.exists))
+    this._cache[0] = this.world.x;
+    this._cache[1] = this.world.y;
+    this._cache[2] = this.rotation;
+
+    if (!this.exists || !this.parent.exists)
     {
-        this.renderOrderID = -1;
-        
-        // Skip children if not exists
+        //  Reset the renderOrderID
+        this._cache[3] = -1;
         return false;
     }
 
@@ -21123,24 +15082,47 @@ Phaser.Sprite.prototype.preUpdate = function() {
         }
     }
 
-    this._cache.dirty = false;
+    //  Cache the bounds if we need it
+    if (this.autoCull || this.checkWorldBounds)
+    {
+        this._bounds.copyFrom(this.getBounds());
+    }
+
+    if (this.autoCull)
+    {
+        //  Won't get rendered but will still get its transform updated
+        this.renderable = this.game.world.camera.screenView.intersects(this._bounds);
+    }
+
+    if (this.checkWorldBounds)
+    {
+        //  The Sprite is already out of the world bounds, so let's check to see if it has come back again
+        if (this._cache[5] === 1 && this.game.world.bounds.intersects(this._bounds))
+        {
+            this._cache[5] = 0;
+        }
+        else if (this._cache[5] === 0 && !this.game.world.bounds.intersects(this._bounds))
+        {
+            //  The Sprite WAS in the screen, but has now left.
+            this._cache[5] = 1;
+            this.events.onOutOfBounds.dispatch(this);
+
+            if (this.outOfBoundsKill)
+            {
+                this.kill();
+                return false;
+            }
+        }
+    }
+
+    this.world.setTo(this.game.camera.x + this.worldTransform.tx, this.game.camera.y + this.worldTransform.ty);
 
     if (this.visible)
     {
-        this.renderOrderID = this.game.world.currentRenderOrderID++;
+        this._cache[3] = this.game.world.currentRenderOrderID++;
     }
 
-    this.updateCache();
-
-    this.updateAnimation();
-
-    this.updateCrop();
-
-    //  Re-run the camera visibility check
-    if (this._cache.dirty || this.world.x !== this._cache.prevX || this.world.y !== this._cache.prevY)
-    {
-        this.updateBounds();
-    }
+    this.animations.update();
 
     if (this.body)
     {
@@ -21148,224 +15130,6 @@ Phaser.Sprite.prototype.preUpdate = function() {
     }
 
     return true;
-
-};
-
-/**
-* Internal function called by preUpdate.
-*
-* @method Phaser.Sprite#updateCache
-* @memberof Phaser.Sprite
-*/
-Phaser.Sprite.prototype.updateCache = function() {
-
-    this._cache.prevX = this.world.x;
-    this._cache.prevY = this.world.y;
-
-    if (this.fixedToCamera)
-    {
-        this.x = this.game.camera.view.x + this.cameraOffset.x;
-        this.y = this.game.camera.view.y + this.cameraOffset.y;
-    }
-
-    this.world.setTo(this.game.camera.x + this.worldTransform[2], this.game.camera.y + this.worldTransform[5]);
-
-    if (this.worldTransform[1] != this._cache.i01 || this.worldTransform[3] != this._cache.i10 || this.worldTransform[0] != this._cache.a00 || this.worldTransform[41] != this._cache.a11)
-    {
-        this._cache.a00 = this.worldTransform[0];  //  scaleX         a     |a c tx|
-        this._cache.a01 = this.worldTransform[1];  //  skewY          c     |b d ty|
-        this._cache.a10 = this.worldTransform[3];  //  skewX          b     |0 0  1|
-        this._cache.a11 = this.worldTransform[4];  //  scaleY         d
-
-        this._cache.i01 = this.worldTransform[1];  //  skewY          c (remains non-modified for input checks)
-        this._cache.i10 = this.worldTransform[3];  //  skewX          b (remains non-modified for input checks)
-
-        this._cache.scaleX = Math.sqrt((this._cache.a00 * this._cache.a00) + (this._cache.a01 * this._cache.a01)); // round this off a bit?
-        this._cache.scaleY = Math.sqrt((this._cache.a10 * this._cache.a10) + (this._cache.a11 * this._cache.a11)); // round this off a bit?
-
-        this._cache.a01 *= -1;
-        this._cache.a10 *= -1;
-
-        this._cache.id = 1 / (this._cache.a00 * this._cache.a11 + this._cache.a01 * -this._cache.a10);
-        this._cache.idi = 1 / (this._cache.a00 * this._cache.a11 + this._cache.i01 * -this._cache.i10);
-
-        this._cache.dirty = true;
-    }
-
-    this._cache.a02 = this.worldTransform[2];  //  translateX     tx
-    this._cache.a12 = this.worldTransform[5];  //  translateY     ty
-
-};
-
-/**
-* Internal function called by preUpdate.
-*
-* @method Phaser.Sprite#updateAnimation
-* @memberof Phaser.Sprite
-*/
-Phaser.Sprite.prototype.updateAnimation = function() {
-
-    if (this.animations.update() || (this.currentFrame && this.currentFrame.uuid != this._cache.frameID))
-    {
-        this._cache.frameID = this.currentFrame.uuid;
-
-        this._cache.frameWidth = this.texture.frame.width;
-        this._cache.frameHeight = this.texture.frame.height;
-
-        this._cache.width = this.currentFrame.width;
-        this._cache.height = this.currentFrame.height;
-
-        this._cache.halfWidth = Math.floor(this._cache.width / 2);
-        this._cache.halfHeight = Math.floor(this._cache.height / 2);
-
-        this._cache.dirty = true;
-    }
-
-};
-
-/**
-* Internal function called by preUpdate.
-*
-* @method Phaser.Sprite#updateCrop
-* @memberof Phaser.Sprite
-*/
-Phaser.Sprite.prototype.updateCrop = function() {
-
-    //  This only runs if crop is enabled
-    if (this.cropEnabled && (this.crop.width != this._cache.cropWidth || this.crop.height != this._cache.cropHeight || this.crop.x != this._cache.cropX || this.crop.y != this._cache.cropY))
-    {
-        this.crop.floorAll();
-
-        this._cache.cropX = this.crop.x;
-        this._cache.cropY = this.crop.y;
-        this._cache.cropWidth = this.crop.width;
-        this._cache.cropHeight = this.crop.height;
-
-        this.texture.frame = this.crop;
-        this.texture.width = this.crop.width;
-        this.texture.height = this.crop.height;
-
-        this.texture.updateFrame = true;
-
-        PIXI.Texture.frameUpdates.push(this.texture);
-    }
-
-};
-
-/**
-* Internal function called by preUpdate.
-*
-* @method Phaser.Sprite#updateBounds
-* @memberof Phaser.Sprite
-*/
-Phaser.Sprite.prototype.updateBounds = function() {
-
-    this.offset.setTo(this._cache.a02 - (this.anchor.x * this.width), this._cache.a12 - (this.anchor.y * this.height));
-
-    this.getLocalPosition(this.center, this.offset.x + (this.width / 2), this.offset.y + (this.height / 2));
-    this.getLocalPosition(this.topLeft, this.offset.x, this.offset.y);
-    this.getLocalPosition(this.topRight, this.offset.x + this.width, this.offset.y);
-    this.getLocalPosition(this.bottomLeft, this.offset.x, this.offset.y + this.height);
-    this.getLocalPosition(this.bottomRight, this.offset.x + this.width, this.offset.y + this.height);
-
-    this._cache.left = Phaser.Math.min(this.topLeft.x, this.topRight.x, this.bottomLeft.x, this.bottomRight.x);
-    this._cache.right = Phaser.Math.max(this.topLeft.x, this.topRight.x, this.bottomLeft.x, this.bottomRight.x);
-    this._cache.top = Phaser.Math.min(this.topLeft.y, this.topRight.y, this.bottomLeft.y, this.bottomRight.y);
-    this._cache.bottom = Phaser.Math.max(this.topLeft.y, this.topRight.y, this.bottomLeft.y, this.bottomRight.y);
-
-    this.bounds.setTo(this._cache.left, this._cache.top, this._cache.right - this._cache.left, this._cache.bottom - this._cache.top);
-
-    this.updateFrame = true;
-
-    if (this.inWorld === false)
-    {
-        //  Sprite WAS out of the screen, is it still?
-        this.inWorld = Phaser.Rectangle.intersects(this.bounds, this.game.world.bounds, this.inWorldThreshold);
-
-        if (this.inWorld)
-        {
-            //  It's back again, reset the OOB check
-            this._outOfBoundsFired = false;
-        }
-    }
-    else
-    {
-        //   Sprite WAS in the screen, has it now left?
-        this.inWorld = Phaser.Rectangle.intersects(this.bounds, this.game.world.bounds, this.inWorldThreshold);
-
-        if (this.inWorld === false)
-        {
-            this.events.onOutOfBounds.dispatch(this);
-            this._outOfBoundsFired = true;
-
-            if (this.outOfBoundsKill)
-            {
-                this.kill();
-            }
-        }
-    }
-
-    this._cache.cameraVisible = Phaser.Rectangle.intersects(this.game.world.camera.screenView, this.bounds, 0);
-
-    if (this.autoCull)
-    {
-        //  Won't get rendered but will still get its transform updated
-        this.renderable = this._cache.cameraVisible;
-    }
-
-};
-
-/**
-* Gets the local position of a coordinate relative to the Sprite, factoring in rotation and scale.
-* Mostly only used internally.
-* 
-* @method Phaser.Sprite#getLocalPosition
-* @memberof Phaser.Sprite
-* @param {Phaser.Point} p - The Point object to store the results in.
-* @param {number} x - x coordinate within the Sprite to translate.
-* @param {number} y - y coordinate within the Sprite to translate.
-* @return {Phaser.Point} The translated point.
-*/
-Phaser.Sprite.prototype.getLocalPosition = function(p, x, y) {
-
-    p.x = ((this._cache.a11 * this._cache.id * x + -this._cache.a01 * this._cache.id * y + (this._cache.a12 * this._cache.a01 - this._cache.a02 * this._cache.a11) * this._cache.id) * this.scale.x) + this._cache.a02;
-    p.y = ((this._cache.a00 * this._cache.id * y + -this._cache.a10 * this._cache.id * x + (-this._cache.a12 * this._cache.a00 + this._cache.a02 * this._cache.a10) * this._cache.id) * this.scale.y) + this._cache.a12;
-
-    return p;
-
-};
-
-/**
-* Gets the local unmodified position of a coordinate relative to the Sprite, factoring in rotation and scale.
-* Mostly only used internally by the Input Manager, but also useful for custom hit detection.
-* 
-* @method Phaser.Sprite#getLocalUnmodifiedPosition
-* @memberof Phaser.Sprite
-* @param {Phaser.Point} p - The Point object to store the results in.
-* @param {number} gx - x coordinate within the Sprite to translate.
-* @param {number} gy - y coordinate within the Sprite to translate.
-* @return {Phaser.Point} The translated point.
-*/
-Phaser.Sprite.prototype.getLocalUnmodifiedPosition = function(p, gx, gy) {
-
-    p.x = (this._cache.a11 * this._cache.idi * gx + -this._cache.i01 * this._cache.idi * gy + (this._cache.a12 * this._cache.i01 - this._cache.a02 * this._cache.a11) * this._cache.idi) + (this.anchor.x * this._cache.width);
-    p.y = (this._cache.a00 * this._cache.idi * gy + -this._cache.i10 * this._cache.idi * gx + (-this._cache.a12 * this._cache.a00 + this._cache.a02 * this._cache.i10) * this._cache.idi) + (this.anchor.y * this._cache.height);
-
-    return p;
-
-};
-
-/**
-* Resets the Sprite.crop value back to the frame dimensions.
-*
-* @method Phaser.Sprite#resetCrop
-* @memberof Phaser.Sprite
-*/
-Phaser.Sprite.prototype.resetCrop = function() {
-
-    this.crop = new Phaser.Rectangle(0, 0, this._cache.width, this._cache.height);
-    this.texture.setFrame(this.crop);
-    this.cropEnabled = false;
 
 };
 
@@ -21391,17 +15155,9 @@ Phaser.Sprite.prototype.postUpdate = function() {
 
         if (this.fixedToCamera)
         {
-            this._cache.x = this.game.camera.view.x + this.cameraOffset.x;
-            this._cache.y = this.game.camera.view.y + this.cameraOffset.y;
+            // this.position.x = this.game.camera.view.x + this.x;
+            // this.position.y = this.game.camera.view.y + this.y;
         }
-        else
-        {
-            this._cache.x = this.x;
-            this._cache.y = this.y;
-        }
-
-        this.position.x = this._cache.x;
-        this.position.y = this._cache.y;
     }
 
 };
@@ -21417,78 +15173,111 @@ Phaser.Sprite.prototype.postUpdate = function() {
 */
 Phaser.Sprite.prototype.loadTexture = function (key, frame) {
 
-    this.key = key;
+    frame = frame || 0;
 
     if (key instanceof Phaser.RenderTexture)
     {
-        this.currentFrame = this.game.cache.getTextureFrame(key.name);
+        this.key = key.key;
+        this.setTexture(key);
+        return;
     }
     else if (key instanceof Phaser.BitmapData)
     {
+        this.key = key.key;
         this.setTexture(key.texture);
-        this.currentFrame = key.textureFrame;
+        return;
     }
     else if (key instanceof PIXI.Texture)
     {
-        this.currentFrame = frame;
+        this.key = key;
+        this.setTexture(key);
+        return;
     }
     else
     {
-        if (typeof key === 'undefined' || this.game.cache.checkImageKey(key) === false)
+        if (key === null || typeof key === 'undefined')
         {
-            key = '__default';
-            this.key = key;
+            this.key = '__default';
+            this.setTexture(PIXI.TextureCache[this.key]);
+            return;
+        }
+        else if (typeof key === 'string' && !this.game.cache.checkImageKey(key))
+        {
+            this.key = '__missing';
+            this.setTexture(PIXI.TextureCache[this.key]);
+            return;
         }
 
         if (this.game.cache.isSpriteSheet(key))
         {
+            this.key = key;
+
+            // var frameData = this.game.cache.getFrameData(key);
             this.animations.loadFrameData(this.game.cache.getFrameData(key));
 
-            if (typeof frame !== 'undefined')
+            if (typeof frame === 'string')
             {
-                if (typeof frame === 'string')
-                {
-                    this.frameName = frame;
-                }
-                else
-                {
-                    this.frame = frame;
-                }
+                this.frameName = frame;
+            }
+            else
+            {
+                this.frame = frame;
             }
         }
         else
         {
-            this.currentFrame = this.game.cache.getFrame(key);
+            this.key = key;
             this.setTexture(PIXI.TextureCache[key]);
+            return;
         }
     }
 
 };
 
 /**
-* Moves the sprite so its center is located on the given x and y coordinates.
-* Doesn't change the anchor point of the sprite.
-* 
-* @method Phaser.Sprite#centerOn
+* Crop allows you to crop the texture used to display this Image.
+* Cropping takes place from the top-left of the Image and can be modified in real-time by providing an updated rectangle object.
+*
+* @method Phaser.Sprite#crop
 * @memberof Phaser.Sprite
-* @param {number} x - The x coordinate (in world space) to position the Sprite at.
-* @param {number} y - The y coordinate (in world space) to position the Sprite at.
-* @return (Phaser.Sprite) This instance.
+* @param {Phaser.Rectangle} rect - The Rectangle to crop the Image to. Pass null or no parameters to clear a previously set crop rectangle.
 */
-Phaser.Sprite.prototype.centerOn = function(x, y) {
+Phaser.Sprite.prototype.crop = function(rect) {
 
-    if (this.fixedToCamera)
+    if (typeof rect === 'undefined' || rect === null)
     {
-        this.cameraOffset.x = x + (this.cameraOffset.x - this.center.x);
-        this.cameraOffset.y = y + (this.cameraOffset.y - this.center.y);
+        //  Clear any crop that may be set
+        if (this.texture.hasOwnProperty('sourceWidth'))
+        {
+            this.texture.setFrame(new Phaser.Rectangle(0, 0, this.texture.sourceWidth, this.texture.sourceHeight));
+        }
     }
     else
     {
-        this.x = x + (this.x - this.center.x);
-        this.y = y + (this.y - this.center.y);
-    }
+        //  Do we need to clone the PIXI.Texture object?
+        if (this.texture instanceof PIXI.Texture)
+        {
+            //  Yup, let's rock it ...
+            var local = {};
 
-    return this;
+            Phaser.Utils.extend(true, local, this.texture);
+
+            local.sourceWidth = local.width;
+            local.sourceHeight = local.height;
+            local.frame = rect;
+            local.width = rect.width;
+            local.height = rect.height;
+
+            this.texture = local;
+
+            this.texture.updateFrame = true;
+            PIXI.Texture.frameUpdates.push(this.texture);
+        }
+        else
+        {
+            this.texture.setFrame(rect);
+        }
+    }
 
 };
 
@@ -21559,19 +15348,14 @@ Phaser.Sprite.prototype.destroy = function() {
         this.filters = null;
     }
 
-    if (this.group)
+    if (this.parent)
     {
-        this.group.remove(this);
+        this.parent.remove(this);
     }
 
     if (this.input)
     {
         this.input.destroy();
-    }
-
-    if (this.events)
-    {
-        this.events.destroy();
     }
 
     if (this.animations)
@@ -21582,6 +15366,11 @@ Phaser.Sprite.prototype.destroy = function() {
     if (this.body)
     {
         this.body.destroy();
+    }
+
+    if (this.events)
+    {
+        this.events.destroy();
     }
 
     this.alive = false;
@@ -21633,11 +15422,9 @@ Phaser.Sprite.prototype.reset = function(x, y, health) {
 
     if (typeof health === 'undefined') { health = 1; }
 
-    this.x = x;
-    this.y = y;
     this.world.setTo(x, y);
-    this.position.x = this.x;
-    this.position.y = this.y;
+    this.position.x = x;
+    this.position.y = y;
     this.alive = true;
     this.exists = true;
     this.visible = true;
@@ -21663,15 +15450,18 @@ Phaser.Sprite.prototype.reset = function(x, y, health) {
 * @memberof Phaser.Sprite
 * @return (Phaser.Sprite) This instance.
 */
-Phaser.Sprite.prototype.bringToTop = function() {
+Phaser.Sprite.prototype.bringToTop = function(child) {
 
-    if (this.group)
+    if (typeof child === 'undefined')
     {
-        this.group.bringToTop(this);
+        if (this.parent)
+        {
+            this.parent.bringToTop(this);
+        }
     }
     else
     {
-        this.game.world.bringToTop(this);
+
     }
 
     return this;
@@ -21700,48 +15490,110 @@ Phaser.Sprite.prototype.play = function (name, frameRate, loop, killOnComplete) 
 };
 
 /**
-* Returns the delta x value. The difference between Sprite.x now and in the previous step.
+* Indicates the rotation of the Sprite, in degrees, from its original orientation. Values from 0 to 180 represent clockwise rotation; values from 0 to -180 represent counterclockwise rotation.
+* Values outside this range are added to or subtracted from 360 to obtain a value within the range. For example, the statement player.angle = 450 is the same as player.angle = 90.
+* If you wish to work in radians instead of degrees use the property Sprite.rotation instead. Working in radians is also a little faster as it doesn't have to convert the angle.
+* 
+* @name Phaser.Sprite#angle
+* @property {number} angle - The angle of this Sprite in degrees.
+*/
+Object.defineProperty(Phaser.Sprite.prototype, "angle", {
+
+    get: function() {
+
+        return Phaser.Math.wrapAngle(Phaser.Math.radToDeg(this.rotation));
+
+    },
+
+    set: function(value) {
+
+        this.rotation = Phaser.Math.degToRad(Phaser.Math.wrapAngle(value));
+
+    }
+
+});
+
+/**
+* Returns the delta x value. The difference between world.x now and in the previous step.
+*
 * @name Phaser.Sprite#deltaX
 * @property {number} deltaX - The delta value. Positive if the motion was to the right, negative if to the left.
 * @readonly
 */
-Object.defineProperty(Phaser.Sprite.prototype, 'deltaX', {
+Object.defineProperty(Phaser.Sprite.prototype, "deltaX", {
 
     get: function() {
-        return this.world.x - this._cache.prevX;
+
+        return this.world.x - this._cache[0];
+
     }
 
 });
 
 /**
-* Returns the delta x value. The difference between Sprite.y now and in the previous step.
+* Returns the delta y value. The difference between world.y now and in the previous step.
+*
 * @name Phaser.Sprite#deltaY
 * @property {number} deltaY - The delta value. Positive if the motion was downwards, negative if upwards.
 * @readonly
 */
-Object.defineProperty(Phaser.Sprite.prototype, 'deltaY', {
+Object.defineProperty(Phaser.Sprite.prototype, "deltaY", {
 
     get: function() {
-        return this.world.y - this._cache.prevY;
+    
+        return this.world.y - this._cache[1];
+
     }
 
 });
 
 /**
-* Indicates the rotation of the Sprite, in degrees, from its original orientation. Values from 0 to 180 represent clockwise rotation; values from 0 to -180 represent counterclockwise rotation.
-* Values outside this range are added to or subtracted from 360 to obtain a value within the range. For example, the statement player.angle = 450 is the same as player.angle = 90.
-* If you wish to work in radians instead of degrees use the property Sprite.rotation instead.
-* @name Phaser.Sprite#angle
-* @property {number} angle - Gets or sets the Sprites angle of rotation in degrees.
+* Returns the delta z value. The difference between rotation now and in the previous step.
+*
+* @name Phaser.Sprite#deltaZ
+* @property {number} deltaZ - The delta value.
+* @readonly
 */
-Object.defineProperty(Phaser.Sprite.prototype, 'angle', {
+Object.defineProperty(Phaser.Sprite.prototype, "deltaZ", {
 
     get: function() {
-        return Phaser.Math.wrapAngle(Phaser.Math.radToDeg(this.rotation));
-    },
+    
+        return this.rotation - this._cache[2];
 
-    set: function(value) {
-        this.rotation = Phaser.Math.degToRad(Phaser.Math.wrapAngle(value));
+    }
+
+});
+
+/**
+* Checks if the Image bounds are within the game world, otherwise false if fully outside of it.
+*
+* @name Phaser.Sprite#inWorld
+* @property {boolean} inWorld - True if the Image bounds is within the game world, even if only partially. Otherwise false if fully outside of it.
+* @readonly
+*/
+Object.defineProperty(Phaser.Sprite.prototype, "inWorld", {
+
+    get: function() {
+
+        return this.game.world.bounds.intersects(this.getBounds());
+
+    }
+
+});
+
+/**
+* Checks if the Image bounds are within the game camera, otherwise false if fully outside of it.
+*
+* @name Phaser.Sprite#inCamera
+* @property {boolean} inCamera - True if the Image bounds is within the game camera, even if only partially. Otherwise false if fully outside of it.
+* @readonly
+*/
+Object.defineProperty(Phaser.Sprite.prototype, "inCamera", {
+
+    get: function() {
+    
+        return this.game.world.camera.screenView.intersects(this.getBounds());
+
     }
 
 });
@@ -21751,7 +15603,7 @@ Object.defineProperty(Phaser.Sprite.prototype, 'angle', {
 * @property {number} frame - Gets or sets the current frame index and updates the Texture Cache for display.
 */
 Object.defineProperty(Phaser.Sprite.prototype, "frame", {
-    
+
     get: function () {
         return this.animations.frame;
     },
@@ -21767,7 +15619,7 @@ Object.defineProperty(Phaser.Sprite.prototype, "frame", {
 * @property {string} frameName - Gets or sets the current frame name and updates the Texture Cache for display.
 */
 Object.defineProperty(Phaser.Sprite.prototype, "frameName", {
-    
+
     get: function () {
         return this.animations.frameName;
     },
@@ -21779,85 +15631,15 @@ Object.defineProperty(Phaser.Sprite.prototype, "frameName", {
 });
 
 /**
-* @name Phaser.Sprite#inCamera
-* @property {boolean} inCamera - Is this sprite visible to the camera or not?
+* @name Phaser.Sprite#renderOrderID
+* @property {number} renderOrderID - The render order ID, reset every frame.
 * @readonly
 */
-Object.defineProperty(Phaser.Sprite.prototype, "inCamera", {
-    
-    get: function () {
-        return this._cache.cameraVisible;
-    }
-
-});
-
-/**
-* @name Phaser.Sprite#worldCenterX
-* @property {number} worldCenterX - The center of the Sprite in world coordinates.
-* @readonly
-*/
-Object.defineProperty(Phaser.Sprite.prototype, "worldCenterX", {
-    
-    get: function () {
-        return this.game.camera.x + this.center.x;
-    }
-
-});
-
-/**
-* @name Phaser.Sprite#worldCenterY
-* @property {number} worldCenterY - The center of the Sprite in world coordinates.
-* @readonly
-*/
-Object.defineProperty(Phaser.Sprite.prototype, "worldCenterY", {
-    
-    get: function () {
-        return this.game.camera.y + this.center.y;
-    }
-
-});
-
-/**
-* The width of the sprite in pixels, setting this will actually modify the scale to acheive the value desired.
-* If you wish to crop the Sprite instead see the Sprite.crop value.
-*
-* @name Phaser.Sprite#width
-* @property {number} width - The width of the Sprite in pixels.
-*/
-Object.defineProperty(Phaser.Sprite.prototype, 'width', {
+Object.defineProperty(Phaser.Sprite.prototype, "renderOrderID", {
 
     get: function() {
-        return this.scale.x * this.currentFrame.width;
-    },
 
-    set: function(value) {
-
-        this.scale.x = value / this.currentFrame.width;
-        this._cache.scaleX = value / this.currentFrame.width;
-        this._width = value;
-
-    }
-
-});
-
-/**
-* The height of the sprite in pixels, setting this will actually modify the scale to acheive the value desired.
-* If you wish to crop the Sprite instead see the Sprite.crop value.
-*
-* @name Phaser.Sprite#height
-* @property {number} height - The height of the Sprite in pixels.
-*/
-Object.defineProperty(Phaser.Sprite.prototype, 'height', {
-
-    get: function() {
-        return this.scale.y * this.currentFrame.height;
-    },
-
-    set: function(value) {
-
-        this.scale.y = value / this.currentFrame.height;
-        this._cache.scaleY = value / this.currentFrame.height;
-        this._height = value;
+        return this._cache[3];
 
     }
 
@@ -21865,16 +15647,16 @@ Object.defineProperty(Phaser.Sprite.prototype, 'height', {
 
 /**
 * By default a Sprite won't process any input events at all. By setting inputEnabled to true the Phaser.InputHandler is
-* activated for this Sprite instance and it will then start to process click/touch events and more.
+* activated for this object and it will then start to process click/touch events and more.
 *
 * @name Phaser.Sprite#inputEnabled
-* @property {boolean} inputEnabled - Set to true to allow this Sprite to receive input events, otherwise false.
+* @property {boolean} inputEnabled - Set to true to allow this object to receive input events.
 */
 Object.defineProperty(Phaser.Sprite.prototype, "inputEnabled", {
     
     get: function () {
 
-        return (this.input.enabled);
+        return (this.input && this.input.enabled);
 
     },
 
@@ -21882,19 +15664,694 @@ Object.defineProperty(Phaser.Sprite.prototype, "inputEnabled", {
 
         if (value)
         {
-            if (this.input.enabled === false)
+            if (this.input === null)
             {
+                this.input = new Phaser.InputHandler(this);
                 this.input.start();
             }
         }
         else
         {
-            if (this.input.enabled)
+            if (this.input && this.input.enabled)
             {
                 this.input.stop();
             }
         }
+    }
 
+});
+
+/**
+* By default Sprites won't add themselves to the physics world. By setting physicsEnabled to true a Physics Body is
+* attached to this Sprite and it will then start to process physics world updates. Access all of its properties via Sprite.body.
+*
+* @name Phaser.Sprite#physicsEnabled
+* @property {boolean} physicsEnabled - Set to true to add this Sprite to the physics world. Set to false to destroy the body and remove it from the physics world.
+*/
+Object.defineProperty(Phaser.Sprite.prototype, "physicsEnabled", {
+    
+    get: function () {
+
+        return (this.body !== null);
+
+    },
+
+    set: function (value) {
+
+        if (value)
+        {
+            if (this.body === null)
+            {
+                this.body = new Phaser.Physics.Body(this);
+            }
+        }
+        else
+        {
+            if (this.body)
+            {
+                this.body.destroy();
+            }
+        }
+    }
+
+});
+
+/**
+* @author       Richard Davey <rich@photonstorm.com>
+* @copyright    2014 Photon Storm Ltd.
+* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
+*/
+
+/**
+* @class Phaser.Image
+*
+* @classdesc Create a new `Image` object. An Image is a light-weight object you can use to display anything that doesn't need physics or animation.
+* It can still rotate, scale, crop and receive input events. This makes it perfect for logos, backgrounds, simple buttons and other non-Sprite graphics.
+*
+* @constructor
+* @param {Phaser.Game} game - A reference to the currently running game.
+* @param {number} x - The x coordinate of the Imaget. The coordinate is relative to any parent container this Image may be in.
+* @param {number} y - The y coordinate of the Image. The coordinate is relative to any parent container this Image may be in.
+* @param {string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture} key - The texture used by the Image during rendering. It can be a string which is a reference to the Cache entry, or an instance of a RenderTexture, BitmapData or PIXI.Texture.
+* @param {string|number} frame - If this Image is using part of a sprite sheet or texture atlas you can specify the exact frame to use by giving a string or numeric index.
+*/
+Phaser.Image = function (game, x, y, key, frame) {
+
+    x = x || 0;
+    y = y || 0;
+    key = key || null;
+    frame = frame || null;
+    
+    /**
+    * @property {Phaser.Game} game - A reference to the currently running Game.
+    */
+    this.game = game;
+ 
+    /**
+    * @property {boolean} exists - If exists = false then the Sprite isn't updated by the core game loop or physics subsystem at all.
+    * @default
+    */
+    this.exists = true;
+
+    /**
+    * @property {string} name - The user defined name given to this Sprite.
+    * @default
+    */
+    this.name = '';
+
+    /**
+    * @property {number} type - The const type of this object.
+    * @readonly
+    */
+    this.type = Phaser.IMAGE;
+
+    /**
+    * @property {Phaser.Events} events - The Events you can subscribe to that are dispatched when certain things happen on this Sprite or its components.
+    */
+    this.events = new Phaser.Events(this);
+
+    /**
+    *  @property {string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture} key - This is the image or texture used by the Sprite during rendering. It can be a string which is a reference to the Cache entry, or an instance of a RenderTexture, BitmapData or PIXI.Texture.
+    */
+    this.key = key;
+
+    this._frame = 0;
+    this._frameName = '';
+
+    PIXI.Sprite.call(this, PIXI.TextureCache['__default']);
+
+    this.loadTexture(key, frame);
+
+    this.position.set(x, y);
+
+    /**
+    * @property {Phaser.Point} world - The world coordinates of this Sprite. This differs from the x/y coordinates which are relative to the Sprites container.
+    */
+    this.world = new Phaser.Point(x, y);
+
+    /**
+    * Should this Sprite be automatically culled if out of range of the camera?
+    * A culled sprite has its renderable property set to 'false'.
+    * Be advised this is quite an expensive operation, as it has to calculate the bounds of the object every frame, so only enable it if you really need it.
+    *
+    * @property {boolean} autoCull - A flag indicating if the Sprite should be automatically camera culled or not.
+    * @default
+    */
+    this.autoCull = false;
+
+    /**
+    * A Sprite that is fixed to the camera uses its x/y coordinates as offsets from the top left of the camera.
+    * Note that if this Image is a child of a display object that has changed its position then the offset will be calculated from that.
+    * @property {boolean} fixedToCamera - Fixes this Sprite to the Camera.
+    * @default
+    */
+    this.fixedToCamera = false;
+
+    /**
+    * @property {Phaser.InputHandler|null} input - The Input Handler for this object. Needs to be enabled with image.inputEnabled = true before you can use it.
+    */
+    this.input = null;
+
+    /**
+    * @property {array} _cache - A small cache for previous step values. 0 = x, 1 = y, 2 = rotation, 3 = renderID
+    * @private
+    */
+    this._cache = [0, 0, 0, 0];
+
+};
+
+Phaser.Image.prototype = Object.create(PIXI.Sprite.prototype);
+Phaser.Image.prototype.constructor = Phaser.Image;
+
+/**
+* Automatically called by World.preUpdate.
+*
+* @method Phaser.Image#preUpdate
+* @memberof Phaser.Image
+*/
+Phaser.Image.prototype.preUpdate = function() {
+
+    this._cache[0] = this.world.x;
+    this._cache[1] = this.world.y;
+    this._cache[2] = this.rotation;
+
+    if (!this.exists || !this.parent.exists)
+    {
+        this.renderOrderID = -1;
+        return false;
+    }
+
+    if (this.autoCull)
+    {
+        //  Won't get rendered but will still get its transform updated
+        this.renderable = this.game.world.camera.screenView.intersects(this.getBounds());
+    }
+
+    this.world.setTo(this.game.camera.x + this.worldTransform[2], this.game.camera.y + this.worldTransform[5]);
+
+    if (this.visible)
+    {
+        this._cache[3] = this.game.world.currentRenderOrderID++;
+    }
+
+    return true;
+
+};
+
+/**
+* Internal function called by the World postUpdate cycle.
+*
+* @method Phaser.Image#postUpdate
+* @memberof Phaser.Image
+*/
+Phaser.Image.prototype.postUpdate = function() {
+
+    if (this.key instanceof Phaser.BitmapData && this.key._dirty)
+    {
+        this.key.render();
+    }
+
+    if (this.fixedToCamera)
+    {
+        this.position.x = this.game.camera.view.x + this.x;
+        this.position.y = this.game.camera.view.y + this.y;
+    }
+
+};
+
+/**
+* Changes the Texture the Sprite is using entirely. The old texture is removed and the new one is referenced or fetched from the Cache.
+* This causes a WebGL texture update, so use sparingly or in low-intensity portions of your game.
+*
+* @method Phaser.Image#loadTexture
+* @memberof Phaser.Image
+* @param {string|Phaser.RenderTexture|Phaser.BitmapData|PIXI.Texture} key - This is the image or texture used by the Sprite during rendering. It can be a string which is a reference to the Cache entry, or an instance of a RenderTexture, BitmapData or PIXI.Texture.
+* @param {string|number} frame - If this Sprite is using part of a sprite sheet or texture atlas you can specify the exact frame to use by giving a string or numeric index.
+*/
+Phaser.Image.prototype.loadTexture = function (key, frame) {
+
+    frame = frame || 0;
+
+    if (key instanceof Phaser.RenderTexture)
+    {
+        this.key = key.key;
+        this.setTexture(key);
+        return;
+    }
+    else if (key instanceof Phaser.BitmapData)
+    {
+        this.key = key.key;
+        this.setTexture(key.texture);
+        return;
+    }
+    else if (key instanceof PIXI.Texture)
+    {
+        this.key = key;
+        this.setTexture(key);
+        return;
+    }
+    else
+    {
+        if (key === null || typeof key === 'undefined')
+        {
+            this.key = '__default';
+            this.setTexture(PIXI.TextureCache[this.key]);
+            return;
+        }
+        else if (typeof key === 'string' && !this.game.cache.checkImageKey(key))
+        {
+            this.key = '__missing';
+            this.setTexture(PIXI.TextureCache[this.key]);
+            return;
+        }
+
+        if (this.game.cache.isSpriteSheet(key))
+        {
+            this.key = key;
+
+            var frameData = this.game.cache.getFrameData(key);
+
+            if (typeof frame === 'string')
+            {
+                this._frame = 0;
+                this._frameName = frame;
+                this.setTexture(PIXI.TextureCache[frameData.getFrameByName(frame).uuid]);
+                return;
+            }
+            else
+            {
+                this._frame = frame;
+                this._frameName = '';
+                this.setTexture(PIXI.TextureCache[frameData.getFrame(frame).uuid]);
+                return;
+            }
+        }
+        else
+        {
+            this.key = key;
+            this.setTexture(PIXI.TextureCache[key]);
+            return;
+        }
+    }
+
+};
+
+/**
+* Crop allows you to crop the texture used to display this Image.
+* Cropping takes place from the top-left of the Image and can be modified in real-time by providing an updated rectangle object.
+*
+* @method Phaser.Image#crop
+* @memberof Phaser.Image
+* @param {Phaser.Rectangle} rect - The Rectangle to crop the Image to. Pass null or no parameters to clear a previously set crop rectangle.
+*/
+Phaser.Image.prototype.crop = function(rect) {
+
+    if (typeof rect === 'undefined' || rect === null)
+    {
+        //  Clear any crop that may be set
+        if (this.texture.hasOwnProperty('sourceWidth'))
+        {
+            this.texture.setFrame(new Phaser.Rectangle(0, 0, this.texture.sourceWidth, this.texture.sourceHeight));
+        }
+    }
+    else
+    {
+        //  Do we need to clone the PIXI.Texture object?
+        if (this.texture instanceof PIXI.Texture)
+        {
+            //  Yup, let's rock it ...
+            var local = {};
+
+            Phaser.Utils.extend(true, local, this.texture);
+
+            local.sourceWidth = local.width;
+            local.sourceHeight = local.height;
+            local.frame = rect;
+            local.width = rect.width;
+            local.height = rect.height;
+
+            this.texture = local;
+
+            this.texture.updateFrame = true;
+            PIXI.Texture.frameUpdates.push(this.texture);
+        }
+        else
+        {
+            this.texture.setFrame(rect);
+        }
+    }
+
+};
+
+/**
+* Brings a 'dead' Sprite back to life, optionally giving it the health value specified.
+* A resurrected Sprite has its alive, exists and visible properties all set to true.
+* It will dispatch the onRevived event, you can listen to Sprite.events.onRevived for the signal.
+* 
+* @method Phaser.Image#revive
+* @memberof Phaser.Image
+* @return {Phaser.Image} This instance.
+*/
+Phaser.Image.prototype.revive = function() {
+
+    this.alive = true;
+    this.exists = true;
+    this.visible = true;
+
+    if (this.events)
+    {
+        this.events.onRevived.dispatch(this);
+    }
+
+    return this;
+
+};
+
+/**
+* Kills a Sprite. A killed Sprite has its alive, exists and visible properties all set to false.
+* It will dispatch the onKilled event, you can listen to Sprite.events.onKilled for the signal.
+* Note that killing a Sprite is a way for you to quickly recycle it in a Sprite pool, it doesn't free it up from memory.
+* If you don't need this Sprite any more you should call Sprite.destroy instead.
+* 
+* @method Phaser.Image#kill
+* @memberof Phaser.Image
+* @return {Phaser.Image} This instance.
+*/
+Phaser.Image.prototype.kill = function() {
+
+    this.alive = false;
+    this.exists = false;
+    this.visible = false;
+
+    if (this.events)
+    {
+        this.events.onKilled.dispatch(this);
+    }
+
+    return this;
+
+};
+
+/**
+* Destroys the Sprite. This removes it from its parent group, destroys the input, event and animation handlers if present
+* and nulls its reference to game, freeing it up for garbage collection.
+* 
+* @method Phaser.Image#destroy
+* @memberof Phaser.Image
+*/
+Phaser.Image.prototype.destroy = function() {
+
+    if (this.filters)
+    {
+        this.filters = null;
+    }
+
+    if (this.parent)
+    {
+        this.parent.remove(this);
+    }
+
+    if (this.events)
+    {
+        this.events.destroy();
+    }
+
+    if (this.input)
+    {
+        this.input.destroy();
+    }
+
+    this.alive = false;
+    this.exists = false;
+    this.visible = false;
+
+    this.game = null;
+
+};
+
+/**
+* Resets the Sprite. This places the Sprite at the given x/y world coordinates and then sets alive, exists, visible and renderable all to true.
+* 
+* @method Phaser.Image#reset
+* @memberof Phaser.Image
+* @param {number} x - The x coordinate (in world space) to position the Sprite at.
+* @param {number} y - The y coordinate (in world space) to position the Sprite at.
+* @return {Phaser.Image} This instance.
+*/
+Phaser.Image.prototype.reset = function(x, y) {
+
+    this.world.setTo(x, y);
+    this.position.x = x;
+    this.position.y = y;
+    this.alive = true;
+    this.exists = true;
+    this.visible = true;
+    this.renderable = true;
+
+    return this;
+    
+};
+
+/**
+* Brings the Sprite to the top of the display list it is a child of. Sprites that are members of a Phaser.Group are only
+* bought to the top of that Group, not the entire display list.
+* 
+* @method Phaser.Image#bringToTop
+* @memberof Phaser.Image
+* @return {Phaser.Image} This instance.
+*/
+Phaser.Image.prototype.bringToTop = function(child) {
+
+    if (typeof child === 'undefined')
+    {
+        if (this.parent)
+        {
+            this.parent.bringToTop(this);
+        }
+    }
+    else
+    {
+
+    }
+
+    return this;
+
+};
+
+/**
+* Indicates the rotation of the Sprite, in degrees, from its original orientation. Values from 0 to 180 represent clockwise rotation; values from 0 to -180 represent counterclockwise rotation.
+* Values outside this range are added to or subtracted from 360 to obtain a value within the range. For example, the statement player.angle = 450 is the same as player.angle = 90.
+* If you wish to work in radians instead of degrees use the property Sprite.rotation instead. Working in radians is also a little faster as it doesn't have to convert the angle.
+* 
+* @name Phaser.Image#angle
+* @property {number} angle - The angle of this Image in degrees.
+*/
+Object.defineProperty(Phaser.Image.prototype, "angle", {
+
+    get: function() {
+
+        return Phaser.Math.wrapAngle(Phaser.Math.radToDeg(this.rotation));
+
+    },
+
+    set: function(value) {
+
+        this.rotation = Phaser.Math.degToRad(Phaser.Math.wrapAngle(value));
+
+    }
+
+});
+
+/**
+* Returns the delta x value. The difference between world.x now and in the previous step.
+*
+* @name Phaser.Image#deltaX
+* @property {number} deltaX - The delta value. Positive if the motion was to the right, negative if to the left.
+* @readonly
+*/
+Object.defineProperty(Phaser.Image.prototype, "deltaX", {
+
+    get: function() {
+
+        return this.world.x - this._cache[0];
+
+    }
+
+});
+
+/**
+* Returns the delta y value. The difference between world.y now and in the previous step.
+*
+* @name Phaser.Image#deltaY
+* @property {number} deltaY - The delta value. Positive if the motion was downwards, negative if upwards.
+* @readonly
+*/
+Object.defineProperty(Phaser.Image.prototype, "deltaY", {
+
+    get: function() {
+    
+        return this.world.y - this._cache[1];
+
+    }
+
+});
+
+/**
+* Returns the delta z value. The difference between rotation now and in the previous step.
+*
+* @name Phaser.Image#deltaZ
+* @property {number} deltaZ - The delta value.
+* @readonly
+*/
+Object.defineProperty(Phaser.Image.prototype, "deltaZ", {
+
+    get: function() {
+    
+        return this.rotation - this._cache[2];
+
+    }
+
+});
+
+/**
+* Checks if the Image bounds are within the game world, otherwise false if fully outside of it.
+*
+* @name Phaser.Image#inWorld
+* @property {boolean} inWorld - True if the Image bounds is within the game world, even if only partially. Otherwise false if fully outside of it.
+* @readonly
+*/
+Object.defineProperty(Phaser.Image.prototype, "inWorld", {
+
+    get: function() {
+
+        return this.game.world.bounds.intersects(this.getBounds());
+
+    }
+
+});
+
+/**
+* Checks if the Image bounds are within the game camera, otherwise false if fully outside of it.
+*
+* @name Phaser.Image#inCamera
+* @property {boolean} inCamera - True if the Image bounds is within the game camera, even if only partially. Otherwise false if fully outside of it.
+* @readonly
+*/
+Object.defineProperty(Phaser.Image.prototype, "inCamera", {
+
+    get: function() {
+    
+        return this.game.world.camera.screenView.intersects(this.getBounds());
+
+    }
+
+});
+
+/**
+* @name Phaser.Image#frame
+* @property {number} frame - Gets or sets the current frame index and updates the Texture for display.
+*/
+Object.defineProperty(Phaser.Image.prototype, "frame", {
+
+    get: function() {
+    
+        return this._frame;
+
+    },
+
+    set: function(value) {
+
+        if (value !== this.frame && this.game.cache.isSpriteSheet(this.key))
+        {
+            var frameData = this.game.cache.getFrameData(this.key);
+
+            if (frameData && value < frameData.total && frameData.getFrame(value))
+            {
+                this.setTexture(PIXI.TextureCache[frameData.getFrame(value).uuid]);
+                this._frame = value;
+            }
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Image#frameName
+* @property {string} frameName - Gets or sets the current frame by name and updates the Texture for display.
+*/
+Object.defineProperty(Phaser.Image.prototype, "frameName", {
+
+    get: function() {
+    
+        return this._frameName;
+
+    },
+
+    set: function(value) {
+
+        if (value !== this.frameName && this.game.cache.isSpriteSheet(this.key))
+        {
+            var frameData = this.game.cache.getFrameData(this.key);
+
+            if (frameData && frameData.getFrameByName(value))
+            {
+                this.setTexture(PIXI.TextureCache[frameData.getFrameByName(value).uuid]);
+                this._frameName = value;
+            }
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Image#renderOrderID
+* @property {number} renderOrderID - The render order ID, reset every frame.
+* @readonly
+*/
+Object.defineProperty(Phaser.Image.prototype, "renderOrderID", {
+
+    get: function() {
+
+        return this._cache[3];
+
+    }
+
+});
+
+/**
+* By default an Image won't process any input events at all. By setting inputEnabled to true the Phaser.InputHandler is
+* activated for this object and it will then start to process click/touch events and more.
+*
+* @name Phaser.Image#inputEnabled
+* @property {boolean} inputEnabled - Set to true to allow this object to receive input events.
+*/
+Object.defineProperty(Phaser.Image.prototype, "inputEnabled", {
+    
+    get: function () {
+
+        return (this.input && this.input.enabled);
+
+    },
+
+    set: function (value) {
+
+        if (value)
+        {
+            if (this.input === null)
+            {
+                this.input = new Phaser.InputHandler(this);
+                this.input.start();
+            }
+        }
+        else
+        {
+            if (this.input && this.input.enabled)
+            {
+                this.input.stop();
+            }
+        }
     }
 
 });
@@ -22093,17 +16550,6 @@ Phaser.Text = function (game, x, y, text, style) {
     this.exists = true;
 
     /**
-    * @property {boolean} alive - This is a handy little var your game can use to determine if an object is alive or not, it doesn't effect rendering.
-    * @default
-    */
-    this.alive = true;
-
-    /**
-    * @property {Phaser.Group} group - The parent Group of this Text object.
-    */
-    this.group = null;
-
-    /**
     * @property {string} name - The user defined name given to this object.
     * @default
     */
@@ -22116,39 +16562,9 @@ Phaser.Text = function (game, x, y, text, style) {
     this.type = Phaser.TEXT;
 
     /**
-    * @property {string} _text - Internal value.
-    * @private
+    * @property {Phaser.Point} world - The world coordinates of this Sprite. This differs from the x/y coordinates which are relative to the Sprites container.
     */
-    this._text = text;
-
-    /**
-    * @property {string} _style - Internal value.
-    * @private
-    */
-    this._style = style;
-
-    PIXI.Text.call(this, text, style);
-
-    /**
-    * @property {Phaser.Point} position - The position of this Text object in world space.
-    */
-    this.position.x = this.x = x;
-    this.position.y = this.y = y;
-
-    /**
-    * The anchor sets the origin point of the texture.
-    * The default is 0,0 this means the textures origin is the top left 
-    * Setting than anchor to 0.5,0.5 means the textures origin is centered
-    * Setting the anchor to 1,1 would mean the textures origin points will be the bottom right
-    *
-    * @property {Phaser.Point} anchor - The anchor around which rotation and scaling takes place.
-    */
-    this.anchor = new Phaser.Point();
-    
-    /**
-    * @property {Phaser.Point} scale - The scale of the object when rendered. By default it's set to 1 (no scale). You can modify it via scale.x or scale.y or scale.setTo(x, y). A value of 1 means no change to the scale, 0.5 means "half the size", 2 means "twice the size", etc.
-    */
-    this.scale = new Phaser.Point(1, 1);
+    this.world = new Phaser.Point(x, y);
 
     /**
     * An object that is fixed to the camera ignores the position of any ancestors in the display list and uses its x/y coordinates as offsets from the top left of the camera.
@@ -22158,44 +16574,48 @@ Phaser.Text = function (game, x, y, text, style) {
     this.fixedToCamera = false;
 
     /**
-    * @property {Phaser.Point} cameraOffset - If this object is fixed to the camera then use this Point to specify how far away from the Camera x/y it's rendered.
-    */
-    this.cameraOffset = new Phaser.Point(x, y);
-
-    /**
-    * @property {object} _cache - A mini cache for storing all of the calculated values.
+    * @property {string} _text - Internal cache var.
     * @private
     */
-    this._cache = {
-
-        dirty: false,
-
-        //  Transform cache
-        a00: 1,
-        a01: 0,
-        a02: x,
-        a10: 0,
-        a11: 1,
-        a12: y,
-        id: 1,
-
-        //  The previous calculated position
-        x: -1,
-        y: -1,
-
-        //  The actual scale values based on the worldTransform
-        scaleX: 1,
-        scaleY: 1
-
-    };
-
-    this._cache.x = this.x;
-    this._cache.y = this.y;
+    this._text = text;
 
     /**
-    * @property {boolean} renderable - A renderable object will be rendered to the context each frame.
+    * @property {string} _font - Internal cache var.
+    * @private
     */
-    this.renderable = true;
+    this._font = '';
+
+    /**
+    * @property {number} _fontSize - Internal cache var.
+    * @private
+    */
+    this._fontSize = 32;
+
+    /**
+    * @property {string} _fontWeight - Internal cache var.
+    * @private
+    */
+    this._fontWeight = 'normal';
+
+    /**
+    * @property {number} lineSpacing - Additional spacing (in pixels) between each line of text if multi-line.
+    * @private
+    */
+    this._lineSpacing = 0;
+
+    /**
+    * @property {Phaser.Events} events - The Events you can subscribe to that are dispatched when certain things happen on this Sprite or its components.
+    */
+    this.events = new Phaser.Events(this);
+
+    /**
+    * @property {Phaser.InputHandler|null} input - The Input Handler for this object. Needs to be enabled with image.inputEnabled = true before you can use it.
+    */
+    this.input = null;
+
+    PIXI.Text.call(this, text, style);
+
+    this.position.set(x, y);
 
 };
 
@@ -22203,34 +16623,35 @@ Phaser.Text.prototype = Object.create(PIXI.Text.prototype);
 Phaser.Text.prototype.constructor = Phaser.Text;
 
 /**
-* Automatically called by World.update.
-* @method Phaser.Text.prototype.update
+* Automatically called by World.preUpdate.
+* @method Phaser.Text.prototype.preUpdate
 */
-Phaser.Text.prototype.update = function() {
+Phaser.Text.prototype.preUpdate = function() {
 
-    if (!this.exists)
+    if (!this.exists || !this.parent.exists)
     {
-        return;
+        //  Reset the renderOrderID
+        return false;
     }
 
-    if (this.fixedToCamera)
+    this.world.setTo(this.game.camera.x + this.worldTransform.tx, this.game.camera.y + this.worldTransform.ty);
+
+}
+
+/**
+* Automatically called by World.postUpdate.
+* @method Phaser.Text.prototype.postUpdate
+*/
+Phaser.Text.prototype.postUpdate = function() {
+
+    if (this.exists)
     {
-        this.x = this.game.camera.view.x + this.cameraOffset.x;
-        this.y = this.game.camera.view.y + this.cameraOffset.y;
+        if (this.fixedToCamera)
+        {
+            // this.position.x = this.game.camera.view.x + this.x;
+            // this.position.y = this.game.camera.view.y + this.y;
+        }
     }
-
-    this._cache.dirty = false;
-
-    this._cache.x = this.x;
-    this._cache.y = this.y;
-
-    if (this.position.x != this._cache.x || this.position.y != this._cache.y)
-    {
-        this.position.x = this._cache.x;
-        this.position.y = this._cache.y;
-        this._cache.dirty = true;
-    }
-
 }
 
 /**
@@ -22238,10 +16659,17 @@ Phaser.Text.prototype.update = function() {
 */
 Phaser.Text.prototype.destroy = function() {
 
-    if (this.group)
+    if (this.filters)
     {
-        this.group.remove(this);
+        this.filters = null;
     }
+
+    if (this.parent)
+    {
+        this.parent.remove(this);
+    }
+
+    this.texture.destroy();
 
     if (this.canvas.parentNode)
     {
@@ -22254,10 +16682,189 @@ Phaser.Text.prototype.destroy = function() {
     }
 
     this.exists = false;
+    this.visible = false;
 
-    this.group = null;
+    this.game = null;
 
 }
+
+/**
+* @method Phaser.Text.prototype.setShadow
+* @param {number} [x=0] - The shadowOffsetX value in pixels. This is how far offset horizontally the shadow effect will be.
+* @param {number} [y=0] - The shadowOffsetY value in pixels. This is how far offset vertically the shadow effect will be.
+* @param {string} [color='rgba(0,0,0,0)'] - The color of the shadow, as given in CSS rgba format. Set the alpha component to 0 to disable the shadow.
+* @param {number} [blur=0] - The shadowBlur value. Make the shadow softer by applying a Gaussian blur to it. A number from 0 (no blur) up to approx. 10 (depending on scene).
+*/
+Phaser.Text.prototype.setShadow = function(x, y, color, blur) {
+
+    this.style.shadowOffsetX = x || 0;
+    this.style.shadowOffsetY = y || 0;
+    this.style.shadowColor = color || 'rgba(0,0,0,0)';
+    this.style.shadowBlur = blur || 0;
+    this.dirty = true;
+
+}
+
+/**
+* Set the style of the text by passing a single style object to it.
+*
+* @method Phaser.Text.prototype.setStyle
+* @param [style] {Object} The style parameters
+* @param [style.font='bold 20pt Arial'] {String} The style and size of the font
+* @param [style.fill='black'] {Object} A canvas fillstyle that will be used on the text eg 'red', '#00FF00'
+* @param [style.align='left'] {String} Alignment for multiline text ('left', 'center' or 'right'), does not affect single line text
+* @param [style.stroke='black'] {String} A canvas fillstyle that will be used on the text stroke eg 'blue', '#FCFF00'
+* @param [style.strokeThickness=0] {Number} A number that represents the thickness of the stroke. Default is 0 (no stroke)
+* @param [style.wordWrap=false] {Boolean} Indicates if word wrap should be used
+* @param [style.wordWrapWidth=100] {Number} The width at which text will wrap
+*/
+Phaser.Text.prototype.setStyle = function(style) {
+
+    style = style || {};
+    style.font = style.font || 'bold 20pt Arial';
+    style.fill = style.fill || 'black';
+    style.align = style.align || 'left';
+    style.stroke = style.stroke || 'black'; //provide a default, see: https://github.com/GoodBoyDigital/pixi.js/issues/136
+    style.strokeThickness = style.strokeThickness || 0;
+    style.wordWrap = style.wordWrap || false;
+    style.wordWrapWidth = style.wordWrapWidth || 100;
+    style.shadowOffsetX = style.shadowOffsetX || 0;
+    style.shadowOffsetY = style.shadowOffsetY || 0;
+    style.shadowColor = style.shadowColor || 'rgba(0,0,0,0)';
+    style.shadowBlur = style.shadowBlur || 0;
+
+    this.style = style;
+    this.dirty = true;
+
+};
+
+/**
+* Renders text. This replaces the Pixi.Text.updateText function as we need a few extra bits in here.
+*
+* @method Phaser.Text.prototype.updateText
+* @private
+*/
+Phaser.Text.prototype.updateText = function() {
+
+    this.context.font = this.style.font;
+
+    var outputText = this.text;
+
+    // word wrap
+    // preserve original text
+    if(this.style.wordWrap)outputText = this.runWordWrap(this.text);
+
+    //split text into lines
+    var lines = outputText.split(/(?:\r\n|\r|\n)/);
+
+    //calculate text width
+    var lineWidths = [];
+    var maxLineWidth = 0;
+    for (var i = 0; i < lines.length; i++)
+    {
+        var lineWidth = this.context.measureText(lines[i]).width;
+        lineWidths[i] = lineWidth;
+        maxLineWidth = Math.max(maxLineWidth, lineWidth);
+    }
+    this.canvas.width = maxLineWidth + this.style.strokeThickness;
+
+    //calculate text height
+    var lineHeight = this.determineFontHeight('font: ' + this.style.font  + ';') + this.style.strokeThickness + this._lineSpacing + this.style.shadowOffsetY;
+    this.canvas.height = lineHeight * lines.length;
+
+    if(navigator.isCocoonJS) this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
+    
+    //set canvas text styles
+    this.context.fillStyle = this.style.fill;
+    this.context.font = this.style.font;
+
+    this.context.strokeStyle = this.style.stroke;
+    this.context.lineWidth = this.style.strokeThickness;
+
+    this.context.shadowOffsetX = this.style.shadowOffsetX;
+    this.context.shadowOffsetY = this.style.shadowOffsetY;
+    this.context.shadowColor = this.style.shadowColor;
+    this.context.shadowBlur = this.style.shadowBlur;
+
+    this.context.textBaseline = 'top';
+
+    //draw lines line by line
+    for (i = 0; i < lines.length; i++)
+    {
+        var linePosition = new PIXI.Point(this.style.strokeThickness / 2, this.style.strokeThickness / 2 + i * lineHeight);
+
+        if(this.style.align === 'right')
+        {
+            linePosition.x += maxLineWidth - lineWidths[i];
+        }
+        else if(this.style.align === 'center')
+        {
+            linePosition.x += (maxLineWidth - lineWidths[i]) / 2;
+        }
+
+        linePosition.y += this._lineSpacing;
+
+        if(this.style.stroke && this.style.strokeThickness)
+        {
+            this.context.strokeText(lines[i], linePosition.x, linePosition.y);
+        }
+
+        if(this.style.fill)
+        {
+            this.context.fillText(lines[i], linePosition.x, linePosition.y);
+        }
+    }
+
+    this.updateTexture();
+};
+
+/**
+* Greedy wrapping algorithm that will wrap words as the line grows longer than its horizontal bounds.
+*
+* @method Phaser.Text.prototype.runWordWrap
+* @private
+*/
+Phaser.Text.prototype.runWordWrap = function(text) {
+
+    var result = '';
+    var lines = text.split('\n');
+
+    for (var i = 0; i < lines.length; i++)
+    {
+        var spaceLeft = this.style.wordWrapWidth;
+        var words = lines[i].split(' ');
+
+        for (var j = 0; j < words.length; j++)
+        {
+            var wordWidth = this.context.measureText(words[j]).width;
+            var wordWidthWithSpace = wordWidth + this.context.measureText(' ').width;
+
+            if (wordWidthWithSpace > spaceLeft)
+            {
+                // Skip printing the newline if it's the first word of the line that is greater than the word wrap width.
+                if (j > 0)
+                {
+                    result += '\n';
+                }
+                result += words[j] + ' ';
+                spaceLeft = this.style.wordWrapWidth - wordWidth;
+            }
+            else
+            {
+                spaceLeft -= wordWidthWithSpace;
+                result += words[j] + ' ';
+            }
+        }
+
+        if (i < lines.length-1)
+        {
+            result += '\n';
+        }
+    }
+
+    return result;
+
+};
 
 /**
 * Indicates the rotation of the Text, in degrees, from its original orientation. Values from 0 to 180 represent clockwise rotation; values from 0 to -180 represent counterclockwise rotation.
@@ -22279,45 +16886,11 @@ Object.defineProperty(Phaser.Text.prototype, 'angle', {
 });
 
 /**
-* The x coordinate of this object in world space.
-* @name Phaser.Text#x
-* @property {number} x - The x coordinate of this object in world space.
+* The text string to be displayed by this Text object, taking into account the style settings.
+* @name Phaser.Text#text
+* @property {string} text - The text string to be displayed by this Text object, taking into account the style settings.
 */
-Object.defineProperty(Phaser.Text.prototype, 'x', {
-
-    get: function() {
-        return this.position.x;
-    },
-
-    set: function(value) {
-        this.position.x = value;
-    }
-
-});
-
-/**
-* The y coordinate of this object in world space.
-* @name Phaser.Text#y
-* @property {number} y - The y coordinate of this object in world space.
-*/
-Object.defineProperty(Phaser.Text.prototype, 'y', {
-
-    get: function() {
-        return this.position.y;
-    },
-
-    set: function(value) {
-        this.position.y = value;
-    }
-
-});
-
-/**
-* The string to be rendered by this Text object.
-* @name Phaser.Text#content
-* @property {string} content - The string to be rendered by this Text object.
-*/
-Object.defineProperty(Phaser.Text.prototype, 'content', {
+Object.defineProperty(Phaser.Text.prototype, 'text', {
 
     get: function() {
         return this._text;
@@ -22325,11 +16898,10 @@ Object.defineProperty(Phaser.Text.prototype, 'content', {
 
     set: function(value) {
 
-        //  Let's not update unless needed, this way we can safely update the text in a core loop without constant re-draws
         if (value !== this._text)
         {
-            this._text = value;
-            this.setText(value);
+            this._text = value.toString() || ' ';
+            this.dirty = true;
         }
 
     }
@@ -22337,25 +16909,350 @@ Object.defineProperty(Phaser.Text.prototype, 'content', {
 });
 
 /**
-* The font the text will be rendered in.
 * @name Phaser.Text#font
-* @property {string} font - The font the text will be rendered in.
+* @property {string} font - The font the text will be rendered in, i.e. 'Arial'. Must be loaded in the browser before use.
 */
 Object.defineProperty(Phaser.Text.prototype, 'font', {
 
     get: function() {
-        return this._style;
+        return this._font;
     },
 
     set: function(value) {
 
-        //  Let's not update unless needed, this way we can safely update the text in a core loop without constant re-draws
-        if (value !== this._style)
+        if (value !== this._font)
         {
-            this._style = value;
-            this.setStyle(value);
+            this._font = value.trim();
+            this.style.font = this._fontWeight + ' ' + this._fontSize + "px '" + this._font + "'";
+            this.dirty = true;
         }
 
+    }
+
+});
+
+/**
+* @name Phaser.Text#fontSize
+* @property {number} fontSize - The size of the font in pixels.
+*/
+Object.defineProperty(Phaser.Text.prototype, 'fontSize', {
+
+    get: function() {
+        return this._fontSize;
+    },
+
+    set: function(value) {
+
+        value = parseInt(value);
+
+        if (value !== this._fontSize)
+        {
+            this._fontSize = value;
+            this.style.font = this._fontWeight + ' ' + this._fontSize + "px '" + this._font + "'";
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#fontWeight
+* @property {number} fontWeight - The weight of the font: 'normal', 'bold', 'italic'. You can combine settings too, such as 'bold italic'.
+*/
+Object.defineProperty(Phaser.Text.prototype, 'fontWeight', {
+
+    get: function() {
+        return this._fontWeight;
+    },
+
+    set: function(value) {
+
+        if (value !== this._fontWeight)
+        {
+            this._fontWeight = value;
+            this.style.font = this._fontWeight + ' ' + this._fontSize + "px '" + this._font + "'";
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#fill
+* @property {object} fill - A canvas fillstyle that will be used on the text eg 'red', '#00FF00'.
+*/
+Object.defineProperty(Phaser.Text.prototype, 'fill', {
+
+    get: function() {
+        return this.style.fill;
+    },
+
+    set: function(value) {
+
+        if (value !== this.style.fill)
+        {
+            this.style.fill = value;
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#align
+* @property {string} align - Alignment for multiline text ('left', 'center' or 'right'), does not affect single line text.
+*/
+Object.defineProperty(Phaser.Text.prototype, 'align', {
+
+    get: function() {
+        return this.style.align;
+    },
+
+    set: function(value) {
+
+        if (value !== this.style.align)
+        {
+            this.style.align = value;
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#stroke
+* @property {string} stroke - A canvas fillstyle that will be used on the text stroke eg 'blue', '#FCFF00'.
+*/
+Object.defineProperty(Phaser.Text.prototype, 'stroke', {
+
+    get: function() {
+        return this.style.stroke;
+    },
+
+    set: function(value) {
+
+        if (value !== this.style.stroke)
+        {
+            this.style.stroke = value;
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#strokeThickness
+* @property {number} strokeThickness - A number that represents the thickness of the stroke. Default is 0 (no stroke)
+*/
+Object.defineProperty(Phaser.Text.prototype, 'strokeThickness', {
+
+    get: function() {
+        return this.style.strokeThickness;
+    },
+
+    set: function(value) {
+
+        if (value !== this.style.strokeThickness)
+        {
+            this.style.strokeThickness = value;
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#wordWrap
+* @property {boolean} wordWrap - Indicates if word wrap should be used.
+*/
+Object.defineProperty(Phaser.Text.prototype, 'wordWrap', {
+
+    get: function() {
+        return this.style.wordWrap;
+    },
+
+    set: function(value) {
+
+        if (value !== this.style.wordWrap)
+        {
+            this.style.wordWrap = value;
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#wordWrapWidth
+* @property {number} wordWrapWidth - The width at which text will wrap.
+*/
+Object.defineProperty(Phaser.Text.prototype, 'wordWrapWidth', {
+
+    get: function() {
+        return this.style.wordWrapWidth;
+    },
+
+    set: function(value) {
+
+        if (value !== this.style.wordWrapWidth)
+        {
+            this.style.wordWrapWidth = value;
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#lineSpacing
+* @property {number} lineSpacing - Additional spacing (in pixels) between each line of text if multi-line.
+*/
+Object.defineProperty(Phaser.Text.prototype, 'lineSpacing', {
+
+    get: function() {
+        return this._lineSpacing;
+    },
+
+    set: function(value) {
+
+        if (value !== this._lineSpacing)
+        {
+            this._lineSpacing = parseFloat(value);
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#shadowOffsetX
+* @property {number} shadowOffsetX - The shadowOffsetX value in pixels. This is how far offset horizontally the shadow effect will be.
+*/
+Object.defineProperty(Phaser.Text.prototype, 'shadowOffsetX', {
+
+    get: function() {
+        return this.style.shadowOffsetX;
+    },
+
+    set: function(value) {
+
+        if (value !== this.style.shadowOffsetX)
+        {
+            this.style.shadowOffsetX = value;
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#shadowOffsetY
+* @property {number} shadowOffsetY - The shadowOffsetY value in pixels. This is how far offset vertically the shadow effect will be.
+*/
+Object.defineProperty(Phaser.Text.prototype, 'shadowOffsetY', {
+
+    get: function() {
+        return this.style.shadowOffsetY;
+    },
+
+    set: function(value) {
+
+        if (value !== this.style.shadowOffsetY)
+        {
+            this.style.shadowOffsetY = value;
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#shadowColor
+* @property {string} shadowColor - The color of the shadow, as given in CSS rgba format. Set the alpha component to 0 to disable the shadow.
+*/
+Object.defineProperty(Phaser.Text.prototype, 'shadowColor', {
+
+    get: function() {
+        return this.style.shadowColor;
+    },
+
+    set: function(value) {
+
+        if (value !== this.style.shadowColor)
+        {
+            this.style.shadowColor = value;
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Text#shadowBlur
+* @property {number} shadowBlur - The shadowBlur value. Make the shadow softer by applying a Gaussian blur to it. A number from 0 (no blur) up to approx. 10 (depending on scene).
+*/
+Object.defineProperty(Phaser.Text.prototype, 'shadowBlur', {
+
+    get: function() {
+        return this.style.shadowBlur;
+    },
+
+    set: function(value) {
+
+        if (value !== this.style.shadowBlur)
+        {
+            this.style.shadowBlur = value;
+            this.dirty = true;
+        }
+
+    }
+
+});
+
+/**
+* By default a Text object won't process any input events at all. By setting inputEnabled to true the Phaser.InputHandler is
+* activated for this object and it will then start to process click/touch events and more.
+*
+* @name Phaser.Text#inputEnabled
+* @property {boolean} inputEnabled - Set to true to allow this object to receive input events.
+*/
+Object.defineProperty(Phaser.Text.prototype, "inputEnabled", {
+    
+    get: function () {
+
+        return (this.input && this.input.enabled);
+
+    },
+
+    set: function (value) {
+
+        if (value)
+        {
+            if (this.input === null)
+            {
+                this.input = new Phaser.InputHandler(this);
+                this.input.start();
+            }
+        }
+        else
+        {
+            if (this.input && this.input.enabled)
+            {
+                this.input.stop();
+            }
+        }
     }
 
 });
@@ -22516,7 +17413,7 @@ Phaser.BitmapText.prototype.update = function() {
 }
 
 /**
-* @method Phaser.BitmapText.prototype.destroy
+* @method Phaser.Text.prototype.destroy
 */
 Phaser.BitmapText.prototype.destroy = function() {
 
@@ -22613,6 +17510,7 @@ Object.defineProperty(Phaser.BitmapText.prototype, 'y', {
 * You can set a unique texture frame and Sound for any of these states.
 *
 * @constructor
+* @extends Phaser.Image
 *
 * @param {Phaser.Game} game Current game instance.
 * @param {number} [x=0] - X position of the Button.
@@ -22633,7 +17531,7 @@ Phaser.Button = function (game, x, y, key, callback, callbackContext, overFrame,
     callback = callback || null;
     callbackContext = callbackContext || this;
 
-    Phaser.Sprite.call(this, game, x, y, key, outFrame);
+    Phaser.Image.call(this, game, x, y, key, outFrame);
 
     /** 
     * @property {number} type - The Phaser Object Type.
@@ -22776,14 +17674,16 @@ Phaser.Button = function (game, x, y, key, callback, callbackContext, overFrame,
     */
     this.forceOut = false;
 
+    this.inputEnabled = true;
+
+    this.input.start(0, true);
+
     this.setFrames(overFrame, outFrame, downFrame, upFrame);
 
     if (callback !== null)
     {
         this.onInputUp.add(callback, callbackContext);
     }
-
-    this.input.start(0, true);
 
     //  Redirect the input events to here so we can handle animation updates, etc
     this.events.onInputOver.add(this.onInputOverHandler, this);
@@ -22793,8 +17693,7 @@ Phaser.Button = function (game, x, y, key, callback, callbackContext, overFrame,
 
 };
 
-Phaser.Button.prototype = Object.create(Phaser.Sprite.prototype);
-Phaser.Button.prototype = Phaser.Utils.extend(true, Phaser.Button.prototype, Phaser.Sprite.prototype, PIXI.Sprite.prototype);
+Phaser.Button.prototype = Object.create(Phaser.Image.prototype);
 Phaser.Button.prototype.constructor = Phaser.Button;
 
 /**
@@ -23071,7 +17970,7 @@ Phaser.Button.prototype.onInputOverHandler = function (sprite, pointer) {
 * Internal function that handles input events.
 *
 * @protected
-* @method Phaser.Button.prototype.onInputOutHandler
+* @method Phaser.Button.prototype.onInputOverHandler
 * @param {Phaser.Button} sprite - The Button that the event occured on.
 * @param {Phaser.Pointer} pointer - The Pointer that activated the Button.
 */
@@ -23097,7 +17996,7 @@ Phaser.Button.prototype.onInputOutHandler = function (sprite, pointer) {
 * Internal function that handles input events.
 *
 * @protected
-* @method Phaser.Button.prototype.onInputDownHandler
+* @method Phaser.Button.prototype.onInputOverHandler
 * @param {Phaser.Button} sprite - The Button that the event occured on.
 * @param {Phaser.Pointer} pointer - The Pointer that activated the Button.
 */
@@ -23123,7 +18022,7 @@ Phaser.Button.prototype.onInputDownHandler = function (sprite, pointer) {
 * Internal function that handles input events.
 *
 * @protected
-* @method Phaser.Button.prototype.onInputUpHandler
+* @method Phaser.Button.prototype.onInputOverHandler
 * @param {Phaser.Button} sprite - The Button that the event occured on.
 * @param {Phaser.Pointer} pointer - The Pointer that activated the Button.
 */
@@ -23268,15 +18167,15 @@ Phaser.Graphics.prototype.constructor = Phaser.Graphics;
 /**
 * Destroy this Graphics instance.
 * 
-* @method Phaser.Graphics.prototype.destroy
+* @method Phaser.Sprite.prototype.destroy
 */
 Phaser.Graphics.prototype.destroy = function() {
 
     this.clear();
 
-    if (this.group)
+    if (this.parent)
     {
-        this.group.remove(this);
+        this.parent.remove(this);
     }
 
     this.game = null;
@@ -23285,6 +18184,8 @@ Phaser.Graphics.prototype.destroy = function() {
 
 /*
 * Draws a {Phaser.Polygon} or a {PIXI.Polygon} filled
+* 
+* @method Phaser.Sprite.prototype.drawPolygon
 */
 Phaser.Graphics.prototype.drawPolygon = function (poly) {
 
@@ -23299,41 +18200,14 @@ Phaser.Graphics.prototype.drawPolygon = function (poly) {
     
 }
 
-Object.defineProperty(Phaser.Graphics.prototype, 'angle', {
-
-    get: function() {
-        return Phaser.Math.wrapAngle(Phaser.Math.radToDeg(this.rotation));
-    },
-
-    set: function(value) {
-        this.rotation = Phaser.Math.degToRad(Phaser.Math.wrapAngle(value));
-    }
-
-});
-
-Object.defineProperty(Phaser.Graphics.prototype, 'x', {
-
-    get: function() {
-        return this.position.x;
-    },
-
-    set: function(value) {
-        this.position.x = value;
-    }
-
-});
-
-Object.defineProperty(Phaser.Graphics.prototype, 'y', {
-
-    get: function() {
-        return this.position.y;
-    },
-
-    set: function(value) {
-        this.position.y = value;
-    }
-
-});
+/**
+* Indicates the rotation of the Button in degrees, from its original orientation. Values from 0 to 180 represent clockwise rotation; values from 0 to -180 represent counterclockwise rotation.
+* Values outside this range are added to or subtracted from 360 to obtain a value within the range. For example, the statement player.angle = 450 is the same as player.angle = 90.
+* If you wish to work in radians instead of degrees use the rotation property instead. Working in radians is also a little faster as it doesn't have to convert the angle.
+* 
+* @name Phaser.Button#angle
+* @property {number} angle - The angle of this Button in degrees.
+*/
 
 /**
 * @author       Richard Davey <rich@photonstorm.com>
@@ -23346,11 +18220,11 @@ Object.defineProperty(Phaser.Graphics.prototype, 'y', {
 * @class Phaser.RenderTexture
 * @constructor
 * @param {Phaser.Game} game - Current game instance.
-* @param {string} key - Asset key for the render texture.
-* @param {number} width - the width of the render texture.
-* @param {number} height - the height of the render texture.
+* @param {string} key - Internal Phaser reference key for the render texture.
+* @param {number} [width=100] - The width of the render texture.
+* @param {number} [height=100] - The height of the render texture.
 */
-Phaser.RenderTexture = function (game, key, width, height) {
+Phaser.RenderTexture = function (game, width, height, key) {
 
     /**
     * @property {Phaser.Game} game - A reference to the currently running game. 
@@ -23358,315 +18232,21 @@ Phaser.RenderTexture = function (game, key, width, height) {
     this.game = game;
 
     /**
-    * @property {string} name - the name of the object. 
+    * @property {string} key - The key of the RenderTexture in the Cache, if stored there.
     */
-    this.name = key;
-
-    PIXI.EventTarget.call(this);
-
-    /**
-    * @property {number} width - the width. 
-    */
-    this.width = width || 100;
-    
-    /**
-    * @property {number} height - the height. 
-    */
-    this.height = height || 100;
-
-    /**
-    * @property {PIXI.mat3} indetityMatrix - Matrix object. 
-    */
-    this.indetityMatrix = PIXI.mat3.create();
-
-    /**
-    * @property {PIXI.Rectangle} frame - The frame for this texture. 
-    */
-    this.frame = new PIXI.Rectangle(0, 0, this.width, this.height);
+    this.key = key;
 
     /**
     * @property {number} type - Base Phaser object type. 
     */
     this.type = Phaser.RENDERTEXTURE;
 
-    this._tempPoint = { x: 0, y: 0 };
-
-    if (PIXI.gl)
-    {
-        this.initWebGL();
-    }
-    else
-    {
-        this.initCanvas();
-    }
+    PIXI.RenderTexture.call(this, width, height);
     
 };
 
-Phaser.RenderTexture.prototype = Object.create(PIXI.Texture.prototype);
-Phaser.RenderTexture.prototype.constructor = PIXI.RenderTexture;
-
-/**
-* This function will draw the display object to the texture. If the display object is a Group or has children it will
-* draw all children as well.
-* 
-* @method Phaser.RenderTexture#render
-* @memberof Phaser.RenderTexture
-* @param {DisplayObject} displayObject - The display object to render this texture on.
-* @param {Phaser.Point} [position] - Where to draw the display object.
-* @param {boolean} [clear=false] - If true the texture will be cleared before the displayObject is drawn.
-* @param {boolean} [renderHidden=false] - If true displayObjects that have their visible property set to false will still be rendered.
-*/
-Phaser.RenderTexture.prototype.render = function(displayObject, position, clear, renderHidden) {
-
-    if (typeof position === 'undefined') { position = false; }
-    if (typeof clear === 'undefined') { clear = false; }
-    if (typeof renderHidden === 'undefined') { renderHidden = false; }
-
-    if (displayObject instanceof Phaser.Group)
-    {
-        displayObject = displayObject._container;
-    }
-
-    if (PIXI.gl)
-    {
-        this.renderWebGL(displayObject, position, clear, renderHidden);
-    }
-    else
-    {
-        this.renderCanvas(displayObject, position, clear, renderHidden);
-    }
-
-}
-
-/**
-* This function will draw the display object to the texture at the given x/y coordinates.
-* If the display object is a Group or has children it will draw all children as well.
-*
-* @method Phaser.RenderTexture#renderXY
-* @memberof Phaser.RenderTexture
-* @param {DisplayObject} displayObject - The display object to render this texture on.
-* @param {number} x - The x coordinate to draw the display object at.
-* @param {number} y - The y coordinate to draw the display object at.
-* @param {boolean} [clear=false] - If true the texture will be cleared before the displayObject is drawn.
-* @param {boolean} [renderHidden=false] - If true displayObjects that have their visible property set to false will still be rendered.
-*/
-Phaser.RenderTexture.prototype.renderXY = function(displayObject, x, y, clear, renderHidden) {
-
-    this._tempPoint.x = x;
-    this._tempPoint.y = y;
-
-    this.render(displayObject, this._tempPoint, clear, renderHidden);
-
-}
-
-/**
-* Initializes the webgl data for this texture
-*
-* @method Phaser.RenderTexture#initWebGL
-* @memberof Phaser.RenderTexture
-* @private
-*/
-Phaser.RenderTexture.prototype.initWebGL = function() {
-
-    var gl = PIXI.gl;
-    this.glFramebuffer = gl.createFramebuffer();
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.glFramebuffer );
-
-    this.glFramebuffer.width = this.width;
-    this.glFramebuffer.height = this.height;
-
-    this.baseTexture = new PIXI.BaseTexture();
-
-    this.baseTexture.width = this.width;
-    this.baseTexture.height = this.height;
-
-    this.baseTexture._glTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, this.baseTexture._glTexture);
-
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,  this.width,  this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    this.baseTexture.isRender = true;
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.glFramebuffer );
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.baseTexture._glTexture, 0);
-
-    // create a projection matrix..
-    this.projection = new PIXI.Point(this.width/2 , -this.height/2);
-
-    // set the correct render function..
-    // this.render = this.renderWebGL;
-}
-
-/**
-* Resizes the RenderTexture.
-*
-* @method Phaser.RenderTexture#resize
-* @memberof Phaser.RenderTexture
-*/
-Phaser.RenderTexture.prototype.resize = function(width, height)
-{
-
-    this.width = width;
-    this.height = height;
-    
-    if(PIXI.gl)
-    {
-        this.projection.x = this.width/2
-        this.projection.y = -this.height/2;
-    
-        var gl = PIXI.gl;
-        gl.bindTexture(gl.TEXTURE_2D, this.baseTexture._glTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,  this.width,  this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    }
-    else
-    {
-        
-        this.frame.width = this.width
-        this.frame.height = this.height;
-        this.renderer.resize(this.width, this.height);
-    }
-}
-
-/**
-* Initializes the canvas data for this texture
-*
-* @method Phaser.RenderTexture#initCanvas
-* @memberof Phaser.RenderTexture
-* @private
-*/
-Phaser.RenderTexture.prototype.initCanvas = function()
-{
-    this.renderer = new PIXI.CanvasRenderer(this.width, this.height, null, 0);
-
-    this.baseTexture = new PIXI.BaseTexture(this.renderer.view);
-    this.frame = new PIXI.Rectangle(0, 0, this.width, this.height);
-
-    // this.render = this.renderCanvas;
-}
-
-/**
-* This function will draw the display object to the texture.
-*
-* @method Phaser.RenderTexture#renderWebGL
-* @memberof Phaser.RenderTexture
-* @private
-* @param {DisplayObject} displayObject - The display object to render this texture on.
-* @param {Phaser.Point} [position] - Where to draw the display object.
-* @param {boolean} [clear=false] - If true the texture will be cleared before the displayObject is drawn.
-* @param {boolean} [renderHidden=false] - If true displayObjects that have their visible property set to false will still be rendered.
-*/
-Phaser.RenderTexture.prototype.renderWebGL = function(displayObject, position, clear, renderHidden)
-{
-    var gl = PIXI.gl;
-
-    // enable the alpha color mask..
-    gl.colorMask(true, true, true, true);
-
-    gl.viewport(0, 0, this.width, this.height);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.glFramebuffer );
-
-    if (clear)
-    {
-        gl.clearColor(0,0,0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-    }
-
-    // THIS WILL MESS WITH HIT TESTING!
-    var children = displayObject.children;
-
-    //TODO -? create a new one??? dont think so!
-    var originalWorldTransform = displayObject.worldTransform;
-    displayObject.worldTransform = PIXI.mat3.create();//sthis.indetityMatrix;
-    // modify to flip...
-    displayObject.worldTransform[4] = -1;
-    displayObject.worldTransform[5] = this.projection.y * -2;
-
-    if (position)
-    {
-        displayObject.worldTransform[2] = position.x;
-        displayObject.worldTransform[5] -= position.y;
-    }
-    
-    PIXI.visibleCount++;
-    displayObject.vcount = PIXI.visibleCount;
-    
-    for (var i = 0, j = children.length; i < j; i++)
-    {
-        children[i].updateTransform();
-    }
-
-    var renderGroup = displayObject.__renderGroup;
-
-    if (renderGroup)
-    {
-        if (displayObject == renderGroup.root)
-        {
-            renderGroup.render(this.projection, this.glFramebuffer);
-        }
-        else
-        {
-            renderGroup.renderSpecific(displayObject, this.projection, this.glFramebuffer);
-        }
-    }
-    else
-    {
-        if (!this.renderGroup)
-        {
-            this.renderGroup = new PIXI.WebGLRenderGroup(gl);
-        }
-
-        this.renderGroup.setRenderable(displayObject);
-        this.renderGroup.render(this.projection, this.glFramebuffer);
-    }
-    
-    displayObject.worldTransform = originalWorldTransform;
-}
-
-/**
- * This function will draw the display object to the texture.
- *
-* @method Phaser.RenderTexture#renderCanvas
-* @memberof Phaser.RenderTexture
-* @private
-* @param {DisplayObject} displayObject - The display object to render this texture on.
-* @param {Phaser.Point} [position] - Where to draw the display object.
-* @param {boolean} [clear=false] - If true the texture will be cleared before the displayObject is drawn.
-* @param {boolean} [renderHidden=false] - If true displayObjects that have their visible property set to false will still be rendered.
-*/
-Phaser.RenderTexture.prototype.renderCanvas = function(displayObject, position, clear, renderHidden)
-{
-    var children = displayObject.children;
-
-    displayObject.worldTransform = PIXI.mat3.create();
-    
-    if (position)
-    {
-        displayObject.worldTransform[2] = position.x;
-        displayObject.worldTransform[5] = position.y;
-    }
-
-    for (var i = 0, j = children.length; i < j; i++)
-    {
-        children[i].updateTransform();
-    }
-
-    if (clear)
-    {
-        this.renderer.context.clearRect(0, 0, this.width, this.height);
-    }
-
-    this.renderer.renderDisplayObject(displayObject, renderHidden);
-    
-    this.renderer.context.setTransform(1, 0, 0, 1, 0, 0);
-
-}
+Phaser.RenderTexture.prototype = Object.create(PIXI.RenderTexture.prototype);
+Phaser.RenderTexture.prototype.constructor = Phaser.RenderTexture;
 
 /**
 * @author       Richard Davey <rich@photonstorm.com>
@@ -24923,7 +19503,7 @@ Phaser.Device = function () {
     this.ie = false;
 
     /**
-    * @property {number} ieVersion - If running in Internet Explorer this will contain the major version number.
+    * @property {number} ieVersion - If running in Internet Explorer this will contain the major version number. Beyond IE10 you should use Device.trident and Device.tridentVersion.
     * @default
     */
     this.ieVersion = 0;
@@ -25208,11 +19788,12 @@ Phaser.Device.prototype = {
         {
             this.silk = true;
         }
-        else if (/Trident\/(\d+\.\d+);/.test(ua))
+        else if (/Trident\/(\d+\.\d+); rv:(\d+\.\d+)/.test(ua))
         {
             this.ie = true;
             this.trident = true;
             this.tridentVersion = parseInt(RegExp.$1, 10);
+            this.ieVersion = parseInt(RegExp.$2, 10);
         }
 
         // WebApp mode in iOS
@@ -25572,256 +20153,6 @@ Phaser.RequestAnimationFrame.prototype = {
 
 Phaser.RequestAnimationFrame.prototype.constructor = Phaser.RequestAnimationFrame;
 
-/* jshint noempty: false */
-
-/**
-* @author       Richard Davey <rich@photonstorm.com>
-* @copyright    2014 Photon Storm Ltd.
-* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
-*/
-
-/**
-* Phaser.RandomDataGenerator constructor.
-* 
-* @class Phaser.RandomDataGenerator
-* @classdesc An extremely useful repeatable random data generator. Access it via Phaser.Game.rnd
-* Based on Nonsense by Josh Faul https://github.com/jocafa/Nonsense.
-* Random number generator from http://baagoe.org/en/wiki/Better_random_numbers_for_javascript
-* 
-* @constructor
-* @param {array} seeds
-*/
-Phaser.RandomDataGenerator = function (seeds) {
-    
-    if (typeof seeds === "undefined") { seeds = []; }
-
-    /**
-    * @property {number} c - Internal var.
-    * @private
-    */
-    this.c = 1;
-
-    /**
-    * @property {number} s0 - Internal var.
-    * @private
-    */
-    this.s0 = 0;
-
-    /**
-    * @property {number} s1 - Internal var.
-    * @private
-    */
-    this.s1 = 0;
-
-    /**
-    * @property {number} s2 - Internal var.
-    * @private
-    */
-    this.s2 = 0;
-
-    this.sow(seeds);
-
-};
-
-Phaser.RandomDataGenerator.prototype = {
-
-    /**
-    * Private random helper.
-    * @method Phaser.RandomDataGenerator#rnd
-    * @private
-    * @return {number}
-    */
-    rnd: function () {
-
-        var t = 2091639 * this.s0 + this.c * 2.3283064365386963e-10; // 2^-32
-
-        this.c = t | 0;
-        this.s0 = this.s1;
-        this.s1 = this.s2;
-        this.s2 = t - this.c;
-
-        return this.s2;
-    },
-
-    /**
-    * Reset the seed of the random data generator.
-    * 
-    * @method Phaser.RandomDataGenerator#sow
-    * @param {array} seeds
-    */
-    sow: function (seeds) {
-
-        if (typeof seeds === "undefined") { seeds = []; }
-
-        this.s0 = this.hash(' ');
-        this.s1 = this.hash(this.s0);
-        this.s2 = this.hash(this.s1);
-        this.c = 1;
-
-        var seed;
-
-        for (var i = 0; seed = seeds[i++]; )
-        {
-            this.s0 -= this.hash(seed);
-            this.s0 += ~~(this.s0 < 0);
-            this.s1 -= this.hash(seed);
-            this.s1 += ~~(this.s1 < 0);
-            this.s2 -= this.hash(seed);
-            this.s2 += ~~(this.s2 < 0);
-        }
-        
-    },
-
-    /**
-    * Internal method that creates a seed hash.
-    * @method Phaser.RandomDataGenerator#hash
-    * @param {Any} data
-    * @private
-    * @return {number} hashed value.
-    */
-    hash: function (data) {
-
-        var h, i, n;
-        n = 0xefc8249d;
-        data = data.toString();
-
-        for (i = 0; i < data.length; i++) {
-            n += data.charCodeAt(i);
-            h = 0.02519603282416938 * n;
-            n = h >>> 0;
-            h -= n;
-            h *= n;
-            n = h >>> 0;
-            h -= n;
-            n += h * 0x100000000;// 2^32
-        }
-
-        return (n >>> 0) * 2.3283064365386963e-10;// 2^-32
-
-    },
-
-    /**
-    * Returns a random integer between 0 and 2^32.
-    * @method Phaser.RandomDataGenerator#integer
-    * @return {number} A random integer between 0 and 2^32.
-    */
-    integer: function() {
-        return this.rnd.apply(this) * 0x100000000;// 2^32
-    },
-
-    /**
-    * Returns a random real number between 0 and 1.
-    * @method Phaser.RandomDataGenerator#frac
-    * @return {number} A random real number between 0 and 1.
-    */
-    frac: function() {
-        return this.rnd.apply(this) + (this.rnd.apply(this) * 0x200000 | 0) * 1.1102230246251565e-16;// 2^-53
-    },
-
-    /**
-    * Returns a random real number between 0 and 2^32.
-    * @method Phaser.RandomDataGenerator#real
-    * @return {number} A random real number between 0 and 2^32.
-    */
-    real: function() {
-        return this.integer() + this.frac();
-    },
-
-    /**
-    * Returns a random integer between min and max.
-    * @method Phaser.RandomDataGenerator#integerInRange
-    * @param {number} min - The minimum value in the range.
-    * @param {number} max - The maximum value in the range.
-    * @return {number} A random number between min and max.
-    */
-    integerInRange: function (min, max) {
-        return Math.floor(this.realInRange(min, max));
-    },
-
-    /**
-    * Returns a random real number between min and max.
-    * @method Phaser.RandomDataGenerator#realInRange
-    * @param {number} min - The minimum value in the range.
-    * @param {number} max - The maximum value in the range.
-    * @return {number} A random number between min and max.
-    */
-    realInRange: function (min, max) {
-
-        return this.frac() * (max - min) + min;
-
-    },
-
-    /**
-    * Returns a random real number between -1 and 1.
-    * @method Phaser.RandomDataGenerator#normal
-    * @return {number} A random real number between -1 and 1.
-    */
-    normal: function () {
-        return 1 - 2 * this.frac();
-    },
-
-    /**
-    * Returns a valid RFC4122 version4 ID hex string from https://gist.github.com/1308368
-    * @method Phaser.RandomDataGenerator#uuid
-    * @return {string} A valid RFC4122 version4 ID hex string
-    */
-    uuid: function () {
-
-        var a = '';
-        var b = '';
-
-        for (b = a = ''; a++ < 36; b +=~a % 5 | a * 3&4 ? (a^15 ? 8^this.frac() * (a^20 ? 16 : 4) : 4).toString(16) : '-')
-        {
-        }
-
-        return b;
-
-    },
-
-    /**
-    * Returns a random member of `array`.
-    * @method Phaser.RandomDataGenerator#pick
-    * @param {Array} ary - An Array to pick a random member of.
-    * @return {any} A random member of the array.
-    */
-    pick: function (ary) {
-        return ary[this.integerInRange(0, ary.length)];
-    },
-
-    /**
-    * Returns a random member of `array`, favoring the earlier entries.
-    * @method Phaser.RandomDataGenerator#weightedPick
-    * @param {Array} ary - An Array to pick a random member of.
-    * @return {any} A random member of the array.
-    */
-    weightedPick: function (ary) {
-        return ary[~~(Math.pow(this.frac(), 2) * ary.length)];
-    },
-
-    /**
-    * Returns a random timestamp between min and max, or between the beginning of 2000 and the end of 2020 if min and max aren't specified.
-    * @method Phaser.RandomDataGenerator#timestamp
-    * @param {number} min - The minimum value in the range.
-    * @param {number} max - The maximum value in the range.
-    * @return {number} A random timestamp between min and max.
-    */
-    timestamp: function (min, max) {
-        return this.realInRange(min || 946684800000, max || 1577862000000);
-    },
-
-    /**
-    * Returns a random angle between -180 and 180.
-    * @method Phaser.RandomDataGenerator#angle
-    * @return {number} A random number between -180 and 180.
-    */
-    angle: function() {
-        return this.integerInRange(-180, 180);
-    }
-
-};
-
-Phaser.RandomDataGenerator.prototype.constructor = Phaser.RandomDataGenerator;
-
 /**
 * @author       Richard Davey <rich@photonstorm.com>
 * @copyright    2014 Photon Storm Ltd.
@@ -25856,7 +20187,7 @@ Phaser.Math = {
 
     /**
     * a is fuzzyLessThan b if it is less than b + &epsilon;. 
-    * @method Phaser.Math#fuzzyLessThan
+    * @method Phaser.Math#fuzzyEqual
     * @param {number} a
     * @param {number} b
     * @param {number} epsilon 
@@ -26160,7 +20491,18 @@ Phaser.Math = {
     * @return {number}
     */
     angleBetween: function (x1, y1, x2, y2) {
-        return Math.atan2(y2 - y1, x2 - x1);
+        return Math.atan2(x2 - x1, y2 - y1);
+    },
+
+    /**
+    * Find the angle of a segment from (point1.x, point1.y) -> (point2.x, point2.y).
+    * @method Phaser.Math#angleBetweenPoints
+    * @param {Phaser.Point} point1
+    * @param {Phaser.Point} point2
+    * @return {number}
+    */
+    angleBetweenPoints: function (point1, point2) {
+        return Math.atan2(point2.x - point1.x, point2.y - point1.y);
     },
 
     /**
@@ -27105,6 +21447,28 @@ Phaser.Math = {
     },
 
     /**
+    * Convert p2 physics value to pixel scale.
+    * 
+    * @method Phaser.Math#p2px
+    * @param {number} v - The value to convert.
+    * @return {number} The scaled value.
+    */
+    p2px: function (v) {
+        return v *= -20;
+    },
+
+    /**
+    * Convert pixel value to p2 physics scale.
+    * 
+    * @method Phaser.Math#px2p
+    * @param {number} v - The value to convert.
+    * @return {number} The scaled value.
+    */
+    px2p: function (v) {
+        return v * -0.05;
+    },
+
+    /**
     * Convert degrees to radians.
     * 
     * @method Phaser.Math#degToRad
@@ -27141,6 +21505,256 @@ Phaser.Math = {
     }()
 
 };
+
+/* jshint noempty: false */
+
+/**
+* @author       Richard Davey <rich@photonstorm.com>
+* @copyright    2014 Photon Storm Ltd.
+* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
+*/
+
+/**
+* Phaser.RandomDataGenerator constructor.
+* 
+* @class Phaser.RandomDataGenerator
+* @classdesc An extremely useful repeatable random data generator. Access it via Phaser.Game.rnd
+* Based on Nonsense by Josh Faul https://github.com/jocafa/Nonsense.
+* Random number generator from http://baagoe.org/en/wiki/Better_random_numbers_for_javascript
+* 
+* @constructor
+* @param {array} seeds
+*/
+Phaser.RandomDataGenerator = function (seeds) {
+    
+    if (typeof seeds === "undefined") { seeds = []; }
+
+    /**
+    * @property {number} c - Internal var.
+    * @private
+    */
+    this.c = 1;
+
+    /**
+    * @property {number} s0 - Internal var.
+    * @private
+    */
+    this.s0 = 0;
+
+    /**
+    * @property {number} s1 - Internal var.
+    * @private
+    */
+    this.s1 = 0;
+
+    /**
+    * @property {number} s2 - Internal var.
+    * @private
+    */
+    this.s2 = 0;
+
+    this.sow(seeds);
+
+};
+
+Phaser.RandomDataGenerator.prototype = {
+
+    /**
+    * Private random helper.
+    * @method Phaser.RandomDataGenerator#rnd
+    * @private
+    * @return {number}
+    */
+    rnd: function () {
+
+        var t = 2091639 * this.s0 + this.c * 2.3283064365386963e-10; // 2^-32
+
+        this.c = t | 0;
+        this.s0 = this.s1;
+        this.s1 = this.s2;
+        this.s2 = t - this.c;
+
+        return this.s2;
+    },
+
+    /**
+    * Reset the seed of the random data generator.
+    * 
+    * @method Phaser.RandomDataGenerator#sow
+    * @param {array} seeds
+    */
+    sow: function (seeds) {
+
+        if (typeof seeds === "undefined") { seeds = []; }
+
+        this.s0 = this.hash(' ');
+        this.s1 = this.hash(this.s0);
+        this.s2 = this.hash(this.s1);
+        this.c = 1;
+
+        var seed;
+
+        for (var i = 0; seed = seeds[i++]; )
+        {
+            this.s0 -= this.hash(seed);
+            this.s0 += ~~(this.s0 < 0);
+            this.s1 -= this.hash(seed);
+            this.s1 += ~~(this.s1 < 0);
+            this.s2 -= this.hash(seed);
+            this.s2 += ~~(this.s2 < 0);
+        }
+        
+    },
+
+    /**
+    * Internal method that creates a seed hash.
+    * @method Phaser.RandomDataGenerator#hash
+    * @param {Any} data
+    * @private
+    * @return {number} hashed value.
+    */
+    hash: function (data) {
+
+        var h, i, n;
+        n = 0xefc8249d;
+        data = data.toString();
+
+        for (i = 0; i < data.length; i++) {
+            n += data.charCodeAt(i);
+            h = 0.02519603282416938 * n;
+            n = h >>> 0;
+            h -= n;
+            h *= n;
+            n = h >>> 0;
+            h -= n;
+            n += h * 0x100000000;// 2^32
+        }
+
+        return (n >>> 0) * 2.3283064365386963e-10;// 2^-32
+
+    },
+
+    /**
+    * Returns a random integer between 0 and 2^32.
+    * @method Phaser.RandomDataGenerator#integer
+    * @return {number} A random integer between 0 and 2^32.
+    */
+    integer: function() {
+        return this.rnd.apply(this) * 0x100000000;// 2^32
+    },
+
+    /**
+    * Returns a random real number between 0 and 1.
+    * @method Phaser.RandomDataGenerator#frac
+    * @return {number} A random real number between 0 and 1.
+    */
+    frac: function() {
+        return this.rnd.apply(this) + (this.rnd.apply(this) * 0x200000 | 0) * 1.1102230246251565e-16;// 2^-53
+    },
+
+    /**
+    * Returns a random real number between 0 and 2^32.
+    * @method Phaser.RandomDataGenerator#real
+    * @return {number} A random real number between 0 and 2^32.
+    */
+    real: function() {
+        return this.integer() + this.frac();
+    },
+
+    /**
+    * Returns a random integer between min and max.
+    * @method Phaser.RandomDataGenerator#integerInRange
+    * @param {number} min - The minimum value in the range.
+    * @param {number} max - The maximum value in the range.
+    * @return {number} A random number between min and max.
+    */
+    integerInRange: function (min, max) {
+        return Math.floor(this.realInRange(min, max));
+    },
+
+    /**
+    * Returns a random real number between min and max.
+    * @method Phaser.RandomDataGenerator#realInRange
+    * @param {number} min - The minimum value in the range.
+    * @param {number} max - The maximum value in the range.
+    * @return {number} A random number between min and max.
+    */
+    realInRange: function (min, max) {
+
+        return this.frac() * (max - min) + min;
+
+    },
+
+    /**
+    * Returns a random real number between -1 and 1.
+    * @method Phaser.RandomDataGenerator#normal
+    * @return {number} A random real number between -1 and 1.
+    */
+    normal: function () {
+        return 1 - 2 * this.frac();
+    },
+
+    /**
+    * Returns a valid RFC4122 version4 ID hex string from https://gist.github.com/1308368
+    * @method Phaser.RandomDataGenerator#uuid
+    * @return {string} A valid RFC4122 version4 ID hex string
+    */
+    uuid: function () {
+
+        var a = '';
+        var b = '';
+
+        for (b = a = ''; a++ < 36; b +=~a % 5 | a * 3&4 ? (a^15 ? 8^this.frac() * (a^20 ? 16 : 4) : 4).toString(16) : '-')
+        {
+        }
+
+        return b;
+
+    },
+
+    /**
+    * Returns a random member of `array`.
+    * @method Phaser.RandomDataGenerator#pick
+    * @param {Array} ary - An Array to pick a random member of.
+    * @return {any} A random member of the array.
+    */
+    pick: function (ary) {
+        return ary[this.integerInRange(0, ary.length)];
+    },
+
+    /**
+    * Returns a random member of `array`, favoring the earlier entries.
+    * @method Phaser.RandomDataGenerator#weightedPick
+    * @param {Array} ary - An Array to pick a random member of.
+    * @return {any} A random member of the array.
+    */
+    weightedPick: function (ary) {
+        return ary[~~(Math.pow(this.frac(), 2) * ary.length)];
+    },
+
+    /**
+    * Returns a random timestamp between min and max, or between the beginning of 2000 and the end of 2020 if min and max aren't specified.
+    * @method Phaser.RandomDataGenerator#timestamp
+    * @param {number} min - The minimum value in the range.
+    * @param {number} max - The maximum value in the range.
+    * @return {number} A random timestamp between min and max.
+    */
+    timestamp: function (min, max) {
+        return this.realInRange(min || 946684800000, max || 1577862000000);
+    },
+
+    /**
+    * Returns a random angle between -180 and 180.
+    * @method Phaser.RandomDataGenerator#angle
+    * @return {number} A random number between -180 and 180.
+    */
+    angle: function() {
+        return this.integerInRange(-180, 180);
+    }
+
+};
+
+Phaser.RandomDataGenerator.prototype.constructor = Phaser.RandomDataGenerator;
 
 /**
 * @author       Richard Davey <rich@photonstorm.com>
@@ -27429,1903 +22043,6 @@ Phaser.QuadTree.prototype = {
 };
 
 Phaser.QuadTree.prototype.constructor = Phaser.QuadTree;
-
-/**
-* @author       Richard Davey <rich@photonstorm.com>
-* @copyright    2014 Photon Storm Ltd.
-* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
-*/
-
-/**
-* Creates a new Circle object with the center coordinate specified by the x and y parameters and the diameter specified by the diameter parameter. If you call this function without parameters, a circle with x, y, diameter and radius properties set to 0 is created.
-* @class Circle
-* @classdesc Phaser - Circle
-* @constructor
-* @param {number} [x=0] - The x coordinate of the center of the circle.
-* @param {number} [y=0] - The y coordinate of the center of the circle.
-* @param {number} [diameter=0] - The diameter of the circle.
-* @return {Phaser.Circle} This circle object
-*/
-Phaser.Circle = function (x, y, diameter) {
-
-    x = x || 0;
-    y = y || 0;
-    diameter = diameter || 0;
-
-    /**
-    * @property {number} x - The x coordinate of the center of the circle.
-    */
-    this.x = x;
-
-    /**
-    * @property {number} y - The y coordinate of the center of the circle.
-    */
-    this.y = y;
-
-    /**
-    * @property {number} _diameter - The diameter of the circle.
-    * @private
-    */
-    this._diameter = diameter;
-
-    if (diameter > 0)
-    {
-        /**
-       * @property {number} _radius - The radius of the circle.
-       * @private
-       */
-        this._radius = diameter * 0.5;
-    }
-    else
-    {
-        this._radius = 0;
-    }
-
-};
-
-Phaser.Circle.prototype = {
-
-    /**
-    * The circumference of the circle.
-    * @method Phaser.Circle#circumference
-    * @return {number}
-    */
-    circumference: function () {
-        return 2 * (Math.PI * this._radius);
-    },
-
-    /**
-    * Sets the members of Circle to the specified values.
-    * @method Phaser.Circle#setTo
-    * @param {number} x - The x coordinate of the center of the circle.
-    * @param {number} y - The y coordinate of the center of the circle.
-    * @param {number} diameter - The diameter of the circle in pixels.
-    * @return {Circle} This circle object.
-    */
-    setTo: function (x, y, diameter) {
-        this.x = x;
-        this.y = y;
-        this._diameter = diameter;
-        this._radius = diameter * 0.5;
-        return this;
-    },
-
-    /**
-    * Copies the x, y and diameter properties from any given object to this Circle.
-    * @method Phaser.Circle#copyFrom
-    * @param {any} source - The object to copy from.
-    * @return {Circle} This Circle object.
-    */
-    copyFrom: function (source) {
-        return this.setTo(source.x, source.y, source.diameter);
-    },
-
-    /**
-    * Copies the x, y and diameter properties from this Circle to any given object.
-    * @method Phaser.Circle#copyTo
-    * @param {any} dest - The object to copy to.
-    * @return {Object} This dest object.
-    */
-    copyTo: function(dest) {
-        dest.x = this.x;
-        dest.y = this.y;
-        dest.diameter = this._diameter;
-        return dest;
-    },
-
-    /**
-    * Returns the distance from the center of the Circle object to the given object
-    * (can be Circle, Point or anything with x/y properties)
-    * @method Phaser.Circle#distance
-    * @param {object} dest - The target object. Must have visible x and y properties that represent the center of the object.
-    * @param {boolean} [round] - Round the distance to the nearest integer (default false).
-    * @return {number} The distance between this Point object and the destination Point object.
-    */
-    distance: function (dest, round) {
-
-        if (typeof round === "undefined") { round = false }
-
-        if (round)
-        {
-            return Phaser.Math.distanceRound(this.x, this.y, dest.x, dest.y);
-        }
-        else
-        {
-            return Phaser.Math.distance(this.x, this.y, dest.x, dest.y);
-        }
-
-    },
-
-    /**
-    * Returns a new Circle object with the same values for the x, y, width, and height properties as this Circle object.
-    * @method Phaser.Circle#clone
-    * @param {Phaser.Circle} out - Optional Circle object. If given the values will be set into the object, otherwise a brand new Circle object will be created and returned.
-    * @return {Phaser.Circle} The cloned Circle object.
-    */
-    clone: function(out) {
-
-        if (typeof out === "undefined") { out = new Phaser.Circle(); }
-
-        return out.setTo(this.x, this.y, this.diameter);
-
-    },
-
-    /**
-    * Return true if the given x/y coordinates are within this Circle object.
-    * @method Phaser.Circle#contains
-    * @param {number} x - The X value of the coordinate to test.
-    * @param {number} y - The Y value of the coordinate to test.
-    * @return {boolean} True if the coordinates are within this circle, otherwise false.
-    */
-    contains: function (x, y) {
-        return Phaser.Circle.contains(this, x, y);
-    },
-
-    /**
-    * Returns a Point object containing the coordinates of a point on the circumference of the Circle based on the given angle.
-    * @method Phaser.Circle#circumferencePoint
-    * @param {number} angle - The angle in radians (unless asDegrees is true) to return the point from.
-    * @param {boolean} asDegrees - Is the given angle in radians (false) or degrees (true)?
-    * @param {Phaser.Point} [out] - An optional Point object to put the result in to. If none specified a new Point object will be created.
-    * @return {Phaser.Point} The Point object holding the result.
-    */
-    circumferencePoint: function (angle, asDegrees, out) {
-        return Phaser.Circle.circumferencePoint(this, angle, asDegrees, out);
-    },
-
-    /**
-    * Adjusts the location of the Circle object, as determined by its center coordinate, by the specified amounts.
-    * @method Phaser.Circle#offset
-    * @param {number} dx - Moves the x value of the Circle object by this amount.
-    * @param {number} dy - Moves the y value of the Circle object by this amount.
-    * @return {Circle} This Circle object.
-    */
-    offset: function (dx, dy) {
-        this.x += dx;
-        this.y += dy;
-        return this;
-    },
-
-    /**
-    * Adjusts the location of the Circle object using a Point object as a parameter. This method is similar to the Circle.offset() method, except that it takes a Point object as a parameter.
-    * @method Phaser.Circle#offsetPoint
-    * @param {Point} point A Point object to use to offset this Circle object (or any valid object with exposed x and y properties).
-    * @return {Circle} This Circle object.
-    */
-    offsetPoint: function (point) {
-        return this.offset(point.x, point.y);
-    },
-
-    /**
-    * Returns a string representation of this object.
-    * @method Phaser.Circle#toString
-    * @return {string} a string representation of the instance.
-    */
-    toString: function () {
-        return "[{Phaser.Circle (x=" + this.x + " y=" + this.y + " diameter=" + this.diameter + " radius=" + this.radius + ")}]";
-    }
-
-};
-
-Phaser.Circle.prototype.constructor = Phaser.Circle;
-
-/**
-* The largest distance between any two points on the circle. The same as the radius * 2.
-* @name Phaser.Circle#diameter
-* @property {number} diameter - Gets or sets the diameter of the circle.
-*/
-Object.defineProperty(Phaser.Circle.prototype, "diameter", {
-
-    get: function () {
-        return this._diameter;
-    },
-
-    set: function (value) {
-        if (value > 0) {
-            this._diameter = value;
-            this._radius = value * 0.5;
-        }
-    }
-
-});
-
-/**
-* The length of a line extending from the center of the circle to any point on the circle itself. The same as half the diameter.
-* @name Phaser.Circle#radius
-* @property {number} radius - Gets or sets the radius of the circle.
-*/
-Object.defineProperty(Phaser.Circle.prototype, "radius", {
-    
-    get: function () {
-        return this._radius;
-    },
-
-    set: function (value) {
-        if (value > 0) {
-            this._radius = value;
-            this._diameter = value * 2;
-        }
-    }
-
-});
-
-/**
-* The x coordinate of the leftmost point of the circle. Changing the left property of a Circle object has no effect on the x and y properties. However it does affect the diameter, whereas changing the x value does not affect the diameter property.
-* @name Phaser.Circle#left
-* @propety {number} left - Gets or sets the value of the leftmost point of the circle.
-*/
-Object.defineProperty(Phaser.Circle.prototype, "left", {
-    
-    get: function () {
-        return this.x - this._radius;
-    },
-
-    set: function (value) {
-        if (value > this.x) {
-            this._radius = 0;
-            this._diameter = 0;
-        } else {
-            this.radius = this.x - value;
-        }
-    }
-
-});
-
-/**
-* The x coordinate of the rightmost point of the circle. Changing the right property of a Circle object has no effect on the x and y properties. However it does affect the diameter, whereas changing the x value does not affect the diameter property.
-* @name Phaser.Circle#right
-* @property {number} right - Gets or sets the value of the rightmost point of the circle.
-*/
-Object.defineProperty(Phaser.Circle.prototype, "right", {
-
-    get: function () {
-        return this.x + this._radius;
-    },
-
-    set: function (value) {
-        if (value < this.x) {
-            this._radius = 0;
-            this._diameter = 0;
-        } else {
-            this.radius = value - this.x;
-        }
-    }
-
-});
-
-/**
-* The sum of the y minus the radius property. Changing the top property of a Circle object has no effect on the x and y properties, but does change the diameter.
-* @name Phaser.Circle#top
-* @property {number} top - Gets or sets the top of the circle.
-*/
-Object.defineProperty(Phaser.Circle.prototype, "top", {
-
-    get: function () {
-        return this.y - this._radius;
-    },
-    
-    set: function (value) {
-        if (value > this.y) {
-            this._radius = 0;
-            this._diameter = 0;
-        } else {
-            this.radius = this.y - value;
-        }
-    }
-
-});
-
-/**
-* The sum of the y and radius properties. Changing the bottom property of a Circle object has no effect on the x and y properties, but does change the diameter.
-* @name Phaser.Circle#bottom
-* @property {number} bottom - Gets or sets the bottom of the circle.
-*/
-Object.defineProperty(Phaser.Circle.prototype, "bottom", {
-
-    get: function () {
-        return this.y + this._radius;
-    },
-
-    set: function (value) {
-
-        if (value < this.y) {
-            this._radius = 0;
-            this._diameter = 0;
-        } else {
-            this.radius = value - this.y;
-        }
-    }
-
-});
-
-/**
-* The area of this Circle.
-* @name Phaser.Circle#area
-* @property {number} area - The area of this circle.
-* @readonly
-*/
-Object.defineProperty(Phaser.Circle.prototype, "area", {
-
-    get: function () {
-        if (this._radius > 0) {
-            return Math.PI * this._radius * this._radius;
-        } else {
-            return 0;
-        }
-    }
-
-});
-
-/**
-* Determines whether or not this Circle object is empty. Will return a value of true if the Circle objects diameter is less than or equal to 0; otherwise false.
-* If set to true it will reset all of the Circle objects properties to 0. A Circle object is empty if its diameter is less than or equal to 0.
-* @name Phaser.Circle#empty
-* @property {boolean} empty - Gets or sets the empty state of the circle.
-*/
-Object.defineProperty(Phaser.Circle.prototype, "empty", {
-
-    get: function () {
-        return (this._diameter === 0);
-    },
-
-    set: function (value) {
-
-        if (value === true)
-        {
-            this.setTo(0, 0, 0);
-        }
-
-    }
-
-});
-
-/**
-* Return true if the given x/y coordinates are within the Circle object.
-* @method Phaser.Circle.contains
-* @param {Phaser.Circle} a - The Circle to be checked.
-* @param {number} x - The X value of the coordinate to test.
-* @param {number} y - The Y value of the coordinate to test.
-* @return {boolean} True if the coordinates are within this circle, otherwise false.
-*/
-Phaser.Circle.contains = function (a, x, y) {
-
-    //  Check if x/y are within the bounds first
-    if (x >= a.left && x <= a.right && y >= a.top && y <= a.bottom) {
-
-        var dx = (a.x - x) * (a.x - x);
-        var dy = (a.y - y) * (a.y - y);
-
-        return (dx + dy) <= (a.radius * a.radius);
-
-    }
-
-    return false;
-
-};
-
-/**
-* Determines whether the two Circle objects match. This method compares the x, y and diameter properties.
-* @method Phaser.Circle.equals
-* @param {Phaser.Circle} a - The first Circle object.
-* @param {Phaser.Circle} b - The second Circle object.
-* @return {boolean} A value of true if the object has exactly the same values for the x, y and diameter properties as this Circle object; otherwise false.
-*/
-Phaser.Circle.equals = function (a, b) {
-    return (a.x == b.x && a.y == b.y && a.diameter == b.diameter);
-};
-
-/**
-* Determines whether the two Circle objects intersect.
-* This method checks the radius distances between the two Circle objects to see if they intersect.
-* @method Phaser.Circle.intersects
-* @param {Phaser.Circle} a - The first Circle object.
-* @param {Phaser.Circle} b - The second Circle object.
-* @return {boolean} A value of true if the specified object intersects with this Circle object; otherwise false.
-*/
-Phaser.Circle.intersects = function (a, b) {
-    return (Phaser.Math.distance(a.x, a.y, b.x, b.y) <= (a.radius + b.radius));
-};
-
-/**
-* Returns a Point object containing the coordinates of a point on the circumference of the Circle based on the given angle.
-* @method Phaser.Circle.circumferencePoint
-* @param {Phaser.Circle} a - The first Circle object.
-* @param {number} angle - The angle in radians (unless asDegrees is true) to return the point from.
-* @param {boolean} asDegrees - Is the given angle in radians (false) or degrees (true)?
-* @param {Phaser.Point} [out] - An optional Point object to put the result in to. If none specified a new Point object will be created.
-* @return {Phaser.Point} The Point object holding the result.
-*/
-Phaser.Circle.circumferencePoint = function (a, angle, asDegrees, out) {
-
-    if (typeof asDegrees === "undefined") { asDegrees = false; }
-    if (typeof out === "undefined") { out = new Phaser.Point(); }
-
-    if (asDegrees === true) {
-        angle = Phaser.Math.radToDeg(angle);
-    }
-
-    out.x = a.x + a.radius * Math.cos(angle);
-    out.y = a.y + a.radius * Math.sin(angle);
-
-    return out;
-
-};
-
-/**
-* Checks if the given Circle and Rectangle objects intersect.
-* @method Phaser.Circle.intersectsRectangle
-* @param {Phaser.Circle} c - The Circle object to test.
-* @param {Phaser.Rectangle} r - The Rectangle object to test.
-* @return {boolean} True if the two objects intersect, otherwise false.
-*/
-Phaser.Circle.intersectsRectangle = function (c, r) {
-
-    var cx = Math.abs(c.x - r.x - r.halfWidth);
-    var xDist = r.halfWidth + c.radius;
-
-    if (cx > xDist) {
-        return false;
-    }
-
-    var cy = Math.abs(c.y - r.y - r.halfHeight);
-    var yDist = r.halfHeight + c.radius;
-
-    if (cy > yDist) {
-        return false;
-    }
-
-    if (cx <= r.halfWidth || cy <= r.halfHeight) {
-        return true;
-    }
-
-    var xCornerDist = cx - r.halfWidth;
-    var yCornerDist = cy - r.halfHeight;
-    var xCornerDistSq = xCornerDist * xCornerDist;
-    var yCornerDistSq = yCornerDist * yCornerDist;
-    var maxCornerDistSq = c.radius * c.radius;
-
-    return xCornerDistSq + yCornerDistSq <= maxCornerDistSq;
-
-};
-
-/**
-* @author       Richard Davey <rich@photonstorm.com>
-* @copyright    2014 Photon Storm Ltd.
-* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
-*/
-
-/**
-* Creates a new Point. If you pass no parameters a Point is created set to (0,0).
-* @class Phaser.Point
-* @classdesc The Point object represents a location in a two-dimensional coordinate system, where x represents the horizontal axis and y represents the vertical axis.
-* @constructor
-* @param {number} x The horizontal position of this Point (default 0)
-* @param {number} y The vertical position of this Point (default 0)
-*/
-Phaser.Point = function (x, y) {
-
-    x = x || 0;
-    y = y || 0;
-
-    /**
-    * @property {number} x - The x coordinate of the point.
-    */
-    this.x = x;
-    
-    /**
-    * @property {number} y - The y coordinate of the point.
-    */
-    this.y = y;
-
-};
-
-Phaser.Point.prototype = {
-
-    /**
-    * Copies the x and y properties from any given object to this Point.
-    * @method Phaser.Point#copyFrom
-    * @param {any} source - The object to copy from.
-    * @return {Point} This Point object.
-    */
-    copyFrom: function (source) {
-        return this.setTo(source.x, source.y);
-    },
-
-    /**
-    * Inverts the x and y values of this Point
-    * @method Phaser.Point#invert
-    * @return {Point} This Point object.
-    */
-    invert: function () {
-        return this.setTo(this.y, this.x);
-    },
-
-    /**
-    * Sets the x and y values of this Point object to the given coordinates.
-    * @method Phaser.Point#setTo
-    * @param {number} x - The horizontal position of this point.
-    * @param {number} y - The vertical position of this point.
-    * @return {Point} This Point object. Useful for chaining method calls.
-    */
-    setTo: function (x, y) {
-
-        this.x = x;
-        this.y = y;
-        return this;
-        
-    },
-
-    /**
-    * Adds the given x and y values to this Point.
-    * @method Phaser.Point#add
-    * @param {number} x - The value to add to Point.x.
-    * @param {number} y - The value to add to Point.y.
-    * @return {Phaser.Point} This Point object. Useful for chaining method calls.
-    */
-    add: function (x, y) {
-
-        this.x += x;
-        this.y += y;
-        return this;
-
-    },
-
-    /**
-    * Subtracts the given x and y values from this Point.
-    * @method Phaser.Point#subtract
-    * @param {number} x - The value to subtract from Point.x.
-    * @param {number} y - The value to subtract from Point.y.
-    * @return {Phaser.Point} This Point object. Useful for chaining method calls.
-    */
-    subtract: function (x, y) {
-
-        this.x -= x;
-        this.y -= y;
-        return this;
-
-    },
-
-    /**
-    * Multiplies Point.x and Point.y by the given x and y values.
-    * @method Phaser.Point#multiply
-    * @param {number} x - The value to multiply Point.x by.
-    * @param {number} y - The value to multiply Point.x by.
-    * @return {Phaser.Point} This Point object. Useful for chaining method calls.
-    */
-    multiply: function (x, y) {
-
-        this.x *= x;
-        this.y *= y;
-        return this;
-
-    },
-
-    /**
-    * Divides Point.x and Point.y by the given x and y values.
-    * @method Phaser.Point#divide
-    * @param {number} x - The value to divide Point.x by.
-    * @param {number} y - The value to divide Point.x by.
-    * @return {Phaser.Point} This Point object. Useful for chaining method calls.
-    */
-    divide: function (x, y) {
-
-        this.x /= x;
-        this.y /= y;
-        return this;
-
-    },
-
-    /**
-    * Clamps the x value of this Point to be between the given min and max.
-    * @method Phaser.Point#clampX
-    * @param {number} min - The minimum value to clamp this Point to.
-    * @param {number} max - The maximum value to clamp this Point to.
-    * @return {Phaser.Point} This Point object.
-    */
-    clampX: function (min, max) {
-
-        this.x = Phaser.Math.clamp(this.x, min, max);
-        return this;
-        
-    },
-
-    /**
-    * Clamps the y value of this Point to be between the given min and max
-    * @method Phaser.Point#clampY
-    * @param {number} min - The minimum value to clamp this Point to.
-    * @param {number} max - The maximum value to clamp this Point to.
-    * @return {Phaser.Point} This Point object.
-    */
-    clampY: function (min, max) {
-
-        this.y = Phaser.Math.clamp(this.y, min, max);
-        return this;
-        
-    },
-
-    /**
-    * Clamps this Point object values to be between the given min and max.
-    * @method Phaser.Point#clamp
-    * @param {number} min - The minimum value to clamp this Point to.
-    * @param {number} max - The maximum value to clamp this Point to.
-    * @return {Phaser.Point} This Point object.
-    */
-    clamp: function (min, max) {
-
-        this.x = Phaser.Math.clamp(this.x, min, max);
-        this.y = Phaser.Math.clamp(this.y, min, max);
-        return this;
-
-    },
-
-    /**
-    * Creates a copy of the given Point.
-    * @method Phaser.Point#clone
-    * @param {Phaser.Point} [output] Optional Point object. If given the values will be set into this object, otherwise a brand new Point object will be created and returned.
-    * @return {Phaser.Point} The new Point object.
-    */
-    clone: function (output) {
-
-        if (typeof output === "undefined") { output = new Phaser.Point(); }
-
-        return output.setTo(this.x, this.y);
-
-    },
-
-    /**
-    * Copies the x and y properties from this Point to any given object.
-    * @method Phaser.Point#copyTo
-    * @param {any} dest - The object to copy to.
-    * @return {Object} The dest object.
-    */
-    copyTo: function(dest) {
-
-        dest.x = this.x;
-        dest.y = this.y;
-
-        return dest;
-
-    },
-
-    /**
-    * Returns the distance of this Point object to the given object (can be a Circle, Point or anything with x/y properties)
-    * @method Phaser.Point#distance
-    * @param {object} dest - The target object. Must have visible x and y properties that represent the center of the object.
-    * @param {boolean} [round] - Round the distance to the nearest integer (default false).
-    * @return {number} The distance between this Point object and the destination Point object.
-    */
-    distance: function (dest, round) {
-        return Phaser.Point.distance(this, dest, round);
-    },
-
-    /**
-    * Determines whether the given objects x/y values are equal to this Point object.
-    * @method Phaser.Point#equals
-    * @param {Phaser.Point} a - The first object to compare.
-    * @return {boolean} A value of true if the Points are equal, otherwise false.
-    */
-    equals: function (a) {
-        return (a.x == this.x && a.y == this.y);
-    },
-
-    /**
-    * Rotates this Point around the x/y coordinates given to the desired angle.
-    * @method Phaser.Point#rotate
-    * @param {number} x - The x coordinate of the anchor point
-    * @param {number} y - The y coordinate of the anchor point
-    * @param {number} angle - The angle in radians (unless asDegrees is true) to rotate the Point to.
-    * @param {boolean} asDegrees - Is the given rotation in radians (false) or degrees (true)?
-    * @param {number} [distance] - An optional distance constraint between the Point and the anchor.
-    * @return {Phaser.Point} The modified point object.
-    */
-    rotate: function (x, y, angle, asDegrees, distance) {
-        return Phaser.Point.rotate(this, x, y, angle, asDegrees, distance);
-    },
-
-    /**
-    * Calculates the length of the vector
-    * @method Phaser.Point#getMagnitude
-    * @return {number} the length of the vector
-    */
-    getMagnitude: function() {
-        return Math.sqrt((this.x * this.x) + (this.y * this.y));
-    },
-
-    /**
-    * Alters the length of the vector without changing the direction
-    * @method Phaser.Point#setMagnitude
-    * @param {number} magnitude the desired magnitude of the resulting vector
-    * @return {Phaser.Point} the modified original vector
-    */
-    setMagnitude: function(magnitude) {
-        return this.normalize().multiply(magnitude, magnitude);
-    },
-
-    /**
-    * Alters the vector so that its length is 1, but it retains the same direction
-    * @method Phaser.Point#normalize
-    * @return {Phaser.Point} the modified original vector
-    */
-    normalize: function() {
-
-        if(!this.isZero()) {
-            var m = this.getMagnitude();
-            this.x /= m;
-            this.y /= m;
-        }
-
-        return this;
-
-    },
-
-    /**
-    * Determine if this point is at 0,0
-    * @method Phaser.Point#isZero
-    * @return {boolean} True if this Point is 0,0, otherwise false
-    */
-    isZero: function() {
-        return (this.x === 0 && this.y === 0);
-    },
-
-    /**
-    * Returns a string representation of this object.
-    * @method Phaser.Point#toString
-    * @return {string} A string representation of the instance.
-    */
-    toString: function () {
-        return '[{Point (x=' + this.x + ' y=' + this.y + ')}]';
-    }
-
-};
-
-Phaser.Point.prototype.constructor = Phaser.Point;
-
-/**
-* Adds the coordinates of two points together to create a new point.
-* @method Phaser.Point.add
-* @param {Phaser.Point} a - The first Point object.
-* @param {Phaser.Point} b - The second Point object.
-* @param {Phaser.Point} [out] - Optional Point to store the value in, if not supplied a new Point object will be created.
-* @return {Phaser.Point} The new Point object.
-*/
-Phaser.Point.add = function (a, b, out) {
-
-    if (typeof out === "undefined") { out = new Phaser.Point(); }
-
-    out.x = a.x + b.x;
-    out.y = a.y + b.y;
-
-    return out;
-
-};
-
-/**
-* Subtracts the coordinates of two points to create a new point.
-* @method Phaser.Point.subtract
-* @param {Phaser.Point} a - The first Point object.
-* @param {Phaser.Point} b - The second Point object.
-* @param {Phaser.Point} [out] - Optional Point to store the value in, if not supplied a new Point object will be created.
-* @return {Phaser.Point} The new Point object.
-*/
-Phaser.Point.subtract = function (a, b, out) {
-
-    if (typeof out === "undefined") { out = new Phaser.Point(); }
-
-    out.x = a.x - b.x;
-    out.y = a.y - b.y;
-
-    return out;
-
-};
-
-/**
-* Multiplies the coordinates of two points to create a new point.
-* @method Phaser.Point.multiply
-* @param {Phaser.Point} a - The first Point object.
-* @param {Phaser.Point} b - The second Point object.
-* @param {Phaser.Point} [out] - Optional Point to store the value in, if not supplied a new Point object will be created.
-* @return {Phaser.Point} The new Point object.
-*/
-Phaser.Point.multiply = function (a, b, out) {
-
-    if (typeof out === "undefined") { out = new Phaser.Point(); }
-
-    out.x = a.x * b.x;
-    out.y = a.y * b.y;
-
-    return out;
-
-};
-
-/**
-* Divides the coordinates of two points to create a new point.
-* @method Phaser.Point.divide
-* @param {Phaser.Point} a - The first Point object.
-* @param {Phaser.Point} b - The second Point object.
-* @param {Phaser.Point} [out] - Optional Point to store the value in, if not supplied a new Point object will be created.
-* @return {Phaser.Point} The new Point object.
-*/
-Phaser.Point.divide = function (a, b, out) {
-
-    if (typeof out === "undefined") { out = new Phaser.Point(); }
-
-    out.x = a.x / b.x;
-    out.y = a.y / b.y;
-
-    return out;
-
-};
-
-/**
-* Determines whether the two given Point objects are equal. They are considered equal if they have the same x and y values.
-* @method Phaser.Point.equals
-* @param {Phaser.Point} a - The first Point object.
-* @param {Phaser.Point} b - The second Point object.
-* @return {boolean} A value of true if the Points are equal, otherwise false.
-*/
-Phaser.Point.equals = function (a, b) {
-    return (a.x == b.x && a.y == b.y);
-};
-
-/**
-* Returns the distance of this Point object to the given object (can be a Circle, Point or anything with x/y properties).
-* @method Phaser.Point.distance
-* @param {object} a - The target object. Must have visible x and y properties that represent the center of the object.
-* @param {object} b - The target object. Must have visible x and y properties that represent the center of the object.
-* @param {boolean} [round] - Round the distance to the nearest integer (default false).
-* @return {number} The distance between this Point object and the destination Point object.
-*/
-Phaser.Point.distance = function (a, b, round) {
-
-    if (typeof round === "undefined") { round = false }
-
-    if (round)
-    {
-        return Phaser.Math.distanceRound(a.x, a.y, b.x, b.y);
-    }
-    else
-    {
-        return Phaser.Math.distance(a.x, a.y, b.x, b.y);
-    }
-
-};
-
-/**
-* Rotates a Point around the x/y coordinates given to the desired angle.
-* @method Phaser.Point.rotate
-* @param {Phaser.Point} a - The Point object to rotate.
-* @param {number} x - The x coordinate of the anchor point
-* @param {number} y - The y coordinate of the anchor point
-* @param {number} angle - The angle in radians (unless asDegrees is true) to rotate the Point to.
-* @param {boolean} asDegrees - Is the given rotation in radians (false) or degrees (true)?
-* @param {number} distance - An optional distance constraint between the Point and the anchor.
-* @return {Phaser.Point} The modified point object.
-*/
-Phaser.Point.rotate = function (a, x, y, angle, asDegrees, distance) {
-
-    asDegrees = asDegrees || false;
-    distance = distance || null;
-
-    if (asDegrees)
-    {
-        angle = Phaser.Math.degToRad(angle);
-    }
-
-    //  Get distance from origin (cx/cy) to this point
-    if (distance === null)
-    {
-        distance = Math.sqrt(((x - a.x) * (x - a.x)) + ((y - a.y) * (y - a.y)));
-    }
-
-    return a.setTo(x + distance * Math.cos(angle), y + distance * Math.sin(angle));
-
-};
-
-/**
-* @author       Richard Davey <rich@photonstorm.com>
-* @copyright    2014 Photon Storm Ltd.
-* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
-*/
-
-/**
-* Creates a new Rectangle object with the top-left corner specified by the x and y parameters and with the specified width and height parameters. If you call this function without parameters, a Rectangle with x, y, width, and height properties set to 0 is created.
-*
-* @class Phaser.Rectangle
-* @constructor
-* @param {number} x - The x coordinate of the top-left corner of the Rectangle.
-* @param {number} y - The y coordinate of the top-left corner of the Rectangle.
-* @param {number} width - The width of the Rectangle.
-* @param {number} height - The height of the Rectangle.
-* @return {Rectangle} This Rectangle object.
-*/
-Phaser.Rectangle = function (x, y, width, height) {
-
-    x = x || 0;
-    y = y || 0;
-    width = width || 0;
-    height = height || 0;
-
-    /**
-    * @property {number} x - The x coordinate of the top-left corner of the Rectangle.
-    */
-    this.x = x;
-    
-    /**
-    * @property {number} y - The y coordinate of the top-left corner of the Rectangle.
-    */
-    this.y = y;
-    
-    /**
-    * @property {number} width - The width of the Rectangle.
-    */
-    this.width = width;
-    
-    /**
-    * @property {number} height - The height of the Rectangle.
-    */
-    this.height = height;
-
-};
-
-Phaser.Rectangle.prototype = {
-
-    /**
-    * Adjusts the location of the Rectangle object, as determined by its top-left corner, by the specified amounts.
-    * @method Phaser.Rectangle#offset
-    * @param {number} dx - Moves the x value of the Rectangle object by this amount.
-    * @param {number} dy - Moves the y value of the Rectangle object by this amount.
-    * @return {Rectangle} This Rectangle object.
-    */
-    offset: function (dx, dy) {
-
-        this.x += dx;
-        this.y += dy;
-
-        return this;
-
-    },
- 
-    /**
-    * Adjusts the location of the Rectangle object using a Point object as a parameter. This method is similar to the Rectangle.offset() method, except that it takes a Point object as a parameter.
-    * @method Phaser.Rectangle#offsetPoint
-    * @param {Point} point - A Point object to use to offset this Rectangle object.
-    * @return {Rectangle} This Rectangle object.
-    */
-    offsetPoint: function (point) {
-        return this.offset(point.x, point.y);
-    },
- 
-    /**
-    * Sets the members of Rectangle to the specified values.
-    * @method Phaser.Rectangle#setTo
-    * @param {number} x - The x coordinate of the top-left corner of the Rectangle.
-    * @param {number} y - The y coordinate of the top-left corner of the Rectangle.
-    * @param {number} width - The width of the Rectangle in pixels.
-    * @param {number} height - The height of the Rectangle in pixels.
-    * @return {Rectangle} This Rectangle object
-    */
-    setTo: function (x, y, width, height) {
-
-        this.x = x;
-        this.y = y;
-        this.width = width;
-        this.height = height;
-
-        return this;
-
-    },
- 
-    /**
-    * Runs Math.floor() on both the x and y values of this Rectangle.
-    * @method Phaser.Rectangle#floor
-    */
-    floor: function () {
-
-        this.x = Math.floor(this.x);
-        this.y = Math.floor(this.y);
-
-    },
- 
-    /**
-    * Runs Math.floor() on the x, y, width and height values of this Rectangle.
-    * @method Phaser.Rectangle#floorAll
-    */
-    floorAll: function () {
-
-        this.x = Math.floor(this.x);
-        this.y = Math.floor(this.y);
-        this.width = Math.floor(this.width);
-        this.height = Math.floor(this.height);
-
-    },
-
-    /**
-    * Copies the x, y, width and height properties from any given object to this Rectangle.
-    * @method Phaser.Rectangle#copyFrom
-    * @param {any} source - The object to copy from.
-    * @return {Rectangle} This Rectangle object.
-    */
-    copyFrom: function (source) {
-        return this.setTo(source.x, source.y, source.width, source.height);
-    },
-
-    /**
-    * Copies the x, y, width and height properties from this Rectangle to any given object.
-    * @method Phaser.Rectangle#copyTo
-    * @param {any} source - The object to copy to.
-    * @return {object} This object.
-    */
-    copyTo: function (dest) {
-
-        dest.x = this.x;
-        dest.y = this.y;
-        dest.width = this.width;
-        dest.height = this.height;
-
-        return dest;
-
-    },
-
-    /**
-    * Increases the size of the Rectangle object by the specified amounts. The center point of the Rectangle object stays the same, and its size increases to the left and right by the dx value, and to the top and the bottom by the dy value.
-    * @method Phaser.Rectangle#inflate
-    * @param {number} dx - The amount to be added to the left side of the Rectangle.
-    * @param {number} dy - The amount to be added to the bottom side of the Rectangle.
-    * @return {Phaser.Rectangle} This Rectangle object.
-    */
-    inflate: function (dx, dy) {
-        return Phaser.Rectangle.inflate(this, dx, dy);
-    },
-
-    /**
-    * The size of the Rectangle object, expressed as a Point object with the values of the width and height properties.
-    * @method Phaser.Rectangle#size
-    * @param {Phaser.Point} [output] - Optional Point object. If given the values will be set into the object, otherwise a brand new Point object will be created and returned.
-    * @return {Phaser.Point} The size of the Rectangle object.
-    */
-    size: function (output) {
-        return Phaser.Rectangle.size(this, output);
-    },
-
-    /**
-    * Returns a new Rectangle object with the same values for the x, y, width, and height properties as the original Rectangle object.
-    * @method Phaser.Rectangle#clone
-    * @param {Phaser.Rectangle} [output] - Optional Rectangle object. If given the values will be set into the object, otherwise a brand new Rectangle object will be created and returned.
-    * @return {Phaser.Rectangle} 
-    */
-    clone: function (output) {
-        return Phaser.Rectangle.clone(this, output);
-    },
-
-    /**
-    * Determines whether the specified coordinates are contained within the region defined by this Rectangle object.
-    * @method Phaser.Rectangle#contains
-    * @param {number} x - The x coordinate of the point to test.
-    * @param {number} y - The y coordinate of the point to test.
-    * @return {boolean} A value of true if the Rectangle object contains the specified point; otherwise false.
-    */
-    contains: function (x, y) {
-        return Phaser.Rectangle.contains(this, x, y);
-    },
-
-    /**
-    * Determines whether the first Rectangle object is fully contained within the second Rectangle object.
-    * A Rectangle object is said to contain another if the second Rectangle object falls entirely within the boundaries of the first.
-    * @method Phaser.Rectangle#containsRect
-    * @param {Phaser.Rectangle} b - The second Rectangle object.
-    * @return {boolean} A value of true if the Rectangle object contains the specified point; otherwise false.
-    */
-    containsRect: function (b) {
-        return Phaser.Rectangle.containsRect(this, b);
-    },
-
-    /**
-    * Determines whether the two Rectangles are equal.
-    * This method compares the x, y, width and height properties of each Rectangle.
-    * @method Phaser.Rectangle#equals
-    * @param {Phaser.Rectangle} b - The second Rectangle object.
-    * @return {boolean} A value of true if the two Rectangles have exactly the same values for the x, y, width and height properties; otherwise false.
-    */
-    equals: function (b) {
-        return Phaser.Rectangle.equals(this, b);
-    },
-
-    /**
-    * If the Rectangle object specified in the toIntersect parameter intersects with this Rectangle object, returns the area of intersection as a Rectangle object. If the Rectangles do not intersect, this method returns an empty Rectangle object with its properties set to 0.
-    * @method Phaser.Rectangle#intersection
-    * @param {Phaser.Rectangle} b - The second Rectangle object.
-    * @param {Phaser.Rectangle} out - Optional Rectangle object. If given the intersection values will be set into this object, otherwise a brand new Rectangle object will be created and returned.
-    * @return {Phaser.Rectangle} A Rectangle object that equals the area of intersection. If the Rectangles do not intersect, this method returns an empty Rectangle object; that is, a Rectangle with its x, y, width, and height properties set to 0.
-    */
-    intersection: function (b, out) {
-        return Phaser.Rectangle.intersection(this, b, out);
-    },
-
-    /**
-    * Determines whether the two Rectangles intersect with each other.
-    * This method checks the x, y, width, and height properties of the Rectangles.
-    * @method Phaser.Rectangle#intersects
-    * @param {Phaser.Rectangle} b - The second Rectangle object.
-    * @param {number} tolerance - A tolerance value to allow for an intersection test with padding, default to 0.
-    * @return {boolean} A value of true if the specified object intersects with this Rectangle object; otherwise false.
-    */
-    intersects: function (b, tolerance) {
-        return Phaser.Rectangle.intersects(this, b, tolerance);
-    },
-
-    /**
-    * Determines whether the object specified intersects (overlaps) with the given values.
-    * @method Phaser.Rectangle#intersectsRaw
-    * @param {number} left - Description.
-    * @param {number} right - Description.
-    * @param {number} top - Description.
-    * @param {number} bottomt - Description.
-    * @param {number} tolerance - A tolerance value to allow for an intersection test with padding, default to 0
-    * @return {boolean} A value of true if the specified object intersects with the Rectangle; otherwise false.
-    */
-    intersectsRaw: function (left, right, top, bottom, tolerance) {
-        return Phaser.Rectangle.intersectsRaw(this, left, right, top, bottom, tolerance);
-    },
-
-    /**
-    * Adds two Rectangles together to create a new Rectangle object, by filling in the horizontal and vertical space between the two Rectangles.
-    * @method Phaser.Rectangle#union
-    * @param {Phaser.Rectangle} b - The second Rectangle object.
-    * @param {Phaser.Rectangle} [out] - Optional Rectangle object. If given the new values will be set into this object, otherwise a brand new Rectangle object will be created and returned.
-    * @return {Phaser.Rectangle} A Rectangle object that is the union of the two Rectangles.
-    */
-    union: function (b, out) {
-        return Phaser.Rectangle.union(this, b, out);
-    },
-
-    /**
-    * Returns a string representation of this object.
-    * @method Phaser.Rectangle#toString
-    * @return {string} A string representation of the instance.
-    */
-    toString: function () {
-        return "[{Rectangle (x=" + this.x + " y=" + this.y + " width=" + this.width + " height=" + this.height + " empty=" + this.empty + ")}]";
-    }
-
-};
-
-Phaser.Rectangle.prototype.constructor = Phaser.Rectangle;
-
-/**
-* @name Phaser.Rectangle#halfWidth
-* @property {number} halfWidth - Half of the width of the Rectangle.
-* @readonly
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "halfWidth", {
-
-    get: function () {
-        return Math.round(this.width / 2);
-    }
-
-});
-
-/**
-* @name Phaser.Rectangle#halfHeight
-* @property {number} halfHeight - Half of the height of the Rectangle.
-* @readonly
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "halfHeight", {
-
-    get: function () {
-        return Math.round(this.height / 2);
-    }
-
-});
-
-/**
-* The sum of the y and height properties. Changing the bottom property of a Rectangle object has no effect on the x, y and width properties, but does change the height property.
-* @name Phaser.Rectangle#bottom
-* @property {number} bottom - The sum of the y and height properties.
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "bottom", {
-    
-    get: function () {
-        return this.y + this.height;
-    },
-  
-    set: function (value) {
-        if (value <= this.y) {
-            this.height = 0;
-        } else {
-            this.height = (this.y - value);
-        }
-    }
-
-});
-
-/**
-* The location of the Rectangles bottom right corner as a Point object.
-* @name Phaser.Rectangle#bottom
-* @property {Phaser.Point} bottomRight - Gets or sets the location of the Rectangles bottom right corner as a Point object.
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "bottomRight", {
-    
-    get: function () {
-        return new Phaser.Point(this.right, this.bottom);
-    },
-
-    set: function (value) {
-        this.right = value.x;
-        this.bottom = value.y;
-    }
-
-});
-
-/**
-* The x coordinate of the left of the Rectangle. Changing the left property of a Rectangle object has no effect on the y and height properties. However it does affect the width property, whereas changing the x value does not affect the width property.
-* @name Phaser.Rectangle#left
-* @property {number} left - The x coordinate of the left of the Rectangle.
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "left", {
-   
-    get: function () {
-        return this.x;
-    },
-
-    set: function (value) {
-        if (value >= this.right) {
-            this.width = 0;
-        } else {
-            this.width = this.right - value;
-        }
-        this.x = value;
-    }
-
-});
-
-/**
-* The sum of the x and width properties. Changing the right property of a Rectangle object has no effect on the x, y and height properties, however it does affect the width property.
-* @name Phaser.Rectangle#right
-* @property {number} right - The sum of the x and width properties.
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "right", {
-       
-    get: function () {
-        return this.x + this.width;
-    },
-
-    set: function (value) {
-        if (value <= this.x) {
-            this.width = 0;
-        } else {
-            this.width = this.x + value;
-        }
-    }
-
-});
-
-/**
-* The volume of the Rectangle derived from width * height.
-* @name Phaser.Rectangle#volume
-* @property {number} volume - The volume of the Rectangle derived from width * height.
-* @readonly
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "volume", {
-    
-    get: function () {
-        return this.width * this.height;
-    }
-
-});
-
-/**
-* The perimeter size of the Rectangle. This is the sum of all 4 sides.
-* @name Phaser.Rectangle#perimeter
-* @property {number} perimeter - The perimeter size of the Rectangle. This is the sum of all 4 sides.
-* @readonly
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "perimeter", {
-    
-    get: function () {
-        return (this.width * 2) + (this.height * 2);
-    }
-
-});
-
-/**
-* The x coordinate of the center of the Rectangle.
-* @name Phaser.Rectangle#centerX
-* @property {number} centerX - The x coordinate of the center of the Rectangle.
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "centerX", {
-    
-    get: function () {
-        return this.x + this.halfWidth;
-    },
-
-    set: function (value) {
-        this.x = value - this.halfWidth;
-    }
-
-});
-
-/**
-* The y coordinate of the center of the Rectangle.
-* @name Phaser.Rectangle#centerY
-* @property {number} centerY - The y coordinate of the center of the Rectangle.
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "centerY", {
-    
-    get: function () {
-        return this.y + this.halfHeight;
-    },
-
-    set: function (value) {
-        this.y = value - this.halfHeight;
-    }
-
-});
-
-/**
-* The y coordinate of the top of the Rectangle. Changing the top property of a Rectangle object has no effect on the x and width properties.
-* However it does affect the height property, whereas changing the y value does not affect the height property.
-* @name Phaser.Rectangle#top
-* @property {number} top - The y coordinate of the top of the Rectangle.
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "top", {
-    
-    get: function () {
-        return this.y;
-    },
-
-    set: function (value) {
-        if (value >= this.bottom) {
-            this.height = 0;
-            this.y = value;
-        } else {
-            this.height = (this.bottom - value);
-        }
-    }
-
-});
-
-/**
-* The location of the Rectangles top left corner as a Point object.
-* @name Phaser.Rectangle#topLeft
-* @property {Phaser.Point} topLeft - The location of the Rectangles top left corner as a Point object.
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "topLeft", {
-
-    get: function () {
-        return new Phaser.Point(this.x, this.y);
-    },
-    
-    set: function (value) {
-        this.x = value.x;
-        this.y = value.y;
-    }
-
-});
-
-/**
-* Determines whether or not this Rectangle object is empty. A Rectangle object is empty if its width or height is less than or equal to 0.
-* If set to true then all of the Rectangle properties are set to 0. 
-* @name Phaser.Rectangle#empty
-* @property {boolean} empty - Gets or sets the Rectangles empty state.
-*/
-Object.defineProperty(Phaser.Rectangle.prototype, "empty", {
-    
-    get: function () {
-        return (!this.width || !this.height);
-    },
-
-    set: function (value) {
-
-        if (value === true)
-        {
-            this.setTo(0, 0, 0, 0);
-        }
-        
-    }
-
-});
-
-/**
-* Increases the size of the Rectangle object by the specified amounts. The center point of the Rectangle object stays the same, and its size increases to the left and right by the dx value, and to the top and the bottom by the dy value.
-* @method Phaser.Rectangle.inflate
-* @param {Phaser.Rectangle} a - The Rectangle object.
-* @param {number} dx - The amount to be added to the left side of the Rectangle.
-* @param {number} dy - The amount to be added to the bottom side of the Rectangle.
-* @return {Phaser.Rectangle} This Rectangle object.
-*/
-Phaser.Rectangle.inflate = function (a, dx, dy) {
-    a.x -= dx;
-    a.width += 2 * dx;
-    a.y -= dy;
-    a.height += 2 * dy;
-    return a;
-};
-
-/**
-* Increases the size of the Rectangle object. This method is similar to the Rectangle.inflate() method except it takes a Point object as a parameter.
-* @method Phaser.Rectangle.inflatePoint
-* @param {Phaser.Rectangle} a - The Rectangle object.
-* @param {Phaser.Point} point - The x property of this Point object is used to increase the horizontal dimension of the Rectangle object. The y property is used to increase the vertical dimension of the Rectangle object.
-* @return {Phaser.Rectangle} The Rectangle object.
-*/
-Phaser.Rectangle.inflatePoint = function (a, point) {
-    return Phaser.Rectangle.inflate(a, point.x, point.y);
-};
-
-/**
-* The size of the Rectangle object, expressed as a Point object with the values of the width and height properties.
-* @method Phaser.Rectangle.size
-* @param {Phaser.Rectangle} a - The Rectangle object.
-* @param {Phaser.Point} [output] - Optional Point object. If given the values will be set into the object, otherwise a brand new Point object will be created and returned.
-* @return {Phaser.Point} The size of the Rectangle object
-*/
-Phaser.Rectangle.size = function (a, output) {
-    if (typeof output === "undefined") { output = new Phaser.Point(); }
-    return output.setTo(a.width, a.height);
-};
-
-/**
-* Returns a new Rectangle object with the same values for the x, y, width, and height properties as the original Rectangle object.
-* @method Phaser.Rectangle.clone
-* @param {Phaser.Rectangle} a - The Rectangle object.
-* @param {Phaser.Rectangle} [output] - Optional Rectangle object. If given the values will be set into the object, otherwise a brand new Rectangle object will be created and returned.
-* @return {Phaser.Rectangle}
-*/
-Phaser.Rectangle.clone = function (a, output) {
-    if (typeof output === "undefined") { output = new Phaser.Rectangle(); }
-    return output.setTo(a.x, a.y, a.width, a.height);
-};
-
-/**
-* Determines whether the specified coordinates are contained within the region defined by this Rectangle object.
-* @method Phaser.Rectangle.contains
-* @param {Phaser.Rectangle} a - The Rectangle object.
-* @param {number} x - The x coordinate of the point to test.
-* @param {number} y - The y coordinate of the point to test.
-* @return {boolean} A value of true if the Rectangle object contains the specified point; otherwise false.
-*/
-Phaser.Rectangle.contains = function (a, x, y) {
-    return (x >= a.x && x <= a.right && y >= a.y && y <= a.bottom);
-};
-
-Phaser.Rectangle.containsRaw = function (rx, ry, rw, rh, x, y) {
-    return (x >= rx && x <= (rx + rw) && y >= ry && y <= (ry + rh));
-};
-
-/**
-* Determines whether the specified point is contained within the rectangular region defined by this Rectangle object. This method is similar to the Rectangle.contains() method, except that it takes a Point object as a parameter.
-* @method Phaser.Rectangle.containsPoint
-* @param {Phaser.Rectangle} a - The Rectangle object.
-* @param {Phaser.Point} point - The point object being checked. Can be Point or any object with .x and .y values.
-* @return {boolean} A value of true if the Rectangle object contains the specified point; otherwise false.
-*/
-Phaser.Rectangle.containsPoint = function (a, point) {
-    return Phaser.Rectangle.contains(a, point.x, point.y);
-};
-
-/**
-* Determines whether the first Rectangle object is fully contained within the second Rectangle object.
-* A Rectangle object is said to contain another if the second Rectangle object falls entirely within the boundaries of the first.
-* @method Phaser.Rectangle.containsRect
-* @param {Phaser.Rectangle} a - The first Rectangle object.
-* @param {Phaser.Rectangle} b - The second Rectangle object.
-* @return {boolean} A value of true if the Rectangle object contains the specified point; otherwise false.
-*/
-Phaser.Rectangle.containsRect = function (a, b) {
-
-    //  If the given rect has a larger volume than this one then it can never contain it
-    if (a.volume > b.volume)
-    {
-        return false;
-    }
-
-    return (a.x >= b.x && a.y >= b.y && a.right <= b.right && a.bottom <= b.bottom);
-
-};
-
-/**
-* Determines whether the two Rectangles are equal.
-* This method compares the x, y, width and height properties of each Rectangle.
-* @method Phaser.Rectangle.equals
-* @param {Phaser.Rectangle} a - The first Rectangle object.
-* @param {Phaser.Rectangle} b - The second Rectangle object.
-* @return {boolean} A value of true if the two Rectangles have exactly the same values for the x, y, width and height properties; otherwise false.
-*/
-Phaser.Rectangle.equals = function (a, b) {
-    return (a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height);
-};
-
-/**
-* If the Rectangle object specified in the toIntersect parameter intersects with this Rectangle object, returns the area of intersection as a Rectangle object. If the Rectangles do not intersect, this method returns an empty Rectangle object with its properties set to 0.
-* @method Phaser.Rectangle.intersection
-* @param {Phaser.Rectangle} a - The first Rectangle object.
-* @param {Phaser.Rectangle} b - The second Rectangle object.
-* @param {Phaser.Rectangle} [out] - Optional Rectangle object. If given the intersection values will be set into this object, otherwise a brand new Rectangle object will be created and returned.
-* @return {Phaser.Rectangle} A Rectangle object that equals the area of intersection. If the Rectangles do not intersect, this method returns an empty Rectangle object; that is, a Rectangle with its x, y, width, and height properties set to 0.
-*/
-Phaser.Rectangle.intersection = function (a, b, out) {
-
-    out  = out || new Phaser.Rectangle();
-
-    if (Phaser.Rectangle.intersects(a, b))
-    {
-        out.x = Math.max(a.x, b.x);
-        out.y = Math.max(a.y, b.y);
-        out.width = Math.min(a.right, b.right) - out.x;
-        out.height = Math.min(a.bottom, b.bottom) - out.y;
-    }
-
-    return out;
-
-};
-
-/**
-* Determines whether the two Rectangles intersect with each other.
-* This method checks the x, y, width, and height properties of the Rectangles.
-* @method Phaser.Rectangle.intersects
-* @param {Phaser.Rectangle} a - The first Rectangle object.
-* @param {Phaser.Rectangle} b - The second Rectangle object.
-* @return {boolean} A value of true if the specified object intersects with this Rectangle object; otherwise false.
-*/
-Phaser.Rectangle.intersects = function (a, b) {
-
-    if (a.width <= 0 || a.height <= 0 || b.width <= 0 || b.height <= 0)
-    {
-        return false;
-    }
-
-    return !(a.right < b.x || a.bottom < b.y || a.x > b.right || a.y > b.bottom);
-
-};
-
-/**
-* Determines whether the object specified intersects (overlaps) with the given values.
-* @method Phaser.Rectangle.intersectsRaw
-* @param {number} left - Description.
-* @param {number} right - Description.
-* @param {number} top - Description.
-* @param {number} bottom - Description.
-* @param {number} tolerance - A tolerance value to allow for an intersection test with padding, default to 0
-* @return {boolean} A value of true if the specified object intersects with the Rectangle; otherwise false.
-*/
-Phaser.Rectangle.intersectsRaw = function (a, left, right, top, bottom, tolerance) {
-
-    if (typeof tolerance === "undefined") { tolerance = 0; }
-
-    return !(left > a.right + tolerance || right < a.left - tolerance || top > a.bottom + tolerance || bottom < a.top - tolerance);
-
-};
-
-/**
-* Adds two Rectangles together to create a new Rectangle object, by filling in the horizontal and vertical space between the two Rectangles.
-* @method Phaser.Rectangle.union
-* @param {Phaser.Rectangle} a - The first Rectangle object.
-* @param {Phaser.Rectangle} b - The second Rectangle object.
-* @param {Phaser.Rectangle} [out] - Optional Rectangle object. If given the new values will be set into this object, otherwise a brand new Rectangle object will be created and returned.
-* @return {Phaser.Rectangle} A Rectangle object that is the union of the two Rectangles.
-*/
-Phaser.Rectangle.union = function (a, b, out) {
-
-    if (typeof out === "undefined") { out = new Phaser.Rectangle(); }
-
-    return out.setTo(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.max(a.right, b.right) - Math.min(a.left, b.left), Math.max(a.bottom, b.bottom) - Math.min(a.top, b.top));
-    
-};
-
-/**
-* @author       Richard Davey <rich@photonstorm.com>
-* @copyright    2014 Photon Storm Ltd.
-* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
-*/
-
-/**
-* Creates a new Polygon. You have to provide a list of points.
-* This can be an array of Points that form the polygon, a flat array of numbers that will be interpreted as [x,y, x,y, ...], 
-* or the arguments passed can be all the points of the polygon e.g. `new PIXI.Polygon(new PIXI.Point(), new PIXI.Point(), ...)`, or the
-* arguments passed can be flat x,y values e.g. `new PIXI.Polygon(x,y, x,y, x,y, ...)` where `x` and `y` are numbers.
-*
-* @class Phaser.Polygon
-* @classdesc The polygon represents a list of orderded points in space
-* @constructor
-* @param {Array<Phaser.Point>|Array<number>} points - The array of Points.
-*/
-Phaser.Polygon = function (points) {
-
-    PIXI.Polygon.call(this, points);
-
-    /**
-    * @property {number} type - The base object type.
-    */
-    this.type = Phaser.POLYGON;
-
-};
-
-Phaser.Polygon.prototype = Object.create(PIXI.Polygon.prototype);
-Phaser.Polygon.prototype.constructor = Phaser.Polygon;
-/**
-* @author       Richard Davey <rich@photonstorm.com>
-* @copyright    2014 Photon Storm Ltd.
-* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
-*/
-
-/**
-* Creates a new Line object with a start and an end point.
-* @class Line
-* @classdesc Phaser - Line
-* @constructor
-* @param {number} [x1=0] - The x coordinate of the start of the line.
-* @param {number} [y1=0] - The y coordinate of the start of the line.
-* @param {number} [x2=0] - The x coordinate of the end of the line.
-* @param {number} [y2=0] - The y coordinate of the end of the line.
-* @return {Phaser.Line} This line object
-*/
-Phaser.Line = function (x1, y1, x2, y2) {
-
-    x1 = x1 || 0;
-    y1 = y1 || 0;
-    x2 = x2 || 0;
-    y2 = y2 || 0;
-
-    /**
-    * @property {Phaser.Point} start - The start point of the line.
-    */
-    this.start = new Phaser.Point(x1, y1);
-
-    /**
-    * @property {Phaser.Point} end - The end point of the line.
-    */
-    this.end = new Phaser.Point(x2, y2);
-
-};
-
-Phaser.Line.prototype = {
-
-    /**
-    * Sets the components of the Line to the specified values.
-    * @method Phaser.Line#setTo
-    * @param {number} [x1=0] - The x coordinate of the start of the line.
-    * @param {number} [y1=0] - The y coordinate of the start of the line.
-    * @param {number} [x2=0] - The x coordinate of the end of the line.
-    * @param {number} [y2=0] - The y coordinate of the end of the line.
-    * @return {Phaser.Line} This line object
-    */
-    setTo: function (x1, y1, x2, y2) {
-
-        this.start.setTo(x1, y1);
-        this.end.setTo(x2, y2);
-
-        return this;
-
-    },
-
-    /**
-    * Sets the line to match the x/y coordinates of the two given sprites.
-    * Can optionally be calculated from their center coordinates.
-    * @method Phaser.Line#fromSprite
-    * @param {Phaser.Sprite} startSprite - The coordinates of this Sprite will be set to the Line.start point.
-    * @param {Phaser.Sprite} endSprite - The coordinates of this Sprite will be set to the Line.start point.
-    * @param {boolean} [useCenter=true] - If true it will use startSprite.center.x, if false startSprite.x.
-    * @return {Phaser.Line} This line object
-    */
-    fromSprite: function (startSprite, endSprite, useCenter) {
-
-        if (typeof useCenter === 'undefined') { useCenter = true; }
-
-        if (useCenter)
-        {
-            return this.setTo(startSprite.center.x, startSprite.center.y, endSprite.center.x, endSprite.center.y);
-        }
-        else
-        {
-            return this.setTo(startSprite.x, startSprite.y, endSprite.x, endSprite.y);
-        }
-
-    },
-
-    /**
-    * Checks for intersection between this line and another Line.
-    * If asSegment is true it will check for segment intersection. If asSegment is false it will check for line intersection.
-    * Returns the intersection segment of AB and EF as a Point, or null if there is no intersection.
-    *
-    * @method Phaser.Line#intersects
-    * @param {Phaser.Line} line - The line to check against this one.
-    * @param {boolean} [asSegment=true] - If true it will check for segment intersection, otherwise full line intersection.
-    * @param {Phaser.Point} [result] - A Point object to store the result in, if not given a new one will be created.
-    * @return {Phaser.Point} The intersection segment of the two lines as a Point, or null if there is no intersection.
-    */
-    intersects: function (line, asSegment, result) {
-
-        return Phaser.Line.intersectsPoints(this.start, this.end, line.start, line.end, asSegment, result);
-
-    },
-
-    /**
-    * Tests if the given coordinates fall on this line. See pointOnSegment to test against just the line segment.
-    * @method Phaser.Line#pointOnLine
-    * @param {number} x - The line to check against this one.
-    * @param {number} y - The line to check against this one.
-    * @return {boolean} True if the point is on the line, false if not.
-    */
-    pointOnLine: function (x, y) {
-
-        return ((x - this.start.x) * (this.end.y - this.end.y) === (this.end.x - this.start.x) * (y - this.end.y));
-
-    },
-
-    /**
-    * Tests if the given coordinates fall on this line and within the segment. See pointOnLine to test against just the line.
-    * @method Phaser.Line#pointOnSegment
-    * @param {number} x - The line to check against this one.
-    * @param {number} y - The line to check against this one.
-    * @return {boolean} True if the point is on the line and segment, false if not.
-    */
-    pointOnSegment: function (x, y) {
-
-        var xMin = Math.min(this.start.x, this.end.x);
-        var xMax = Math.max(this.start.x, this.end.x);
-        var yMin = Math.min(this.start.y, this.end.y);
-        var yMax = Math.max(this.start.y, this.end.y);
-
-        return (this.pointOnLine(x, y) && (x >= xMin && x <= xMax) && (y >= yMin && y <= yMax));
-
-    }
-
-};
-
-/**
-* @name Phaser.Line#length
-* @property {number} length - Gets the length of the line segment.
-* @readonly
-*/
-Object.defineProperty(Phaser.Line.prototype, "length", {
-
-    get: function () {
-        return Math.sqrt((this.end.x - this.start.x) * (this.end.x - this.start.x) + (this.end.y - this.start.y) * (this.end.y - this.start.y));
-    }
-
-});
-
-/**
-* @name Phaser.Line#angle
-* @property {number} angle - Gets the angle of the line.
-* @readonly
-*/
-Object.defineProperty(Phaser.Line.prototype, "angle", {
-
-    get: function () {
-        return Math.atan2(this.end.x - this.start.x, this.end.y - this.start.y);
-    }
-
-});
-
-/**
-* @name Phaser.Line#slope
-* @property {number} slope - Gets the slope of the line (y/x).
-* @readonly
-*/
-Object.defineProperty(Phaser.Line.prototype, "slope", {
-
-    get: function () {
-        return (this.end.y - this.start.y) / (this.end.x - this.start.x);
-    }
-
-});
-
-/**
-* @name Phaser.Line#perpSlope
-* @property {number} perpSlope - Gets the perpendicular slope of the line (x/y).
-* @readonly
-*/
-Object.defineProperty(Phaser.Line.prototype, "perpSlope", {
-
-    get: function () {
-        return -((this.end.x - this.start.x) / (this.end.y - this.start.y));
-    }
-
-});
-
-/**
-* Checks for intersection between two lines as defined by the given start and end points.
-* If asSegment is true it will check for line segment intersection. If asSegment is false it will check for line intersection.
-* Returns the intersection segment of AB and EF as a Point, or null if there is no intersection.
-* Adapted from code by Keith Hair
-*
-* @method Phaser.Line.intersectsPoints
-* @param {Phaser.Point} a - The start of the first Line to be checked.
-* @param {Phaser.Point} b - The end of the first line to be checked.
-* @param {Phaser.Point} e - The start of the second Line to be checked.
-* @param {Phaser.Point} f - The end of the second line to be checked.
-* @param {boolean} [asSegment=true] - If true it will check for segment intersection, otherwise full line intersection.
-* @param {Phaser.Point} [result] - A Point object to store the result in, if not given a new one will be created.
-* @return {Phaser.Point} The intersection segment of the two lines as a Point, or null if there is no intersection.
-*/
-Phaser.Line.intersectsPoints = function (a, b, e, f, asSegment, result) {
-
-    if (typeof asSegment === 'undefined') { asSegment = true; }
-    if (typeof result === 'undefined') { result = new Phaser.Point(); }
-
-    var a1 = b.y - a.y;
-    var a2 = f.y - e.y;
-    var b1 = a.x - b.x;
-    var b2 = e.x - f.x;
-    var c1 = (b.x * a.y) - (a.x * b.y);
-    var c2 = (f.x * e.y) - (e.x * f.y);
-    var denom = (a1 * b2) - (a2 * b1);
-
-    if (denom === 0)
-    {
-        return null;
-    }
-
-    result.x = ((b1 * c2) - (b2 * c1)) / denom;
-    result.y = ((a2 * c1) - (a1 * c2)) / denom;
- 
-    if (asSegment)
-    {
-        if (Math.pow((result.x - b.x) + (result.y - b.y), 2) > Math.pow((a.x - b.x) + (a.y - b.y), 2))
-        {
-            return null;
-        }
-
-        if (Math.pow((result.x - a.x) + (result.y - a.y), 2) > Math.pow((a.x - b.x) + (a.y - b.y), 2))
-        {
-            return null;
-        }
-
-        if (Math.pow((result.x - f.x) + (result.y - f.y), 2) > Math.pow((e.x - f.x) + (e.y - f.y), 2))
-        {
-            return null;
-        }
-
-        if (Math.pow((result.x - e.x) + (result.y - e.y), 2) > Math.pow((e.x - f.x) + (e.y - f.y), 2))
-        {
-            return null;
-        }
-    }
-
-    return result;
-
-};
-
-/**
-* Checks for intersection between two lines.
-* If asSegment is true it will check for segment intersection.
-* If asSegment is false it will check for line intersection.
-* Returns the intersection segment of AB and EF as a Point, or null if there is no intersection.
-* Adapted from code by Keith Hair
-*
-* @method Phaser.Line.intersects
-* @param {Phaser.Line} a - The first Line to be checked.
-* @param {Phaser.Line} b - The second Line to be checked.
-* @param {boolean} [asSegment=true] - If true it will check for segment intersection, otherwise full line intersection.
-* @param {Phaser.Point} [result] - A Point object to store the result in, if not given a new one will be created.
-* @return {Phaser.Point} The intersection segment of the two lines as a Point, or null if there is no intersection.
-*/
-Phaser.Line.intersects = function (a, b, asSegment, result) {
-
-    return Phaser.Line.intersectsPoints(a.start, a.end, b.start, b.end, asSegment, result);
-
-};
 
 /**
 * @author       Richard Davey <rich@photonstorm.com>
@@ -29670,7 +22387,7 @@ Phaser.TweenManager.prototype = {
     /**
     * Pauses all currently running tweens.
     *
-    * @method Phaser.TweenManager#pauseAll
+    * @method Phaser.TweenManager#update
     */
     pauseAll: function () {
 
@@ -29682,7 +22399,7 @@ Phaser.TweenManager.prototype = {
     },
 
     /**
-    * Resumes all currently paused tweens.
+    * Pauses all currently paused tweens.
     *
     * @method Phaser.TweenManager#resumeAll
     */
@@ -31520,7 +24237,7 @@ Phaser.Timer.prototype = {
         {
             this._i = 0;
 
-            while (this._i < this._len)
+            while (this._i < this._len && this.running)
             {
                 if (this._now >= this.events[this._i].tick)
                 {
@@ -32836,6 +25553,28 @@ Phaser.Frame.prototype = {
             this.spriteSourceSizeH = destHeight;
         }
 
+    },
+
+    /**
+    * Returns a Rectangle set to the dimensions of this Frame.
+    *
+    * @method Phaser.Frame#getRect
+    * @param {Phaser.Rectangle} [out] - A rectangle to copy the frame dimensions to.
+    * @return {Phaser.Rectangle} A rectangle.
+    */
+    getRect: function (out) {
+
+        if (typeof out === 'undefined')
+        {
+            out = new Phaser.Rectangle(this.x, this.y, this.width, this.height);
+        }
+        else
+        {
+            out.setTo(this.x, this.y, this.width, this.height);
+        }
+
+        return out;
+
     }
 
 };
@@ -32904,12 +25643,12 @@ Phaser.FrameData.prototype = {
     */
     getFrame: function (index) {
 
-        if (this._frames.length > index)
+        if (index > this._frames.length)
         {
-            return this._frames[index];
+            index = 0;
         }
 
-        return null;
+        return this._frames[index];
 
     },
 
@@ -33237,10 +25976,14 @@ Phaser.AnimationParser = {
                     frames[i].spriteSourceSize.h
                 );
 
-                //  We had to hack Pixi to get this to work :(
                 PIXI.TextureCache[uuid].trimmed = true;
-                PIXI.TextureCache[uuid].trim.x = frames[i].spriteSourceSize.x;
-                PIXI.TextureCache[uuid].trim.y = frames[i].spriteSourceSize.y;
+
+                PIXI.TextureCache[uuid].trim = {
+                    x: frames[i].spriteSourceSize.x,
+                    y: frames[i].spriteSourceSize.y,
+                    realWidth: frames[i].sourceSize.w,
+                    realHeight: frames[i].sourceSize.h
+                }
 
             }
         }
@@ -33309,10 +26052,14 @@ Phaser.AnimationParser = {
                     frames[key].spriteSourceSize.h
                 );
 
-                //  We had to hack Pixi to get this to work :(
                 PIXI.TextureCache[uuid].trimmed = true;
-                PIXI.TextureCache[uuid].trim.x = frames[key].spriteSourceSize.x;
-                PIXI.TextureCache[uuid].trim.y = frames[key].spriteSourceSize.y;
+
+                PIXI.TextureCache[uuid].trim = {
+                    x: frames[i].spriteSourceSize.x,
+                    y: frames[i].spriteSourceSize.y,
+                    realWidth: frames[i].sourceSize.w,
+                    realHeight: frames[i].sourceSize.h
+                }
 
             }
 
@@ -33397,10 +26144,14 @@ Phaser.AnimationParser = {
 
                 PIXI.TextureCache[uuid].realSize = { x: frameX, y: frameY, w: frameWidth, h: frameHeight };
 
-                //  We had to hack Pixi to get this to work :(
                 PIXI.TextureCache[uuid].trimmed = true;
-                PIXI.TextureCache[uuid].trim.x = frameX;
-                PIXI.TextureCache[uuid].trim.y = frameY;
+
+                PIXI.TextureCache[uuid].trim = {
+                    x: frameX,
+                    y: frameY,
+                    realWidth: width,
+                    realHeight: height
+                }
             }
         }
 
@@ -34334,16 +27085,17 @@ Phaser.Loader = function (game) {
 
     /**
     * You can optionally link a sprite to the preloader.
-    * If you do so the Sprite's width or height will be cropped based on the percentage loaded.
-    * @property {Phaser.Sprite} preloadSprite
+    * If you do so the Sprites width or height will be cropped based on the percentage loaded.
+    * @property {Phaser.Sprite|Phaser.Image} preloadSprite
     * @default
     */
     this.preloadSprite = null;
 
     /**
-    * @property {string} crossOrigin - The crossOrigin value applied to loaded images
+    * @property {boolean|string} crossOrigin - The crossOrigin value applied to loaded images.
+    * @default
     */
-    this.crossOrigin = '';
+    this.crossOrigin = false;
 
     /**
     * If you want to append a URL before the path of any asset you can set this here.
@@ -34422,8 +27174,7 @@ Phaser.Loader.prototype = {
             this.preloadSprite.crop = new Phaser.Rectangle(0, 0, sprite.width, 1);
         }
 
-        sprite.crop = this.preloadSprite.crop;
-        sprite.cropEnabled = true;
+        sprite.crop(this.preloadSprite.crop);
 
     },
 
@@ -34626,22 +27377,6 @@ Phaser.Loader.prototype = {
     script: function (key, url) {
 
         this.addToFileList('script', key, url);
-
-        return this;
-
-    },
-    
-    /**
-    * Add a custom JSON file to the Loader.
-    *
-    * @method Phaser.Loader#json
-    * @param {string} key - Unique asset key of the json file.
-    * @param {string} url - URL of the json file.
-    * @return {Phaser.Loader} This Loader instance.
-    */
-    json: function (key, url) {
-
-        this.addToFileList('json', key, url);
 
         return this;
 
@@ -35051,7 +27786,10 @@ Phaser.Loader.prototype = {
                 file.data.onerror = function () {
                     return _this.fileError(_this._fileIndex);
                 };
-                file.data.crossOrigin = this.crossOrigin;
+                if (this.crossOrigin)
+                {
+                    file.data.crossOrigin = this.crossOrigin;
+                }
                 file.data.src = this.baseURL + file.url;
                 break;
 
@@ -35104,12 +27842,12 @@ Phaser.Loader.prototype = {
                 }
 
                 break;
+
             case 'tilemap':
-            case 'json':
                 this._xhr.open("GET", this.baseURL + file.url, true);
                 this._xhr.responseType = "text";
 
-                if (!file.format || file.format === Phaser.Tilemap.TILED_JSON)
+                if (file.format === Phaser.Tilemap.TILED_JSON)
                 {
                     this._xhr.onload = function () {
                         return _this.jsonLoadComplete(_this._fileIndex);
@@ -35131,6 +27869,7 @@ Phaser.Loader.prototype = {
                 };
                 this._xhr.send();
                 break;
+
             case 'text':
             case 'script':
                 this._xhr.open("GET", this.baseURL + file.url, true);
@@ -35389,10 +28128,6 @@ Phaser.Loader.prototype = {
         {
             this.game.cache.addTilemap(file.key, file.url, data, file.format);
         }
-        else if (file.type === 'json')
-        {
-             this.game.cache.addText(file.key, file.url, data);
-        }
         else
         {
             this.game.cache.addTextureAtlas(file.key, file.url, file.data, data, file.format);
@@ -35525,7 +28260,7 @@ Phaser.Loader.prototype = {
                 this.preloadSprite.crop.height = Math.floor((this.preloadSprite.height / 100) * this.progress);
             }
 
-            this.preloadSprite.sprite.crop = this.preloadSprite.crop;
+            // this.preloadSprite.sprite.crop = this.preloadSprite.crop;
         }
 
         this.onFileComplete.dispatch(this.progress, this._fileList[previousIndex].key, success, this.totalLoadedFiles(), this._fileList.length);
@@ -37732,19 +30467,32 @@ Phaser.Utils.Debug.prototype = {
     * @method Phaser.Utils.Debug#renderRectangle
     * @param {Phaser.Rectangle} rect - The Rectangle to render.
     * @param {string} [color] - Color of the debug info to be rendered (format is css color string).
+    * @param {boolean} [filled=true] - Render the rectangle as a fillRect (default, true) or a strokeRect (false)
     */
-    renderRectangle: function (rect, color) {
+    renderRectangle: function (rect, color, filled) {
 
         if (this.context == null)
         {
             return;
         }
 
+        if (typeof filled === 'undefined') { filled = true; }
+
         color = color || 'rgba(0,255,0,0.3)';
 
         this.start();
-        this.context.fillStyle = color;
-        this.context.fillRect(rect.x, rect.y, rect.width, rect.height);
+
+        if (filled)
+        {
+            this.context.fillStyle = color;
+            this.context.fillRect(rect.x, rect.y, rect.width, rect.height);
+        }
+        else
+        {
+            this.context.strokeStyle = color;
+            this.context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+        }
+
         this.stop();
         
     },
@@ -38259,843 +31007,6 @@ Phaser.Color = {
     
 };
 
-// Version 0.2 - Copyright 2013 -  Jim Riecken <jimr@jimr.ca>
-//
-// Released under the MIT License - https://github.com/jriecken/sat-js
-//
-// A simple library for determining intersections of circles and
-// polygons using the Separating Axis Theorem.
-/** @preserve SAT.js - Version 0.2 - Copyright 2013 - Jim Riecken <jimr@jimr.ca> - released under the MIT License. https://github.com/jriecken/sat-js */
-
-var SAT = (function () {
-  "use strict";
-
-  var SAT = {};
-
-  //
-  // ## Vector
-  //
-  // Represents a vector in two dimensions with `x` and `y` properties.
-
-
-  // Create a new Vector, optionally passing in the `x` and `y` coordinates. If
-  // a coordinate is not specified, it will be set to `0`
-  /**
-   * @param {?number=} x The x position.
-   * @param {?number=} y The y position.
-   * @constructor
-   */
-  function Vector(x, y) {
-    this['x'] = x || 0;
-    this['y'] = y || 0;
-  }
-  SAT['Vector'] = Vector;
-  // Alias `Vector` as `V`
-  SAT['V'] = Vector;
-
-
-  // Copy the values of another Vector into this one.
-  /**
-   * @param {Vector} other The other Vector.
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['copy'] = Vector.prototype.copy = function(other) {
-    this['x'] = other['x'];
-    this['y'] = other['y'];
-    return this;
-  };
-
-  // Change this vector to be perpendicular to what it was before. (Effectively
-  // roatates it 90 degrees in a clockwise direction)
-  /**
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['perp'] = Vector.prototype.perp = function() {
-    var x = this['x'];
-    this['x'] = this['y'];
-    this['y'] = -x;
-    return this;
-  };
-
-  // Rotate this vector (counter-clockwise) by the specified angle (in radians).
-  /**
-   * @param {number} angle The angle to rotate (in radians)
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['rotate'] = Vector.prototype.rotate = function (angle) {
-    var x = this['x'];
-    var y = this['y'];
-    this['x'] = x * Math.cos(angle) - y * Math.sin(angle);
-    this['y'] = x * Math.sin(angle) + y * Math.cos(angle);
-    return this;
-  };
-
-  // Rotate this vector (counter-clockwise) by the specified angle (in radians) which has already been calculated into sin and cos.
-  /**
-   * @param {number} sin - The Math.sin(angle)
-   * @param {number} cos - The Math.cos(angle)
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['rotatePrecalc'] = Vector.prototype.rotatePrecalc = function (sin, cos) {
-    var x = this['x'];
-    var y = this['y'];
-    this['x'] = x * cos - y * sin;
-    this['y'] = x * sin + y * cos;
-    return this;
-  };
-
-  // Reverse this vector.
-  /**
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['reverse'] = Vector.prototype.reverse = function() {
-    this['x'] = -this['x'];
-    this['y'] = -this['y'];
-    return this;
-  };
-
-
-  // Normalize this vector.  (make it have length of `1`)
-  /**
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['normalize'] = Vector.prototype.normalize = function() {
-    var d = this.len();
-    if(d > 0) {
-      this['x'] = this['x'] / d;
-      this['y'] = this['y'] / d;
-    }
-    return this;
-  };
-
-  // Add another vector to this one.
-  /**
-   * @param {Vector} other The other Vector.
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['add'] = Vector.prototype.add = function(other) {
-    this['x'] += other['x'];
-    this['y'] += other['y'];
-    return this;
-  };
-
-  // Subtract another vector from this one.
-  /**
-   * @param {Vector} other The other Vector.
-   * @return {Vector} This for chaiing.
-   */
-  Vector.prototype['sub'] = Vector.prototype.sub = function(other) {
-    this['x'] -= other['x'];
-    this['y'] -= other['y'];
-    return this;
-  };
-
-  // Scale this vector. An independant scaling factor can be provided
-  // for each axis, or a single scaling factor that will scale both `x` and `y`.
-  /**
-   * @param {number} x The scaling factor in the x direction.
-   * @param {?number=} y The scaling factor in the y direction.  If this
-   *   is not specified, the x scaling factor will be used.
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['scale'] = Vector.prototype.scale = function(x,y) {
-    this['x'] *= x;
-    this['y'] *= y || x;
-    return this;
-  };
-
-  // Project this vector on to another vector.
-  /**
-   * @param {Vector} other The vector to project onto.
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['project'] = Vector.prototype.project = function(other) {
-    var amt = this.dot(other) / other.len2();
-    this['x'] = amt * other['x'];
-    this['y'] = amt * other['y'];
-    return this;
-  };
-
-  // Project this vector onto a vector of unit length. This is slightly more efficient
-  // than `project` when dealing with unit vectors.
-  /**
-   * @param {Vector} other The unit vector to project onto.
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['projectN'] = Vector.prototype.projectN = function(other) {
-    var amt = this.dot(other);
-    this['x'] = amt * other['x'];
-    this['y'] = amt * other['y'];
-    return this;
-  };
-
-  // Reflect this vector on an arbitrary axis.
-  /**
-   * @param {Vector} axis The vector representing the axis.
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['reflect'] = Vector.prototype.reflect = function(axis) {
-    var x = this['x'];
-    var y = this['y'];
-    this.project(axis).scale(2);
-    this['x'] -= x;
-    this['y'] -= y;
-    return this;
-  };
-
-  // Reflect this vector on an arbitrary axis (represented by a unit vector). This is
-  // slightly more efficient than `reflect` when dealing with an axis that is a unit vector.
-  /**
-   * @param {Vector} axis The unit vector representing the axis.
-   * @return {Vector} This for chaining.
-   */
-  Vector.prototype['reflectN'] = Vector.prototype.reflectN = function(axis) {
-    var x = this['x'];
-    var y = this['y'];
-    this.projectN(axis).scale(2);
-    this['x'] -= x;
-    this['y'] -= y;
-    return this;
-  };
-
-  // Get the dot product of this vector and another.
-  /**
-   * @param {Vector}  other The vector to dot this one against.
-   * @return {number} The dot product.
-   */
-  Vector.prototype['dot'] = Vector.prototype.dot = function(other) {
-    return this['x'] * other['x'] + this['y'] * other['y'];
-  };
-
-  // Get the squared length of this vector.
-  /**
-   * @return {number} The length^2 of this vector.
-   */
-  Vector.prototype['len2'] = Vector.prototype.len2 = function() {
-    return this.dot(this);
-  };
-
-  // Get the length of this vector.
-  /**
-   * @return {number} The length of this vector.
-   */
-  Vector.prototype['len'] = Vector.prototype.len = function() {
-    return Math.sqrt(this.len2());
-  };
-
-  // ## Circle
-  //
-  // Represents a circle with a position and a radius.
-
-  // Create a new circle, optionally passing in a position and/or radius. If no position
-  // is given, the circle will be at `(0,0)`. If no radius is provided, the circle will
-  // have a radius of `0`.
-  /**
-   * @param {Vector=} pos A vector representing the position of the center of the circle
-   * @param {?number=} r The radius of the circle
-   * @constructor
-   */
-  function Circle(pos, r) {
-    this['pos'] = pos || new Vector();
-    this['r'] = r || 0;
-  }
-  SAT['Circle'] = Circle;
-
-  // ## Polygon
-  //
-  // Represents a *convex* polygon with any number of points (specified in counter-clockwise order)
-  //
-  // The edges/normals of the polygon will be calculated on creation and stored in the
-  // `edges` and `normals` properties. If you change the polygon's points, you will need
-  // to call `recalc` to recalculate the edges/normals.
-
-  // Create a new polygon, passing in a position vector, and an array of points (represented
-  // by vectors relative to the position vector). If no position is passed in, the position
-  // of the polygon will be `(0,0)`.
-  /**
-   * @param {Vector=} pos A vector representing the origin of the polygon. (all other
-   *   points are relative to this one)
-   * @param {Array.<Vector>=} points An array of vectors representing the points in the polygon,
-   *   in counter-clockwise order.
-   * @constructor
-   */
-  function Polygon(pos, points) {
-    this['pos'] = pos || new Vector();
-    this['points'] = points || [];
-    this.recalc();
-  }
-  SAT['Polygon'] = Polygon;
-
-  // Recalculates the edges and normals of the polygon. This **must** be called
-  // if the `points` array is modified at all and the edges or normals are to be
-  // accessed.
-  /**
-   * @return {Polygon} This for chaining.
-   */
-  Polygon.prototype['recalc'] = Polygon.prototype.recalc = function() {
-    // The edges here are the direction of the `n`th edge of the polygon, relative to
-    // the `n`th point. If you want to draw a given edge from the edge value, you must
-    // first translate to the position of the starting point.
-    this['edges'] = [];
-    // The normals here are the direction of the normal for the `n`th edge of the polygon, relative
-    // to the position of the `n`th point. If you want to draw an edge normal, you must first
-    // translate to the position of the starting point.
-    this['normals'] = [];
-    var points = this['points'];
-    var len = points.length;
-    for (var i = 0; i < len; i++) {
-      var p1 = points[i];
-      var p2 = i < len - 1 ? points[i + 1] : points[0];
-      var e = new Vector().copy(p2).sub(p1);
-      var n = new Vector().copy(e).perp().normalize();
-      this['edges'].push(e);
-      this['normals'].push(n);
-    }
-    return this;
-  };
-
-  // Rotates this polygon counter-clockwise around the origin of *its local coordinate system* (i.e. `pos`).
-  //
-  // Note: You do **not** need to call `recalc` after rotation.
-  /**
-   * @param {number} angle The angle to rotate (in radians)
-   * @return {Polygon} This for chaining.
-   */
-  Polygon.prototype['rotate'] = Polygon.prototype.rotate = function(angle) {
-    var i;
-    var points = this['points'];
-    var edges = this['edges'];
-    var normals = this['normals'];
-    var len = points.length;
-
-    //  Calc it just the once, rather than 4 times per array element
-    var cos = Math.cos(angle);
-    var sin = Math.sin(angle);
-
-    for (i = 0; i < len; i++) {
-      points[i].rotatePrecalc(sin, cos);
-      edges[i].rotatePrecalc(sin, cos);
-      normals[i].rotatePrecalc(sin, cos);
-    }
-    return this;
-  };
-
-  // Rotates this polygon counter-clockwise around the origin of *its local coordinate system* (i.e. `pos`).
-  //
-  // Note: You do **not** need to call `recalc` after rotation.
-  /**
-   * @param {number} angle The angle to rotate (in radians)
-   * @return {Polygon} This for chaining.
-   */
-  Polygon.prototype['scale'] = Polygon.prototype.scale = function(x, y) {
-    var i;
-    var points = this['points'];
-    var edges = this['edges'];
-    var normals = this['normals'];
-    var len = points.length;
-    for (i = 0; i < len; i++) {
-      points[i].scale(x,y);
-      edges[i].scale(x,y);
-      normals[i].scale(x,y);
-    }
-    return this;
-  };
-
-  // Translates the points of this polygon by a specified amount relative to the origin of *its own coordinate
-  // system* (i.e. `pos`).
-  //
-  // This is most useful to change the "center point" of a polygon.
-  //
-  // Note: You do **not** need to call `recalc` after translation.
-  /**
-   * @param {number} x The horizontal amount to translate.
-   * @param {number} y The vertical amount to translate.
-   * @return {Polygon} This for chaining.
-   */
-  Polygon.prototype['translate'] = Polygon.prototype.translate = function (x, y) {
-    var i;
-    var points = this['points'];
-    var len = points.length;
-    for (i = 0; i < len; i++) {
-      points[i].x += x;
-      points[i].y += y;
-    }
-    return this;
-  };
-
-  // ## Box
-  //
-  // Represents an axis-aligned box, with a width and height.
-
-
-  // Create a new box, with the specified position, width, and height. If no position
-  // is given, the position will be `(0,0)`. If no width or height are given, they will
-  // be set to `0`.
-  /**
-   * @param {Vector=} pos A vector representing the top-left of the box.
-   * @param {?number=} w The width of the box.
-   * @param {?number=} h The height of the box.
-   * @constructor
-   */
-  function Box(pos, w, h) {
-    this['pos'] = pos || new Vector();
-    this['w'] = w || 0;
-    this['h'] = h || 0;
-  }
-  SAT['Box'] = Box;
-
-  // Returns a polygon whose edges are the same as this box.
-  /**
-   * @return {Polygon} A new Polygon that represents this box.
-   */
-  Box.prototype['toPolygon'] = Box.prototype.toPolygon = function() {
-    var pos = this['pos'];
-    var w = this['w'];
-    var h = this['h'];
-    return new Polygon(new Vector(pos['x'], pos['y']), [
-     new Vector(), new Vector(w, 0),
-     new Vector(w,h), new Vector(0,h)
-    ]);
-  };
-
-  // ## Response
-  //
-  // An object representing the result of an intersection. Contains:
-  //  - The two objects participating in the intersection
-  //  - The vector representing the minimum change necessary to extract the first object
-  //    from the second one (as well as a unit vector in that direction and the magnitude
-  //    of the overlap)
-  //  - Whether the first object is entirely inside the second, and vice versa.
-  /**
-   * @constructor
-   */
-  function Response() {
-    this['a'] = null;
-    this['b'] = null;
-    this['overlapN'] = new Vector();
-    this['overlapV'] = new Vector();
-    this.clear();
-  }
-  SAT['Response'] = Response;
-
-  // Set some values of the response back to their defaults.  Call this between tests if
-  // you are going to reuse a single Response object for multiple intersection tests (recommented
-  // as it will avoid allcating extra memory)
-  /**
-   * @return {Response} This for chaining
-   */
-  Response.prototype['clear'] = Response.prototype.clear = function() {
-    this['aInB'] = true;
-    this['bInA'] = true;
-    this['overlap'] = Number.MAX_VALUE;
-    return this;
-  };
-
-  // ## Object Pools
-
-  // A pool of `Vector` objects that are used in calculations to avoid
-  // allocating memory.
-  /**
-   * @type {Array.<Vector>}
-   */
-  var T_VECTORS = [];
-  for (var i = 0; i < 10; i++) { T_VECTORS.push(new Vector()); }
-
-  // A pool of arrays of numbers used in calculations to avoid allocating
-  // memory.
-  /**
-   * @type {Array.<Array.<number>>}
-   */
-  var T_ARRAYS = [];
-  for (var i = 0; i < 5; i++) { T_ARRAYS.push([]); }
-
-  // ## Helper Functions
-
-  // Flattens the specified array of points onto a unit vector axis,
-  // resulting in a one dimensional range of the minimum and
-  // maximum value on that axis.
-  /**
-   * @param {Array.<Vector>} points The points to flatten.
-   * @param {Vector} normal The unit vector axis to flatten on.
-   * @param {Array.<number>} result An array.  After calling this function,
-   *   result[0] will be the minimum value,
-   *   result[1] will be the maximum value.
-   */
-  function flattenPointsOn(points, normal, result) {
-    var min = Number.MAX_VALUE;
-    var max = -Number.MAX_VALUE;
-    var len = points.length;
-    for (var i = 0; i < len; i++ ) {
-      // The magnitude of the projection of the point onto the normal
-      var dot = points[i].dot(normal);
-      if (dot < min) { min = dot; }
-      if (dot > max) { max = dot; }
-    }
-    result[0] = min; result[1] = max;
-  }
-
-  // Check whether two convex polygons are separated by the specified
-  // axis (must be a unit vector).
-  /**
-   * @param {Vector} aPos The position of the first polygon.
-   * @param {Vector} bPos The position of the second polygon.
-   * @param {Array.<Vector>} aPoints The points in the first polygon.
-   * @param {Array.<Vector>} bPoints The points in the second polygon.
-   * @param {Vector} axis The axis (unit sized) to test against.  The points of both polygons
-   *   will be projected onto this axis.
-   * @param {Response=} response A Response object (optional) which will be populated
-   *   if the axis is not a separating axis.
-   * @return {boolean} true if it is a separating axis, false otherwise.  If false,
-   *   and a response is passed in, information about how much overlap and
-   *   the direction of the overlap will be populated.
-   */
-  function isSeparatingAxis(aPos, bPos, aPoints, bPoints, axis, response) {
-    var rangeA = T_ARRAYS.pop();
-    var rangeB = T_ARRAYS.pop();
-    // The magnitude of the offset between the two polygons
-    var offsetV = T_VECTORS.pop().copy(bPos).sub(aPos);
-    var projectedOffset = offsetV.dot(axis);
-    // Project the polygons onto the axis.
-    flattenPointsOn(aPoints, axis, rangeA);
-    flattenPointsOn(bPoints, axis, rangeB);
-    // Move B's range to its position relative to A.
-    rangeB[0] += projectedOffset;
-    rangeB[1] += projectedOffset;
-    // Check if there is a gap. If there is, this is a separating axis and we can stop
-    if (rangeA[0] > rangeB[1] || rangeB[0] > rangeA[1]) {
-      T_VECTORS.push(offsetV);
-      T_ARRAYS.push(rangeA);
-      T_ARRAYS.push(rangeB);
-      return true;
-    }
-    // This is not a separating axis. If we're calculating a response, calculate the overlap.
-    if (response) {
-      var overlap = 0;
-      // A starts further left than B
-      if (rangeA[0] < rangeB[0]) {
-        response['aInB'] = false;
-        // A ends before B does. We have to pull A out of B
-        if (rangeA[1] < rangeB[1]) {
-          overlap = rangeA[1] - rangeB[0];
-          response['bInA'] = false;
-        // B is fully inside A.  Pick the shortest way out.
-        } else {
-          var option1 = rangeA[1] - rangeB[0];
-          var option2 = rangeB[1] - rangeA[0];
-          overlap = option1 < option2 ? option1 : -option2;
-        }
-      // B starts further left than A
-      } else {
-        response['bInA'] = false;
-        // B ends before A ends. We have to push A out of B
-        if (rangeA[1] > rangeB[1]) {
-          overlap = rangeA[0] - rangeB[1];
-          response['aInB'] = false;
-        // A is fully inside B.  Pick the shortest way out.
-        } else {
-          var option1 = rangeA[1] - rangeB[0];
-          var option2 = rangeB[1] - rangeA[0];
-          overlap = option1 < option2 ? option1 : -option2;
-        }
-      }
-      // If this is the smallest amount of overlap we've seen so far, set it as the minimum overlap.
-      var absOverlap = Math.abs(overlap);
-      if (absOverlap < response['overlap']) {
-        response['overlap'] = absOverlap;
-        response['overlapN'].copy(axis);
-        if (overlap < 0) {
-          response['overlapN'].reverse();
-        }
-      }
-    }
-    T_VECTORS.push(offsetV);
-    T_ARRAYS.push(rangeA);
-    T_ARRAYS.push(rangeB);
-    return false;
-  }
-
-  // Calculates which Vornoi region a point is on a line segment.
-  // It is assumed that both the line and the point are relative to `(0,0)`
-  //
-  //            |       (0)      |
-  //     (-1)  [S]--------------[E]  (1)
-  //            |       (0)      |
-  /**
-   * @param {Vector} line The line segment.
-   * @param {Vector} point The point.
-   * @return  {number} LEFT_VORNOI_REGION (-1) if it is the left region,
-   *          MIDDLE_VORNOI_REGION (0) if it is the middle region,
-   *          RIGHT_VORNOI_REGION (1) if it is the right region.
-   */
-  function vornoiRegion(line, point) {
-    var len2 = line.len2();
-    var dp = point.dot(line);
-    // If the point is beyond the start of the line, it is in the
-    // left vornoi region.
-    if (dp < 0) { return LEFT_VORNOI_REGION; }
-    // If the point is beyond the end of the line, it is in the
-    // right vornoi region.
-    else if (dp > len2) { return RIGHT_VORNOI_REGION; }
-    // Otherwise, it's in the middle one.
-    else { return MIDDLE_VORNOI_REGION; }
-  }
-  // Constants for Vornoi regions
-  /**
-   * @const
-   */
-  var LEFT_VORNOI_REGION = -1;
-  /**
-   * @const
-   */
-  var MIDDLE_VORNOI_REGION = 0;
-  /**
-   * @const
-   */
-  var RIGHT_VORNOI_REGION = 1;
-
-  // ## Collision Tests
-
-  // Check if two circles collide.
-  /**
-   * @param {Circle} a The first circle.
-   * @param {Circle} b The second circle.
-   * @param {Response=} response Response object (optional) that will be populated if
-   *   the circles intersect.
-   * @return {boolean} true if the circles intersect, false if they don't.
-   */
-  function testCircleCircle(a, b, response) {
-    // Check if the distance between the centers of the two
-    // circles is greater than their combined radius.
-    var differenceV = T_VECTORS.pop().copy(b['pos']).sub(a['pos']);
-    var totalRadius = a['r'] + b['r'];
-    var totalRadiusSq = totalRadius * totalRadius;
-    var distanceSq = differenceV.len2();
-    // If the distance is bigger than the combined radius, they don't intersect.
-    if (distanceSq > totalRadiusSq) {
-      T_VECTORS.push(differenceV);
-      return false;
-    }
-    // They intersect.  If we're calculating a response, calculate the overlap.
-    if (response) {
-      var dist = Math.sqrt(distanceSq);
-      response['a'] = a;
-      response['b'] = b;
-      response['overlap'] = totalRadius - dist;
-      response['overlapN'].copy(differenceV.normalize());
-      response['overlapV'].copy(differenceV).scale(response['overlap']);
-      response['aInB']= a['r'] <= b['r'] && dist <= b['r'] - a['r'];
-      response['bInA'] = b['r'] <= a['r'] && dist <= a['r'] - b['r'];
-    }
-    T_VECTORS.push(differenceV);
-    return true;
-  }
-  SAT['testCircleCircle'] = testCircleCircle;
-
-  // Check if a polygon and a circle collide.
-  /**
-   * @param {Polygon} polygon The polygon.
-   * @param {Circle} circle The circle.
-   * @param {Response=} response Response object (optional) that will be populated if
-   *   they interset.
-   * @return {boolean} true if they intersect, false if they don't.
-   */
-  function testPolygonCircle(polygon, circle, response) {
-    // Get the position of the circle relative to the polygon.
-    var circlePos = T_VECTORS.pop().copy(circle['pos']).sub(polygon['pos']);
-    var radius = circle['r'];
-    var radius2 = radius * radius;
-    var points = polygon['points'];
-    var len = points.length;
-    var edge = T_VECTORS.pop();
-    var point = T_VECTORS.pop();
-
-    // For each edge in the polygon:
-    for (var i = 0; i < len; i++) {
-      var next = i === len - 1 ? 0 : i + 1;
-      var prev = i === 0 ? len - 1 : i - 1;
-      var overlap = 0;
-      var overlapN = null;
-
-      // Get the edge.
-      edge.copy(polygon['edges'][i]);
-      // Calculate the center of the circle relative to the starting point of the edge.
-      point.copy(circlePos).sub(points[i]);
-
-      // If the distance between the center of the circle and the point
-      // is bigger than the radius, the polygon is definitely not fully in
-      // the circle.
-      if (response && point.len2() > radius2) {
-        response['aInB'] = false;
-      }
-
-      // Calculate which Vornoi region the center of the circle is in.
-      var region = vornoiRegion(edge, point);
-      // If it's the left region:
-      if (region === LEFT_VORNOI_REGION) {
-        // We need to make sure we're in the RIGHT_VORNOI_REGION of the previous edge.
-        edge.copy(polygon['edges'][prev]);
-        // Calculate the center of the circle relative the starting point of the previous edge
-        var point2 = T_VECTORS.pop().copy(circlePos).sub(points[prev]);
-        region = vornoiRegion(edge, point2);
-        if (region === RIGHT_VORNOI_REGION) {
-          // It's in the region we want.  Check if the circle intersects the point.
-          var dist = point.len();
-          if (dist > radius) {
-            // No intersection
-            T_VECTORS.push(circlePos);
-            T_VECTORS.push(edge);
-            T_VECTORS.push(point);
-            T_VECTORS.push(point2);
-            return false;
-          } else if (response) {
-            // It intersects, calculate the overlap.
-            response['bInA'] = false;
-            overlapN = point.normalize();
-            overlap = radius - dist;
-          }
-        }
-        T_VECTORS.push(point2);
-      // If it's the right region:
-      } else if (region === RIGHT_VORNOI_REGION) {
-        // We need to make sure we're in the left region on the next edge
-        edge.copy(polygon['edges'][next]);
-        // Calculate the center of the circle relative to the starting point of the next edge.
-        point.copy(circlePos).sub(points[next]);
-        region = vornoiRegion(edge, point);
-        if (region === LEFT_VORNOI_REGION) {
-          // It's in the region we want.  Check if the circle intersects the point.
-          var dist = point.len();
-          if (dist > radius) {
-            // No intersection
-            T_VECTORS.push(circlePos);
-            T_VECTORS.push(edge);
-            T_VECTORS.push(point);
-            return false;
-          } else if (response) {
-            // It intersects, calculate the overlap.
-            response['bInA'] = false;
-            overlapN = point.normalize();
-            overlap = radius - dist;
-          }
-        }
-      // Otherwise, it's the middle region:
-      } else {
-        // Need to check if the circle is intersecting the edge,
-        // Change the edge into its "edge normal".
-        var normal = edge.perp().normalize();
-        // Find the perpendicular distance between the center of the
-        // circle and the edge.
-        var dist = point.dot(normal);
-        var distAbs = Math.abs(dist);
-        // If the circle is on the outside of the edge, there is no intersection.
-        if (dist > 0 && distAbs > radius) {
-          // No intersection
-          T_VECTORS.push(circlePos);
-          T_VECTORS.push(normal);
-          T_VECTORS.push(point);
-          return false;
-        } else if (response) {
-          // It intersects, calculate the overlap.
-          overlapN = normal;
-          overlap = radius - dist;
-          // If the center of the circle is on the outside of the edge, or part of the
-          // circle is on the outside, the circle is not fully inside the polygon.
-          if (dist >= 0 || overlap < 2 * radius) {
-            response['bInA'] = false;
-          }
-        }
-      }
-
-      // If this is the smallest overlap we've seen, keep it.
-      // (overlapN may be null if the circle was in the wrong Vornoi region).
-      if (overlapN && response && Math.abs(overlap) < Math.abs(response['overlap'])) {
-        response['overlap'] = overlap;
-        response['overlapN'].copy(overlapN);
-      }
-    }
-
-    // Calculate the final overlap vector - based on the smallest overlap.
-    if (response) {
-      response['a'] = polygon;
-      response['b'] = circle;
-      response['overlapV'].copy(response['overlapN']).scale(response['overlap']);
-    }
-    T_VECTORS.push(circlePos);
-    T_VECTORS.push(edge);
-    T_VECTORS.push(point);
-    return true;
-  }
-  SAT['testPolygonCircle'] = testPolygonCircle;
-
-  // Check if a circle and a polygon collide.
-  //
-  // **NOTE:** This is slightly less efficient than polygonCircle as it just
-  // runs polygonCircle and reverses everything at the end.
-  /**
-   * @param {Circle} circle The circle.
-   * @param {Polygon} polygon The polygon.
-   * @param {Response=} response Response object (optional) that will be populated if
-   *   they interset.
-   * @return {boolean} true if they intersect, false if they don't.
-   */
-  function testCirclePolygon(circle, polygon, response) {
-    // Test the polygon against the circle.
-    var result = testPolygonCircle(polygon, circle, response);
-    if (result && response) {
-      // Swap A and B in the response.
-      var a = response['a'];
-      var aInB = response['aInB'];
-      response['overlapN'].reverse();
-      response['overlapV'].reverse();
-      response['a'] = response['b'];
-      response['b'] = a;
-      response['aInB'] = response['bInA'];
-      response['bInA'] = aInB;
-    }
-    return result;
-  }
-  SAT['testCirclePolygon'] = testCirclePolygon;
-
-  // Checks whether polygons collide.
-  /**
-   * @param {Polygon} a The first polygon.
-   * @param {Polygon} b The second polygon.
-   * @param {Response=} response Response object (optional) that will be populated if
-   *   they interset.
-   * @return {boolean} true if they intersect, false if they don't.
-   */
-  function testPolygonPolygon(a, b, response) {
-    var aPoints = a['points'];
-    var aLen = aPoints.length;
-    var bPoints = b['points'];
-    var bLen = bPoints.length;
-    // If any of the edge normals of A is a separating axis, no intersection.
-    for (var i = 0; i < aLen; i++) {
-      if (isSeparatingAxis(a['pos'], b['pos'], aPoints, bPoints, a['normals'][i], response)) {
-        return false;
-      }
-    }
-    // If any of the edge normals of B is a separating axis, no intersection.
-    for (var i = 0;i < bLen; i++) {
-      if (isSeparatingAxis(a['pos'], b['pos'], aPoints, bPoints, b['normals'][i], response)) {
-        return false;
-      }
-    }
-    // Since none of the edge normals of A or B are a separating axis, there is an intersection
-    // and we've already calculated the smallest overlap (in isSeparatingAxis).  Calculate the
-    // final overlap vector.
-    if (response) {
-      response['a'] = a;
-      response['b'] = b;
-      response['overlapV'].copy(response['overlapN']).scale(response['overlap']);
-    }
-    return true;
-  }
-  SAT['testPolygonPolygon'] = testPolygonPolygon;
-
-  return SAT;
-})();
-
 /**
 * @author       Richard Davey <rich@photonstorm.com>
 * @copyright    2014 Photon Storm Ltd.
@@ -39108,1396 +31019,172 @@ var SAT = (function () {
 Phaser.Physics = {};
 
 /**
-* Arcade Physics constructor.
-*
-* @class Phaser.Physics.Arcade
-* @classdesc Arcade Physics Constructor
+* @class Phaser.Physics.World
+* @classdesc Physics World Constructor
 * @constructor
-* @param {Phaser.Game} game reference to the current game instance.
+* @param {Phaser.Game} 
 */
-Phaser.Physics.Arcade = function (game) {
-    
+Phaser.Physics.World = function (game) {
+
     /**
     * @property {Phaser.Game} game - Local reference to game.
     */
     this.game = game;
 
-    /**
-    * @property {Phaser.Point} gravity - The World gravity setting. Defaults to x: 0, y: 0, or no gravity.
-    */
-    this.gravity = new Phaser.Point();
+    this.bounds = null;
 
-    /**
-    * @property {SAT.Box} worldLeft - The left hand side of the physics bounds.
-    */
-    this.worldLeft = null;
+    p2.World.call(this, { gravity: [0, 0] });
 
-    /**
-    * @property {SAT.Box} worldRight - The right hand side of the physics bounds.
-    */
-    this.worldRight = null;
-
-    /**
-    * @property {SAT.Box} worldTop - The top side of the physics bounds.
-    */
-    this.worldTop = null;
-
-    /**
-    * @property {SAT.Box} worldBottom - The bottom of the physics bounds.
-    */
-    this.worldBottom = null;
-
-    /**
-    * @property {array<SAT.Polygon>} worldPolys - An array of the polygon data from the physics bounds.
-    */
-    this.worldPolys = [ null, null, null, null ];
-
-    /**
-    * @property {Phaser.QuadTree} quadTree - The world QuadTree.
-    */
-    this.quadTree = new Phaser.QuadTree(this.game.world.bounds.x, this.game.world.bounds.y, this.game.world.bounds.width, this.game.world.bounds.height, this.maxObjects, this.maxLevels);
-
-    /**
-    * @property {number} maxObjects - Used by the QuadTree to set the maximum number of objects per quad.
-    */
-    this.maxObjects = 10;
-
-    /**
-    * @property {number} maxLevels - Used by the QuadTree to set the maximum number of iteration levels.
-    */
-    this.maxLevels = 4;
-
-    /**
-    * @property {Array} _mapData - Internal cache var.
-    * @private
-    */
-    this._mapData = [];
-
-    /**
-    * @property {number} _mapTiles - Internal cache var.
-    * @private
-    */
-    this._mapTiles = 0;
-
-    /**
-    * @property {boolean} _result - Internal cache var.
-    * @private
-    */
-    this._result = false;
-
-    /**
-    * @property {number} _total - Internal cache var.
-    * @private
-    */
-    this._total = 0;
-
-    /**
-    * @property {number} _angle - Internal cache var.
-    * @private
-    */
-    this._angle = 0;
-
-    /**
-    * @property {number} _drag - Internal cache var.
-    * @private
-    */
-    this._drag = 0;
-
-    /**
-    * @property {number} _dx - Internal cache var.
-    * @private
-    */
-    this._dx = 0;
-
-    /**
-    * @property {number} _dy - Internal cache var.
-    * @private
-    */
-    this._dy = 0;
-
-    /**
-    * @property {Phaser.Point} _p - Internal cache var.
-    * @private
-    */
-    this._p = new Phaser.Point(0, 0);
-
-    /**
-    * @property {number} _intersection - Internal cache var.
-    * @private
-    */
-    this._intersection = [0,0,0,0];
-
-    /**
-    * @property {number} _gravityX - Internal cache var.
-    * @private
-    */
-    this._gravityX = 0;
-
-    /**
-    * @property {number} _gravityY - Internal cache var.
-    * @private
-    */
-    this._gravityY = 0;
-
-    /**
-    * @property {SAT.Response} _response - Internal cache var.
-    * @private
-    */
-    this._response = new SAT.Response();
-
-    //  Set the bounds to the world as default
     this.setBoundsToWorld(true, true, true, true);
 
 };
 
-/**
-* @constant
-* @type {number}
-*/
-Phaser.Physics.Arcade.RECT = 0;
+Phaser.Physics.World.prototype = Object.create(p2.World.prototype);
+Phaser.Physics.World.prototype.constructor = Phaser.Physics.World;
 
 /**
-* @constant
-* @type {number}
+* Sets the bounds of the Physics world to match the Game.World dimensions.
+* You can optionally set which 'walls' to create: left, right, top or bottom.
+*
+* @method Phaser.Physics#setBoundsToWorld
+* @param {boolean} [left=true] - If true will create the left bounds wall.
+* @param {boolean} [right=true] - If true will create the right bounds wall.
+* @param {boolean} [top=true] - If true will create the top bounds wall.
+* @param {boolean} [bottom=true] - If true will create the bottom bounds wall.
 */
-Phaser.Physics.Arcade.CIRCLE = 1;
+Phaser.Physics.World.prototype.setBoundsToWorld = function (left, right, top, bottom) {
+
+	this.setBounds(this.game.world.bounds.x, this.game.world.bounds.y, this.game.world.bounds.width, this.game.world.bounds.height, left, right, top, bottom);
+
+}
 
 /**
-* @constant
-* @type {number}
+* Sets the bounds of the Physics world to match the given world pixel dimensions.
+* You can optionally set which 'walls' to create: left, right, top or bottom.
+*
+* @method Phaser.Physics.Arcade#setBounds
+* @param {number} x - The x coordinate of the top-left corner of the bounds.
+* @param {number} y - The y coordinate of the top-left corner of the bounds.
+* @param {number} width - The width of the bounds.
+* @param {number} height - The height of the bounds.
+* @param {boolean} [left=true] - If true will create the left bounds wall.
+* @param {boolean} [right=true] - If true will create the right bounds wall.
+* @param {boolean} [top=true] - If true will create the top bounds wall.
+* @param {boolean} [bottom=true] - If true will create the bottom bounds wall.
 */
-Phaser.Physics.Arcade.POLYGON = 2;
-
-Phaser.Physics.Arcade.prototype = {
-
-    /**
-    * Checks the given Physics.Body against the Physics Bounds, if any are set, and separates them, setting the blocked flags on the Body as it does so.
-    *
-    * @method Phaser.Physics.Arcade#checkBounds
-    * @param {Phaser.Physics.Arcade.Body} The Body object to be checked.
-    * @return {boolean} True if the body hit the bounds, otherwise false.
-    */
-    checkBounds: function (body) {
-
-        if (!body.collideWorldBounds || (!this.worldLeft && !this.worldRight && !this.worldTop && !this.worldBottom))
-        {
-            return false;
-        }
-
-        this._response.clear();
-
-        var test = SAT.testPolygonPolygon;
-        var part = body.polygon;
-        var rebounded = false;
-
-        if (body.type === Phaser.Physics.Arcade.CIRCLE)
-        {
-            test = SAT.testPolygonCircle;
-            part = body.shape;
-        }
-
-        if (this.worldLeft && test(this.worldPolys[0], part, this._response))
-        {
-            body.blocked.left = true;
-            part.pos.add(this._response.overlapV);
-            body.blocked.x = Math.floor(body.x);
-            body.blocked.y = Math.floor(body.y);
-            rebounded = true;
-        }
-        else if (this.worldRight && test(this.worldPolys[1], part, this._response))
-        {
-            body.blocked.right = true;
-            part.pos.add(this._response.overlapV);
-            body.blocked.x = Math.floor(body.x);
-            body.blocked.y = Math.floor(body.y);
-            rebounded = true;
-        }
-
-        this._response.clear();
-
-        if (this.worldTop && test(this.worldPolys[2], part, this._response))
-        {
-            body.blocked.up = true;
-            part.pos.add(this._response.overlapV);
-            body.blocked.x = Math.floor(body.x);
-            body.blocked.y = Math.floor(body.y);
-            rebounded = true;
-        }
-        else if (this.worldBottom && test(this.worldPolys[3], part, this._response))
-        {
-            body.blocked.down = true;
-            part.pos.add(this._response.overlapV);
-            body.blocked.x = Math.floor(body.x);
-            body.blocked.y = Math.floor(body.y);
-            rebounded = true;
-        }
-
-        return rebounded;
-
-    },
-
-    /**
-    * Sets the bounds of the Physics world to match the Game.World.
-    * You can optionally set which 'walls' to create: left, right, top or bottom.
-    *
-    * @method Phaser.Physics.Arcade#setBoundsToWorld
-    * @param {boolean} [left=true] - If true will create the left bounds wall.
-    * @param {boolean} [right=true] - If true will create the right bounds wall.
-    * @param {boolean} [top=true] - If true will create the top bounds wall.
-    * @param {boolean} [bottom=true] - If true will create the bottom bounds wall.
-    */
-    setBoundsToWorld: function (left, right, top, bottom) {
-
-        this.setBounds(this.game.world.bounds.x, this.game.world.bounds.y, this.game.world.bounds.width, this.game.world.bounds.height, left, right, top, bottom);
-
-    },
-
-    /**
-    * Sets the bounds of the Physics world to match the given world pixel dimensions.
-    * You can optionally set which 'walls' to create: left, right, top or bottom.
-    *
-    * @method Phaser.Physics.Arcade#setBounds
-    * @param {number} x - The x coordinate of the top-left corner of the bounds.
-    * @param {number} y - The y coordinate of the top-left corner of the bounds.
-    * @param {number} width - The width of the bounds.
-    * @param {number} height - The height of the bounds.
-    * @param {boolean} [left=true] - If true will create the left bounds wall.
-    * @param {boolean} [right=true] - If true will create the right bounds wall.
-    * @param {boolean} [top=true] - If true will create the top bounds wall.
-    * @param {boolean} [bottom=true] - If true will create the bottom bounds wall.
-    */
-    setBounds: function (x, y, width, height, left, right, top, bottom) {
-
-        if (typeof left === 'undefined') { left = true; }
-        if (typeof right === 'undefined') { right = true; }
-        if (typeof top === 'undefined') { top = true; }
-        if (typeof bottom === 'undefined') { bottom = true; }
-
-        var thickness = 100;
-
-        if (left)
-        {
-            this.worldLeft = new SAT.Box(new SAT.Vector(x - thickness, y), thickness, height);
-            this.worldPolys[0] = this.worldLeft.toPolygon();
-        }
-        else
-        {
-            this.worldLeft = null;
-            this.worldPolys[0] = null;
-        }
-
-        if (right)
-        {
-            this.worldRight = new SAT.Box(new SAT.Vector(x + width, y), thickness, height);
-            this.worldPolys[1] = this.worldRight.toPolygon();
-        }
-        else
-        {
-            this.worldRight = null;
-            this.worldPolys[1] = null;
-        }
-
-        if (top)
-        {
-            this.worldTop = new SAT.Box(new SAT.Vector(x, y - thickness), width, thickness);
-            this.worldPolys[2] = this.worldTop.toPolygon();
-        }
-        else
-        {
-            this.worldTop = null;
-            this.worldPolys[2] = null;
-        }
-
-        if (bottom)
-        {
-            this.worldBottom = new SAT.Box(new SAT.Vector(x, y + height), width, thickness);
-            this.worldPolys[3] = this.worldBottom.toPolygon();
-        }
-        else
-        {
-            this.worldBottom = null;
-            this.worldPolys[3] = null;
-        }
-
-    },
-
-    /**
-    * Called automatically by a Physics body, it updates all motion related values on the Body.
-    *
-    * @method Phaser.Physics.Arcade#updateMotion
-    * @param {Phaser.Physics.Arcade.Body} The Body object to be updated.
-    */
-    updateMotion: function (body) {
-
-        //  If you're wondering why the velocity is halved and applied twice, read this: http://www.niksula.hut.fi/~hkankaan/Homepages/gravity.html
-
-        //  World gravity is allowed
-        if (body.allowGravity)
-        {
-            this._gravityX = this.gravity.x + body.gravity.x;
-            this._gravityY = this.gravity.y + body.gravity.y;
-        }
-        else
-        {
-            this._gravityX = body.gravity.x;
-            this._gravityY = body.gravity.y;
-        }
-
-        //  Don't apply gravity to any body that is blocked
-        if ((this._gravityX < 0 && body.blocked.left) || (this._gravityX > 0 && body.blocked.right))
-        {
-            this._gravityX = 0;
-        }
-
-        if ((this._gravityY < 0 && body.blocked.up) || (this._gravityY > 0 && body.blocked.down))
-        {
-            this._gravityY = 0;
-        }
-
-        //  Rotation
-        if (body.allowRotation)
-        {
-            this._velocityDelta = body.angularAcceleration * this.game.time.physicsElapsed;
-
-            if (body.angularDrag !== 0 && body.angularAcceleration === 0)
-            {
-                this._drag = body.angularDrag * this.game.time.physicsElapsed;
-
-                if (body.angularVelocity > 0)
-                {
-                    body.angularVelocity -= this._drag;
-                }
-                else if (body.angularVelocity < 0)
-                {
-                    body.angularVelocity += this._drag;
-                }
-            }
-
-            body.rotation += this.game.time.physicsElapsed * (body.angularVelocity + this._velocityDelta / 2);
-            body.angularVelocity += this._velocityDelta;
-    
-            if (body.angularVelocity > body.maxAngular)
-            {
-                body.angularVelocity = body.maxAngular;
-            }
-            else if (body.angularVelocity < -body.maxAngular)
-            {
-                body.angularVelocity = -body.maxAngular;
-            }
-        }
-
-        // temp = acc*dt
-        // pos = pos + dt*(vel + temp/2)
-        // vel = vel + temp
-
-        this._p.setTo((body.acceleration.x + this._gravityX) * this.game.time.physicsElapsed, (body.acceleration.y + this._gravityY) * this.game.time.physicsElapsed);
-
-        return this._p;
-
-    },
-
-    /**
-    * Checks for overlaps between two game objects. The objects can be Sprites, Groups or Emitters.
-    * You can perform Sprite vs. Sprite, Sprite vs. Group and Group vs. Group overlap checks.
-    * Unlike collide the objects are NOT automatically separated or have any physics applied, they merely test for overlap results.
-    * The second parameter can be an array of objects, of differing types.
-    *
-    * @method Phaser.Physics.Arcade#overlap
-    * @param {Phaser.Sprite|Phaser.Group|Phaser.Particles.Emitter} object1 - The first object to check. Can be an instance of Phaser.Sprite, Phaser.Group or Phaser.Particles.Emitter.
-    * @param {Phaser.Sprite|Phaser.Group|Phaser.Particles.Emitter|array} object2 - The second object or array of objects to check. Can be Phaser.Sprite, Phaser.Group or Phaser.Particles.Emitter.
-    * @param {function} [overlapCallback=null] - An optional callback function that is called if the objects overlap. The two objects will be passed to this function in the same order in which you specified them.
-    * @param {function} [processCallback=null] - A callback function that lets you perform additional checks against the two objects if they overlap. If this is set then overlapCallback will only be called if processCallback returns true.
-    * @param {object} [callbackContext] - The context in which to run the callbacks.
-    * @returns {boolean} True if an overlap occured otherwise false.
-    */
-    overlap: function (object1, object2, overlapCallback, processCallback, callbackContext) {
-
-        overlapCallback = overlapCallback || null;
-        processCallback = processCallback || null;
-        callbackContext = callbackContext || overlapCallback;
-
-        this._result = false;
-        this._total = 0;
-
-        if (Array.isArray(object2))
-        {
-            for (var i = 0,  len = object2.length; i < len; i++)
-            {
-                this.collideHandler(object1, object2[i], overlapCallback, processCallback, callbackContext, true);
-            }
-        }
-        else
-        {
-            this.collideHandler(object1, object2, overlapCallback, processCallback, callbackContext, true);
-        }
-
-        return (this._total > 0);
-
-    },
-
-    /**
-    * Checks for collision between two game objects. You can perform Sprite vs. Sprite, Sprite vs. Group, Group vs. Group, Sprite vs. Tilemap Layer or Group vs. Tilemap Layer collisions.
-    * The second parameter can be an array of objects, of differing types.
-    * The objects are also automatically separated. If you don't require separation then use ArcadePhysics.overlap instead.
-    * An optional processCallback can be provided. If given this function will be called when two sprites are found to be colliding. It is called before any separation takes place,
-    * giving you the chance to perform additional checks. If the function returns true then the collision and separation is carried out. If it returns false it is skipped.
-    * The collideCallback is an optional function that is only called if two sprites collide. If a processCallback has been set then it needs to return true for collideCallback to be called.
-    *
-    * @method Phaser.Physics.Arcade#collide
-    * @param {Phaser.Sprite|Phaser.Group|Phaser.Particles.Emitter|Phaser.Tilemap} object1 - The first object to check. Can be an instance of Phaser.Sprite, Phaser.Group, Phaser.Particles.Emitter, or Phaser.Tilemap.
-    * @param {Phaser.Sprite|Phaser.Group|Phaser.Particles.Emitter|Phaser.Tilemap|array} object2 - The second object or array of objects to check. Can be Phaser.Sprite, Phaser.Group, Phaser.Particles.Emitter or Phaser.Tilemap.
-    * @param {function} [collideCallback=null] - An optional callback function that is called if the objects collide. The two objects will be passed to this function in the same order in which you specified them.
-    * @param {function} [processCallback=null] - A callback function that lets you perform additional checks against the two objects if they overlap. If this is set then collision will only happen if processCallback returns true. The two objects will be passed to this function in the same order in which you specified them.
-    * @param {object} [callbackContext] - The context in which to run the callbacks.
-    * @returns {boolean} True if a collision occured otherwise false.
-    */
-    collide: function (object1, object2, collideCallback, processCallback, callbackContext) {
-
-        collideCallback = collideCallback || null;
-        processCallback = processCallback || null;
-        callbackContext = callbackContext || collideCallback;
-
-        this._result = false;
-        this._total = 0;
-
-        if (Array.isArray(object2))
-        {
-            for (var i = 0,  len = object2.length; i < len; i++)
-            {
-                this.collideHandler(object1, object2[i], collideCallback, processCallback, callbackContext, false);
-            }
-        }
-        else
-        {
-            this.collideHandler(object1, object2, collideCallback, processCallback, callbackContext, false);
-        }
-
-        return (this._total > 0);
-
-    },
-
-    /**
-    * Internal collision handler.
-    *
-    * @method Phaser.Physics.Arcade#collideHandler
-    * @private
-    * @param {Phaser.Sprite|Phaser.Group|Phaser.Particles.Emitter|Phaser.Tilemap} object1 - The first object to check. Can be an instance of Phaser.Sprite, Phaser.Group, Phaser.Particles.Emitter, or Phaser.Tilemap.
-    * @param {Phaser.Sprite|Phaser.Group|Phaser.Particles.Emitter|Phaser.Tilemap} object2 - The second object to check. Can be an instance of Phaser.Sprite, Phaser.Group, Phaser.Particles.Emitter or Phaser.Tilemap. Can also be an array of objects to check.
-    * @param {function} collideCallback - An optional callback function that is called if the objects collide. The two objects will be passed to this function in the same order in which you specified them.
-    * @param {function} processCallback - A callback function that lets you perform additional checks against the two objects if they overlap. If this is set then collision will only happen if processCallback returns true. The two objects will be passed to this function in the same order in which you specified them.
-    * @param {object} callbackContext - The context in which to run the callbacks.
-    * @param {boolean} overlapOnly - Just run an overlap or a full collision.
-    */
-    collideHandler: function (object1, object2, collideCallback, processCallback, callbackContext, overlapOnly) {
-
-        //  Only collide valid objects
-        if (typeof object2 === 'undefined' && (object1.type === Phaser.GROUP || object1.type === Phaser.EMITTER))
-        {
-            this.collideGroupVsSelf(object1, collideCallback, processCallback, callbackContext, overlapOnly);
-            return;
-        }
-
-        if (object1 && object2 && object1.exists && object2.exists)
-        {
-            //  SPRITES
-            if (object1.type == Phaser.SPRITE || object1.type == Phaser.TILESPRITE)
-            {
-                if (object2.type == Phaser.SPRITE || object2.type == Phaser.TILESPRITE)
-                {
-                    this.collideSpriteVsSprite(object1, object2, collideCallback, processCallback, callbackContext, overlapOnly);
-                }
-                else if (object2.type == Phaser.GROUP || object2.type == Phaser.EMITTER)
-                {
-                    this.collideSpriteVsGroup(object1, object2, collideCallback, processCallback, callbackContext, overlapOnly);
-                }
-                else if (object2.type == Phaser.TILEMAPLAYER)
-                {
-                    this.collideSpriteVsTilemapLayer(object1, object2, collideCallback, processCallback, callbackContext);
-                }
-            }
-            //  GROUPS
-            else if (object1.type == Phaser.GROUP)
-            {
-                if (object2.type == Phaser.SPRITE || object2.type == Phaser.TILESPRITE)
-                {
-                    this.collideSpriteVsGroup(object2, object1, collideCallback, processCallback, callbackContext, overlapOnly);
-                }
-                else if (object2.type == Phaser.GROUP || object2.type == Phaser.EMITTER)
-                {
-                    this.collideGroupVsGroup(object1, object2, collideCallback, processCallback, callbackContext, overlapOnly);
-                }
-                else if (object2.type == Phaser.TILEMAPLAYER)
-                {
-                    this.collideGroupVsTilemapLayer(object1, object2, collideCallback, processCallback, callbackContext);
-                }
-            }
-            //  TILEMAP LAYERS
-            else if (object1.type == Phaser.TILEMAPLAYER)
-            {
-                if (object2.type == Phaser.SPRITE || object2.type == Phaser.TILESPRITE)
-                {
-                    this.collideSpriteVsTilemapLayer(object2, object1, collideCallback, processCallback, callbackContext);
-                }
-                else if (object2.type == Phaser.GROUP || object2.type == Phaser.EMITTER)
-                {
-                    this.collideGroupVsTilemapLayer(object2, object1, collideCallback, processCallback, callbackContext);
-                }
-            }
-            //  EMITTER
-            else if (object1.type == Phaser.EMITTER)
-            {
-                if (object2.type == Phaser.SPRITE || object2.type == Phaser.TILESPRITE)
-                {
-                    this.collideSpriteVsGroup(object2, object1, collideCallback, processCallback, callbackContext, overlapOnly);
-                }
-                else if (object2.type == Phaser.GROUP || object2.type == Phaser.EMITTER)
-                {
-                    this.collideGroupVsGroup(object1, object2, collideCallback, processCallback, callbackContext, overlapOnly);
-                }
-                else if (object2.type == Phaser.TILEMAPLAYER)
-                {
-                    this.collideGroupVsTilemapLayer(object1, object2, collideCallback, processCallback, callbackContext);
-                }
-            }
-        }
-
-    },
-
-    /**
-    * An internal function. Use Phaser.Physics.Arcade.collide instead.
-    *
-    * @method Phaser.Physics.Arcade#collideSpriteVsSprite
-    * @private
-    */
-    collideSpriteVsSprite: function (sprite1, sprite2, collideCallback, processCallback, callbackContext, overlapOnly) {
-
-        if (this.separate(sprite1.body, sprite2.body, processCallback, callbackContext, overlapOnly))
-        {
-            if (collideCallback)
-            {
-                collideCallback.call(callbackContext, sprite1, sprite2);
-            }
-
-            this._total++;
-        }
-
-    },
-
-    /**
-    * An internal function. Use Phaser.Physics.Arcade.collide instead.
-    *
-    * @method Phaser.Physics.Arcade#collideSpriteVsGroup
-    * @private
-    */
-    collideSpriteVsGroup: function (sprite, group, collideCallback, processCallback, callbackContext, overlapOnly) {
-
-        if (group.length === 0)
-        {
-            return;
-        }
-
-        //  What is the sprite colliding with in the quadtree?
-        this.quadTree.clear();
-
-        this.quadTree = new Phaser.QuadTree(this.game.world.bounds.x, this.game.world.bounds.y, this.game.world.bounds.width, this.game.world.bounds.height, this.maxObjects, this.maxLevels);
-
-        this.quadTree.populate(group);
-
-        this._potentials = this.quadTree.retrieve(sprite);
-
-        for (var i = 0, len = this._potentials.length; i < len; i++)
-        {
-            //  We have our potential suspects, are they in this group?
-            if (this.separate(sprite.body, this._potentials[i], processCallback, callbackContext, overlapOnly))
-            {
-                if (collideCallback)
-                {
-                    collideCallback.call(callbackContext, sprite, this._potentials[i].sprite);
-                }
-
-                this._total++;
-            }
-        }
-
-    },
-
-    /**
-    * An internal function. Use Phaser.Physics.Arcade.collide instead.
-    *
-    * @method Phaser.Physics.Arcade#collideGroupVsSelf
-    * @private
-    */
-    collideGroupVsSelf: function (group, collideCallback, processCallback, callbackContext, overlapOnly) {
-
-        if (group.length === 0)
-        {
-            return;
-        }
-
-        var len = group._container.children.length;
-
-        for (var i = 0; i < len; i++)
-        {
-            for (var j = i + 1; j <= len; j++)
-            {
-                if (group._container.children[i] && group._container.children[j] && group._container.children[i].exists && group._container.children[j].exists)
-                {
-                    this.collideSpriteVsSprite(group._container.children[i], group._container.children[j], collideCallback, processCallback, callbackContext, overlapOnly);
-                }
-            }
-        }
-
-    },
-
-    /**
-    * An internal function. Use Phaser.Physics.Arcade.collide instead.
-    *
-    * @method Phaser.Physics.Arcade#collideGroupVsGroup
-    * @private
-    */
-    collideGroupVsGroup: function (group1, group2, collideCallback, processCallback, callbackContext, overlapOnly) {
-
-        if (group1.length === 0 || group2.length === 0)
-        {
-            return;
-        }
-
-        if (group1._container.first._iNext)
-        {
-            var currentNode = group1._container.first._iNext;
-                
-            do
-            {
-                if (currentNode.exists)
-                {
-                    this.collideSpriteVsGroup(currentNode, group2, collideCallback, processCallback, callbackContext, overlapOnly);
-                }
-                currentNode = currentNode._iNext;
-            }
-            while (currentNode != group1._container.last._iNext);
-        }
-
-    },
-
-    /**
-    * An internal function. Use Phaser.Physics.Arcade.collide instead.
-    *
-    * @method Phaser.Physics.Arcade#collideSpriteVsTilemapLayer
-    * @private
-    */
-    collideSpriteVsTilemapLayer: function (sprite, tilemapLayer, collideCallback, processCallback, callbackContext) {
-
-        this._mapData = tilemapLayer.getTiles(sprite.body.left, sprite.body.top, sprite.body.width, sprite.body.height, true);
-
-        if (this._mapData.length === 0)
-        {
-            return;
-        }
-
-        for (var i = 0; i < this._mapData.length; i++)
-        {
-            if (this.separateTile(sprite.body, this._mapData[i]))
-            {
-                //  They collided, is there a custom process callback?
-                if (processCallback)
-                {
-                    if (processCallback.call(callbackContext, sprite, this._mapData[i]))
-                    {
-                        this._total++;
-
-                        if (collideCallback)
-                        {
-                            collideCallback.call(callbackContext, sprite, this._mapData[i]);
-                        }
-                    }
-                }
-                else
-                {
-                    this._total++;
-
-                    if (collideCallback)
-                    {
-                        collideCallback.call(callbackContext, sprite, this._mapData[i]);
-                    }
-                }
-            }
-        }
-
-        return true;
-
-    },
-
-    /**
-    * An internal function. Use Phaser.Physics.Arcade.collide instead.
-    *
-    * @method Phaser.Physics.Arcade#collideGroupVsTilemapLayer
-    * @private
-    */
-    collideGroupVsTilemapLayer: function (group, tilemapLayer, collideCallback, processCallback, callbackContext) {
-
-        if (group.length === 0)
-        {
-            return;
-        }
-
-        if (group._container.first._iNext)
-        {
-            var currentNode = group._container.first._iNext;
-                
-            do
-            {
-                if (currentNode.exists)
-                {
-                    this.collideSpriteVsTilemapLayer(currentNode, tilemapLayer, collideCallback, processCallback, callbackContext);
-                }
-                currentNode = currentNode._iNext;
-            }
-            while (currentNode != group._container.last._iNext);
-        }
-
-    },
-
-    /**
-    * The core separation function to separate two physics bodies.
-    * @method Phaser.Physics.Arcade#separate
-    * @param {Phaser.Physics.Arcade.Body} body1 - The Body object to separate.
-    * @param {Phaser.Physics.Arcade.Body} body2 - The Body object to separate.
-    * @param {function} [processCallback=null] - A callback function that lets you perform additional checks against the two objects if they overlap. If this function is set then the sprites will only be collided if it returns true.
-    * @param {object} [callbackContext] - The context in which to run the process callback.
-    * @returns {boolean} Returns true if the bodies collided, otherwise false.
-    */
-    separate: function (body1, body2, processCallback, callbackContext, overlapOnly) {
-
-        if (body1 === body2 || this.intersects(body1, body2) === false)
-        {
-            return false;
-        }
-
-        //  They overlap. Is there a custom process callback? If it returns true then we can carry on, otherwise we should abort.
-        if (processCallback && processCallback.call(callbackContext, body1.sprite, body2.sprite) === false)
-        {
-            return false;
-        }
-
-        this._response.clear();
-
-        if (overlapOnly)
-        {
-            return body1.overlap(body2, this._response);
-        }
-        else
-        {
-            if (body1.overlap(body2, this._response))
-            {
-                return body1.separate(body2, this._response);
-            }
-        }
-
-        return false;
-
-    },
-
-    /**
-    * Performs a rect intersection test against the two objects.
-    * Objects must expose properties: width, height, left, right, top, bottom.
-    * @method Phaser.Physics.Arcade#intersects
-    * @param {object} a - The first object to test.
-    * @param {object} b - The second object to test.
-    * @returns {boolean} Returns true if the objects intersect, otherwise false.
-    */
-    intersects: function (a, b) {
-
-        var result = false;
-
-        if (a.width <= 0 || a.height <= 0 || b.width <= 0 || b.height <= 0)
-        {
-            return false;
-        }
-
-        result = !(a.right < b.left || a.bottom < b.top || a.left > b.right || a.top > b.bottom);
-
-        if (!result && a.inContact(b))
-        {
-            a.removeContact(b);
-        }
-
-        return result;
-    },
-
-    /**
-    * Performs a rect intersection test against the two objects.
-    * Objects must expose properties: width, height, left, right, top, bottom.
-    * @method Phaser.Physics.Arcade#tileIntersects
-    * @param {object} body - The Body to test.
-    * @param {object} tile - The Tile to test.
-    * @returns {boolean} Returns true if the objects intersect, otherwise false.
-    */
-    tileIntersects: function (body, tile) {
-
-        if (body.width <= 0 || body.height <= 0 || tile.width <= 0 || tile.height <= 0)
-        {
-            this._intersection[4] = 0;
-            return this._intersection;
-        }
-
-        if (!(body.right < tile.x || body.bottom < tile.y || body.left > tile.right || body.top > tile.bottom))
-        {
-            this._intersection[0] = Math.max(body.left, tile.x);                                    // x
-            this._intersection[1] = Math.max(body.top, tile.y);                                     // y
-            this._intersection[2] = Math.min(body.right, tile.right) - this._intersection[0];       // width
-            this._intersection[3] = Math.min(body.bottom, tile.bottom) - this._intersection[1];     // height
-            this._intersection[4] = 1;
-
-            return this._intersection;
-        }
-
-        this._intersection[4] = 0;
-
-        return this._intersection;
-
-    },
-
-    /**
-    * The core separation function to separate a physics body and a tile.
-    * @method Phaser.Physics.Arcade#separateTile
-    * @param {Phaser.Physics.Arcade.Body} body - The Body object to separate.
-    * @param {Phaser.Tile} tile - The tile to collide against.
-    * @returns {boolean} Returns true if the body was separated, otherwise false.
-    */
-    separateTile: function (body, tile) {
-
-        this._intersection = this.tileIntersects(body, tile);
-
-        //  If the intersection area is either entirely null, or has a width/height of zero, we bail out now
-        if (this._intersection[4] === 0 || this._intersection[2] === 0 || this._intersection[3] === 0)
-        {
-            return false;
-        }
-
-        //  They overlap. Any custom callbacks?
-        if (tile.tile.callback || tile.layer.callbacks[tile.tile.index])
-        {
-            //  A local callback takes priority over a global callback.
-            if (tile.tile.callback && tile.tile.callback.call(tile.tile.callbackContext, body.sprite, tile) === false)
-            {
-                //  Is there a tile specific collision callback? If it returns true then we can carry on, otherwise we should abort.
-                return false;
-            }
-            else if (tile.layer.callbacks[tile.tile.index] && tile.layer.callbacks[tile.tile.index].callback.call(tile.layer.callbacks[tile.tile.index].callbackContext, body.sprite, tile) === false)
-            {
-                //  Is there a tile index collision callback? If it returns true then we can carry on, otherwise we should abort.
-                return false;
-            }
-        }
-
-        body.overlapX = 0;
-        body.overlapY = 0;
-
-        var process = false;
-
-        if (body.deltaX() < 0 && body.checkCollision.left && tile.tile.faceRight && !body.blocked.left)
-        {
-            //  LEFT
-            body.overlapX = body.left - tile.right;
-
-            if (body.overlapX < 0)
-            {
-                process = true;
-            }
-            else
-            {
-                body.overlapX = 0;
-            }
-        }
-        else if (body.deltaX() > 0 && body.checkCollision.right && tile.tile.faceLeft && !body.blocked.right)
-        {
-            //  RIGHT
-            body.overlapX = body.right - tile.x;
-
-            if (body.overlapX > 0)
-            {
-                process = true;
-            }
-            else
-            {
-                body.overlapX = 0;
-            }
-        }
-
-        if (body.deltaY() < 0 && body.checkCollision.up && tile.tile.faceBottom && !body.blocked.up)
-        {
-            //  UP
-            body.overlapY = body.top - tile.bottom;
-
-            if (body.overlapY < 0)
-            {
-                process = true;
-            }
-            else
-            {
-                body.overlapY = 0;
-            }
-        }
-        else if (body.deltaY() > 0 && body.checkCollision.down && tile.tile.faceTop && !body.blocked.down)
-        {
-            //  DOWN
-            body.overlapY = body.bottom - tile.y;
-
-            if (body.overlapY > 0)
-            {
-                process = true;
-            }
-            else
-            {
-                body.overlapY = 0;
-            }
-        }
-
-        //  Only separate on the smallest of the two values if it's a single tile
-        if (body.overlapX !== 0 && body.overlapY !== 0)
-        {
-            if (Math.abs(body.overlapX) > Math.abs(body.overlapY))
-            {
-                body.overlapX = 0;
-            }
-            else
-            {
-                body.overlapY = 0;
-            }
-        }
-
-        //  Separate in a single sweep
-        if (process)
-        {
-            return this.processTileSeparation(body);
-        }
-        else
-        {
-            return false;
-        }
-
-    },
-
-    /**
-    * Internal function to process the separation of a physics body from a tile.
-    * @method Phaser.Physics.Arcade#processTileSeparation
-    * @protected
-    * @param {Phaser.Physics.Arcade.Body} body1 - The Body object to separate.
-    * @returns {boolean} Returns true if separated, false if not.
-    */
-    processTileSeparation: function (body) {
-
-        if (body.overlapX < 0)
-        {
-            body.x -= body.overlapX;
-            body.left -= body.overlapX;
-            body.right -= body.overlapX;
-            body.blocked.x = Math.floor(body.x);
-            body.blocked.y = Math.floor(body.y);
-            body.blocked.left = true;
-        }
-        else if (body.overlapX > 0)
-        {
-            body.x -= body.overlapX;
-            body.left -= body.overlapX;
-            body.right -= body.overlapX;
-            body.blocked.x = Math.floor(body.x);
-            body.blocked.y = Math.floor(body.y);
-            body.blocked.right = true;
-        }
-
-        if (body.overlapY < 0)
-        {
-            body.y -= body.overlapY;
-            body.top -= body.overlapY;
-            body.bottom -= body.overlapY;
-            body.blocked.x = Math.floor(body.x);
-            body.blocked.y = Math.floor(body.y);
-            body.blocked.up = true;
-        }
-        else if (body.overlapY > 0)
-        {
-            body.y -= body.overlapY;
-            body.top -= body.overlapY;
-            body.bottom -= body.overlapY;
-            body.blocked.x = Math.floor(body.x);
-            body.blocked.y = Math.floor(body.y);
-            body.blocked.down = true;
-        }
-
-        body.reboundCheck(body.overlapX, body.overlapY, true);
-
-        return true;
-
-    },
-
-    /**
-    * Move the given display object towards the destination object at a steady velocity.
-    * If you specify a maxTime then it will adjust the speed (over-writing what you set) so it arrives at the destination in that number of seconds.
-    * Timings are approximate due to the way browser timers work. Allow for a variance of +- 50ms.
-    * Note: The display object does not continuously track the target. If the target changes location during transit the display object will not modify its course.
-    * Note: The display object doesn't stop moving once it reaches the destination coordinates.
-    * Note: Doesn't take into account acceleration, maxVelocity or drag (if you've set drag or acceleration too high this object may not move at all)
-    * 
-    * @method Phaser.Physics.Arcade#moveToObject
-    * @param {any} displayObject - The display object to move.
-    * @param {any} destination - The display object to move towards. Can be any object but must have visible x/y properties.
-    * @param {number} [speed=60] - The speed it will move, in pixels per second (default is 60 pixels/sec)
-    * @param {number} [maxTime=0] - Time given in milliseconds (1000 = 1 sec). If set the speed is adjusted so the object will arrive at destination in the given number of ms.
-    * @return {number} The angle (in radians) that the object should be visually set to in order to match its new velocity.
-    */
-    moveToObject: function (displayObject, destination, speed, maxTime) {
-
-        if (typeof speed === 'undefined') { speed = 60; }
-        if (typeof maxTime === 'undefined') { maxTime = 0; }
-
-        this._angle = Math.atan2(destination.y - displayObject.y, destination.x - displayObject.x);
-        
-        if (maxTime > 0)
-        {
-            //  We know how many pixels we need to move, but how fast?
-            speed = this.distanceBetween(displayObject, destination) / (maxTime / 1000);
-        }
-        
-        displayObject.body.velocity.x = Math.cos(this._angle) * speed;
-        displayObject.body.velocity.y = Math.sin(this._angle) * speed;
-
-        return this._angle;
-
-    },
-
-    /**
-    * Move the given display object towards the pointer at a steady velocity. If no pointer is given it will use Phaser.Input.activePointer.
-    * If you specify a maxTime then it will adjust the speed (over-writing what you set) so it arrives at the destination in that number of seconds.
-    * Timings are approximate due to the way browser timers work. Allow for a variance of +- 50ms.
-    * Note: The display object does not continuously track the target. If the target changes location during transit the display object will not modify its course.
-    * Note: The display object doesn't stop moving once it reaches the destination coordinates.
-    * 
-    * @method Phaser.Physics.Arcade#moveToPointer
-    * @param {any} displayObject - The display object to move.
-    * @param {number} [speed=60] - The speed it will move, in pixels per second (default is 60 pixels/sec)
-    * @param {Phaser.Pointer} [pointer] - The pointer to move towards. Defaults to Phaser.Input.activePointer.
-    * @param {number} [maxTime=0] - Time given in milliseconds (1000 = 1 sec). If set the speed is adjusted so the object will arrive at destination in the given number of ms.
-    * @return {number} The angle (in radians) that the object should be visually set to in order to match its new velocity.
-    */
-    moveToPointer: function (displayObject, speed, pointer, maxTime) {
-
-        if (typeof speed === 'undefined') { speed = 60; }
-        pointer = pointer || this.game.input.activePointer;
-        if (typeof maxTime === 'undefined') { maxTime = 0; }
-
-        this._angle = this.angleToPointer(displayObject, pointer);
-        
-        if (maxTime > 0)
-        {
-            //  We know how many pixels we need to move, but how fast?
-            speed = this.distanceToPointer(displayObject, pointer) / (maxTime / 1000);
-        }
-        
-        displayObject.body.velocity.x = Math.cos(this._angle) * speed;
-        displayObject.body.velocity.y = Math.sin(this._angle) * speed;
-
-        return this._angle;
-
-    },
-
-    /**
-    * Move the given display object towards the x/y coordinates at a steady velocity.
-    * If you specify a maxTime then it will adjust the speed (over-writing what you set) so it arrives at the destination in that number of seconds.
-    * Timings are approximate due to the way browser timers work. Allow for a variance of +- 50ms.
-    * Note: The display object does not continuously track the target. If the target changes location during transit the display object will not modify its course.
-    * Note: The display object doesn't stop moving once it reaches the destination coordinates.
-    * Note: Doesn't take into account acceleration, maxVelocity or drag (if you've set drag or acceleration too high this object may not move at all)
-    * 
-    * @method Phaser.Physics.Arcade#moveToXY
-    * @param {any} displayObject - The display object to move.
-    * @param {number} x - The x coordinate to move towards.
-    * @param {number} y - The y coordinate to move towards.
-    * @param {number} [speed=60] - The speed it will move, in pixels per second (default is 60 pixels/sec)
-    * @param {number} [maxTime=0] - Time given in milliseconds (1000 = 1 sec). If set the speed is adjusted so the object will arrive at destination in the given number of ms.
-    * @return {number} The angle (in radians) that the object should be visually set to in order to match its new velocity.
-    */
-    moveToXY: function (displayObject, x, y, speed, maxTime) {
-
-        if (typeof speed === 'undefined') { speed = 60; }
-        if (typeof maxTime === 'undefined') { maxTime = 0; }
-
-        this._angle = Math.atan2(y - displayObject.y, x - displayObject.x);
-        
-        if (maxTime > 0)
-        {
-            //  We know how many pixels we need to move, but how fast?
-            speed = this.distanceToXY(displayObject, x, y) / (maxTime / 1000);
-        }
-        
-        displayObject.body.velocity.x = Math.cos(this._angle) * speed;
-        displayObject.body.velocity.y = Math.sin(this._angle) * speed;
-
-        return this._angle;
-
-    },
-
-    /**
-    * Given the angle (in degrees) and speed calculate the velocity and return it as a Point object, or set it to the given point object.
-    * One way to use this is: velocityFromAngle(angle, 200, sprite.velocity) which will set the values directly to the sprites velocity and not create a new Point object.
-    * 
-    * @method Phaser.Physics.Arcade#velocityFromAngle
-    * @param {number} angle - The angle in degrees calculated in clockwise positive direction (down = 90 degrees positive, right = 0 degrees positive, up = 90 degrees negative)
-    * @param {number} [speed=60] - The speed it will move, in pixels per second sq.
-    * @param {Phaser.Point|object} [point] - The Point object in which the x and y properties will be set to the calculated velocity.
-    * @return {Phaser.Point} - A Point where point.x contains the velocity x value and point.y contains the velocity y value.
-    */
-    velocityFromAngle: function (angle, speed, point) {
-
-        if (typeof speed === 'undefined') { speed = 60; }
-        point = point || new Phaser.Point();
-
-        return point.setTo((Math.cos(this.game.math.degToRad(angle)) * speed), (Math.sin(this.game.math.degToRad(angle)) * speed));
-
-    },
-
-    /**
-    * Given the rotation (in radians) and speed calculate the velocity and return it as a Point object, or set it to the given point object.
-    * One way to use this is: velocityFromRotation(rotation, 200, sprite.velocity) which will set the values directly to the sprites velocity and not create a new Point object.
-    * 
-    * @method Phaser.Physics.Arcade#velocityFromRotation
-    * @param {number} rotation - The angle in radians.
-    * @param {number} [speed=60] - The speed it will move, in pixels per second sq.
-    * @param {Phaser.Point|object} [point] - The Point object in which the x and y properties will be set to the calculated velocity.
-    * @return {Phaser.Point} - A Point where point.x contains the velocity x value and point.y contains the velocity y value.
-    */
-    velocityFromRotation: function (rotation, speed, point) {
-
-        if (typeof speed === 'undefined') { speed = 60; }
-        point = point || new Phaser.Point();
-
-        return point.setTo((Math.cos(rotation) * speed), (Math.sin(rotation) * speed));
-
-    },
-
-    /**
-    * Given the rotation (in radians) and speed calculate the acceleration and return it as a Point object, or set it to the given point object.
-    * One way to use this is: accelerationFromRotation(rotation, 200, sprite.acceleration) which will set the values directly to the sprites acceleration and not create a new Point object.
-    * 
-    * @method Phaser.Physics.Arcade#accelerationFromRotation
-    * @param {number} rotation - The angle in radians.
-    * @param {number} [speed=60] - The speed it will move, in pixels per second sq.
-    * @param {Phaser.Point|object} [point] - The Point object in which the x and y properties will be set to the calculated acceleration.
-    * @return {Phaser.Point} - A Point where point.x contains the acceleration x value and point.y contains the acceleration y value.
-    */
-    accelerationFromRotation: function (rotation, speed, point) {
-
-        if (typeof speed === 'undefined') { speed = 60; }
-        point = point || new Phaser.Point();
-
-        return point.setTo((Math.cos(rotation) * speed), (Math.sin(rotation) * speed));
-
-    },
-
-    /**
-    * Sets the acceleration.x/y property on the display object so it will move towards the target at the given speed (in pixels per second sq.)
-    * You must give a maximum speed value, beyond which the display object won't go any faster.
-    * Note: The display object does not continuously track the target. If the target changes location during transit the display object will not modify its course.
-    * Note: The display object doesn't stop moving once it reaches the destination coordinates.
-    * 
-    * @method Phaser.Physics.Arcade#accelerateToObject
-    * @param {any} displayObject - The display object to move.
-    * @param {any} destination - The display object to move towards. Can be any object but must have visible x/y properties.
-    * @param {number} [speed=60] - The speed it will accelerate in pixels per second.
-    * @param {number} [xSpeedMax=500] - The maximum x velocity the display object can reach.
-    * @param {number} [ySpeedMax=500] - The maximum y velocity the display object can reach.
-    * @return {number} The angle (in radians) that the object should be visually set to in order to match its new trajectory.
-    */
-    accelerateToObject: function (displayObject, destination, speed, xSpeedMax, ySpeedMax) {
-
-        if (typeof speed === 'undefined') { speed = 60; }
-        if (typeof xSpeedMax === 'undefined') { xSpeedMax = 1000; }
-        if (typeof ySpeedMax === 'undefined') { ySpeedMax = 1000; }
-
-        this._angle = this.angleBetween(displayObject, destination);
-
-        displayObject.body.acceleration.setTo(Math.cos(this._angle) * speed, Math.sin(this._angle) * speed);
-        displayObject.body.maxVelocity.setTo(xSpeedMax, ySpeedMax);
-
-        return this._angle;
-
-    },
-
-    /**
-    * Sets the acceleration.x/y property on the display object so it will move towards the target at the given speed (in pixels per second sq.)
-    * You must give a maximum speed value, beyond which the display object won't go any faster.
-    * Note: The display object does not continuously track the target. If the target changes location during transit the display object will not modify its course.
-    * Note: The display object doesn't stop moving once it reaches the destination coordinates.
-    * 
-    * @method Phaser.Physics.Arcade#accelerateToPointer
-    * @param {any} displayObject - The display object to move.
-    * @param {Phaser.Pointer} [pointer] - The pointer to move towards. Defaults to Phaser.Input.activePointer.
-    * @param {number} [speed=60] - The speed it will accelerate in pixels per second.
-    * @param {number} [xSpeedMax=500] - The maximum x velocity the display object can reach.
-    * @param {number} [ySpeedMax=500] - The maximum y velocity the display object can reach.
-    * @return {number} The angle (in radians) that the object should be visually set to in order to match its new trajectory.
-    */
-    accelerateToPointer: function (displayObject, pointer, speed, xSpeedMax, ySpeedMax) {
-
-        if (typeof speed === 'undefined') { speed = 60; }
-        if (typeof pointer === 'undefined') { pointer = this.game.input.activePointer; }
-        if (typeof xSpeedMax === 'undefined') { xSpeedMax = 1000; }
-        if (typeof ySpeedMax === 'undefined') { ySpeedMax = 1000; }
-
-        this._angle = this.angleToPointer(displayObject, pointer);
-        
-        displayObject.body.acceleration.setTo(Math.cos(this._angle) * speed, Math.sin(this._angle) * speed);
-        displayObject.body.maxVelocity.setTo(xSpeedMax, ySpeedMax);
-
-        return this._angle;
-
-    },
-
-    /**
-    * Sets the acceleration.x/y property on the display object so it will move towards the x/y coordinates at the given speed (in pixels per second sq.)
-    * You must give a maximum speed value, beyond which the display object won't go any faster.
-    * Note: The display object does not continuously track the target. If the target changes location during transit the display object will not modify its course.
-    * Note: The display object doesn't stop moving once it reaches the destination coordinates.
-    * 
-    * @method Phaser.Physics.Arcade#accelerateToXY
-    * @param {any} displayObject - The display object to move.
-    * @param {number} x - The x coordinate to accelerate towards.
-    * @param {number} y - The y coordinate to accelerate towards.
-    * @param {number} [speed=60] - The speed it will accelerate in pixels per second.
-    * @param {number} [xSpeedMax=500] - The maximum x velocity the display object can reach.
-    * @param {number} [ySpeedMax=500] - The maximum y velocity the display object can reach.
-    * @return {number} The angle (in radians) that the object should be visually set to in order to match its new trajectory.
-    */
-    accelerateToXY: function (displayObject, x, y, speed, xSpeedMax, ySpeedMax) {
-
-        if (typeof speed === 'undefined') { speed = 60; }
-        if (typeof xSpeedMax === 'undefined') { xSpeedMax = 1000; }
-        if (typeof ySpeedMax === 'undefined') { ySpeedMax = 1000; }
-
-        this._angle = this.angleToXY(displayObject, x, y);
-
-        displayObject.body.acceleration.setTo(Math.cos(this._angle) * speed, Math.sin(this._angle) * speed);
-        displayObject.body.maxVelocity.setTo(xSpeedMax, ySpeedMax);
-
-        return this._angle;
-
-    },
-
-    /**
-    * Find the distance between two display objects (like Sprites).
-    * 
-    * @method Phaser.Physics.Arcade#distanceBetween
-    * @param {any} source - The Display Object to test from.
-    * @param {any} target - The Display Object to test to.
-    * @return {number} The distance between the source and target objects.
-    */
-    distanceBetween: function (source, target) {
-
-        this._dx = source.x - target.x;
-        this._dy = source.y - target.y;
-        
-        return Math.sqrt(this._dx * this._dx + this._dy * this._dy);
-
-    },
-
-    /**
-    * Find the distance between a display object (like a Sprite) and the given x/y coordinates.
-    * The calculation is made from the display objects x/y coordinate. This may be the top-left if its anchor hasn't been changed.
-    * If you need to calculate from the center of a display object instead use the method distanceBetweenCenters()
-    * 
-    * @method Phaser.Physics.Arcade#distanceToXY
-    * @param {any} displayObject - The Display Object to test from.
-    * @param {number} x - The x coordinate to move towards.
-    * @param {number} y - The y coordinate to move towards.
-    * @return {number} The distance between the object and the x/y coordinates.
-    */
-    distanceToXY: function (displayObject, x, y) {
-
-        this._dx = displayObject.x - x;
-        this._dy = displayObject.y - y;
-        
-        return Math.sqrt(this._dx * this._dx + this._dy * this._dy);
-
-    },
-
-    /**
-    * Find the distance between a display object (like a Sprite) and a Pointer. If no Pointer is given the Input.activePointer is used.
-    * The calculation is made from the display objects x/y coordinate. This may be the top-left if its anchor hasn't been changed.
-    * If you need to calculate from the center of a display object instead use the method distanceBetweenCenters()
-    * 
-    * @method Phaser.Physics.Arcade#distanceToPointer
-    * @param {any} displayObject - The Display Object to test from.
-    * @param {Phaser.Pointer} [pointer] - The Phaser.Pointer to test to. If none is given then Input.activePointer is used.
-    * @return {number} The distance between the object and the Pointer.
-    */
-    distanceToPointer: function (displayObject, pointer) {
-
-        pointer = pointer || this.game.input.activePointer;
-
-        this._dx = displayObject.x - pointer.x;
-        this._dy = displayObject.y - pointer.y;
-        
-        return Math.sqrt(this._dx * this._dx + this._dy * this._dy);
-
-    },
-
-    /**
-    * Find the angle in radians between two display objects (like Sprites).
-    * 
-    * @method Phaser.Physics.Arcade#angleBetween
-    * @param {any} source - The Display Object to test from.
-    * @param {any} target - The Display Object to test to.
-    * @return {number} The angle in radians between the source and target display objects.
-    */
-    angleBetween: function (source, target) {
-
-        this._dx = target.x - source.x;
-        this._dy = target.y - source.y;
-
-        return Math.atan2(this._dy, this._dx);
-
-    },
-
-    /**
-    * Find the angle in radians between a display object (like a Sprite) and the given x/y coordinate.
-    * 
-    * @method Phaser.Physics.Arcade#angleToXY
-    * @param {any} displayObject - The Display Object to test from.
-    * @param {number} x - The x coordinate to get the angle to.
-    * @param {number} y - The y coordinate to get the angle to.
-    * @return {number} The angle in radians between displayObject.x/y to Pointer.x/y
-    */
-    angleToXY: function (displayObject, x, y) {
-
-        this._dx = x - displayObject.x;
-        this._dy = y - displayObject.y;
-        
-        return Math.atan2(this._dy, this._dx);
-
-    },
-    
-    /**
-    * Find the angle in radians between a display object (like a Sprite) and a Pointer, taking their x/y and center into account.
-    * 
-    * @method Phaser.Physics.Arcade#angleToPointer
-    * @param {any} displayObject - The Display Object to test from.
-    * @param {Phaser.Pointer} [pointer] - The Phaser.Pointer to test to. If none is given then Input.activePointer is used.
-    * @return {number} The angle in radians between displayObject.x/y to Pointer.x/y
-    */
-    angleToPointer: function (displayObject, pointer) {
-
-        pointer = pointer || this.game.input.activePointer;
-
-        this._dx = pointer.worldX - displayObject.x;
-        this._dy = pointer.worldY - displayObject.y;
-        
-        return Math.atan2(this._dy, this._dx);
-
+Phaser.Physics.World.prototype.setBounds = function (x, y, width, height, left, right, top, bottom) {
+
+    if (typeof left === 'undefined') { left = true; }
+    if (typeof right === 'undefined') { right = true; }
+    if (typeof top === 'undefined') { top = true; }
+    if (typeof bottom === 'undefined') { bottom = true; }
+
+    if (this.bounds !== null)
+    {
+    	this.removeBody(this.bounds);
     }
+
+    var hw = (width / 2);
+    var hh = (height / 2);
+    var cx = hw + x;
+    var cy = hh + y;
+
+	this.bounds = new p2.Body({ mass: 0, position:[this.game.math.px2p(cx), this.game.math.px2p(cy)] });
+
+    if (left)
+    {
+	    this.bounds.addShape(new p2.Plane(), [this.game.math.px2p(-hw), 0], 1.5707963267948966 );
+    }
+
+    if (right)
+    {
+	    this.bounds.addShape(new p2.Plane(), [this.game.math.px2p(hw), 0], -1.5707963267948966 );
+    }
+
+    if (top)
+    {
+	    this.bounds.addShape(new p2.Plane(), [0, this.game.math.px2p(-hh)], -3.141592653589793 );
+    }
+
+    if (bottom)
+    {
+	    this.bounds.addShape(new p2.Plane(), [0, this.game.math.px2p(hh)] );
+    }
+
+    this.addBody(this.bounds);
+
+}
+
+/**
+* @method Phaser.Physics.World.prototype.update
+*/
+Phaser.Physics.World.prototype.update = function () {
+
+	this.step(1 / 60);
 
 };
 
-Phaser.Physics.Arcade.prototype.constructor = Phaser.Physics.Arcade;
+/**
+* @author       Richard Davey <rich@photonstorm.com>
+* @copyright    2014 Photon Storm Ltd.
+* @license      {@link https://github.com/photonstorm/phaser/blob/master/license.txt|MIT License}
+*/
+
+/**
+* A PointProxy is an internal class that allows for direct getter/setter style property access to Arrays and TypedArrays.
+*
+* @class Phaser.Physics.PointProxy
+* @classdesc PointProxy
+* @constructor
+* @param {any} destination - The object to bind to.
+*/
+Phaser.Physics.PointProxy = function (destination) {
+
+	this.destination = destination;
+
+};
+
+Phaser.Physics.PointProxy.prototype.constructor = Phaser.Physics.PointProxy;
+
+/**
+* @name Phaser.Physics.PointProxy#x
+* @property {number} x - The x property of this PointProxy.
+*/
+Object.defineProperty(Phaser.Physics.PointProxy.prototype, "x", {
+    
+    get: function () {
+
+        return this.destination[0];
+
+    },
+
+    set: function (value) {
+
+        this.destination[0] = value;
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.PointProxy#y
+* @property {number} y - The y property of this PointProxy.
+*/
+Object.defineProperty(Phaser.Physics.PointProxy.prototype, "y", {
+    
+    get: function () {
+
+        return this.destination[1];
+
+    },
+
+    set: function (value) {
+
+        this.destination[1] = value;
+
+    }
+
+});
 
 /**
 * @author       Richard Davey <rich@photonstorm.com>
@@ -40510,12 +31197,12 @@ Phaser.Physics.Arcade.prototype.constructor = Phaser.Physics.Arcade;
 * These properties affect how the body reacts to forces, what forces it generates on itself (to simulate friction), and how it reacts to collisions in the scene. In most cases, the properties are used to simulate physical effects.
 * Each body also has its own property values that determine exactly how it reacts to forces and collisions in the scene.
 *
-* @class Phaser.Physics.Arcade.Body
-* @classdesc Arcade Physics Body Constructor
+* @class Phaser.Physics.Body
+* @classdesc Physics Body Constructor
 * @constructor
 * @param {Phaser.Sprite} sprite - The Sprite object this physics body belongs to.
 */
-Phaser.Physics.Arcade.Body = function (sprite) {
+Phaser.Physics.Body = function (sprite) {
 
     /**
     * @property {Phaser.Sprite} sprite - Reference to the parent Sprite.
@@ -40532,1226 +31219,245 @@ Phaser.Physics.Arcade.Body = function (sprite) {
     */
     this.offset = new Phaser.Point();
 
-    /**
-    * @property {number} preX - The previous x position of the physics body.
-    * @readonly
-    */
-    this.preX = sprite.world.x;
-
-    /**
-    * @property {number} preY - The previous y position of the physics body.
-    * @readonly
-    */
-    this.preY = sprite.world.y;
-
-    /**
-    * @property {number} preRotation - The previous rotation of the physics body.
-    * @readonly
-    */
-    this.preRotation = sprite.angle;
-
-    /**
-    * @property {Phaser.Point} velocity - The velocity of the Body.
-    */
-    this.velocity = new Phaser.Point();
-
-    /**
-    * @property {Phaser.Point} acceleration - The acceleration in pixels per second sq. of the Body.
-    */
-    this.acceleration = new Phaser.Point();
-
-    /**
-    * @property {number} speed - The speed in pixels per second sq. of the Body.
-    */
-    this.speed = 0;
-
-    /**
-    * @property {number} angle - The angle of the Body based on its velocity in radians.
-    */
-    this.angle = 0;
-
-    /**
-    * @property {Phaser.Point} gravity - The gravity applied to the motion of the Body. This works in addition to any gravity set on the world.
-    */
-    this.gravity = new Phaser.Point();
-
-    /**
-    * @property {Phaser.Point} bounce - The elasticitiy of the Body when colliding. This property determines how much energy a body maintains during a collision, i.e. its bounciness.
-    */
-    this.bounce = new Phaser.Point();
-
-    /**
-    * @property {Phaser.Point} minVelocity - When a body rebounds off another body or a wall the minVelocity is checked. If the new velocity is lower than minVelocity the body is stopped.
-    * @default
-    */
-    this.minVelocity = new Phaser.Point();
-
-    /**
-    * @property {Phaser.Point} maxVelocity - The maximum velocity that the Body can reach.
-    * @default
-    */
-    this.maxVelocity = new Phaser.Point(1000, 1000);
-
-    /**
-    * @property {number} angularVelocity - The angular velocity of the Body.
-    * @default
-    */
-    this.angularVelocity = 0;
-
-    /**
-    * @property {number} angularAcceleration - The angular acceleration of the Body.
-    * @default
-    */
-    this.angularAcceleration = 0;
-
-    /**
-    * @property {number} angularDrag - angularDrag is used to calculate friction on the body as it rotates.
-    * @default
-    */
-    this.angularDrag = 0;
-
-    /**
-    * @property {number} maxAngular - The maximum angular velocity that the Body can reach.
-    * @default
-    */
-    this.maxAngular = 1000;
-
-    /**
-    * @property {number} mass - The mass property determines how forces affect the body, as well as how much momentum the body has when it is involved in a collision.
-    * @default
-    */
-    this.mass = 1;
-
-    /**
-    * @property {number} linearDamping - linearDamping is used to calculate friction on the body as it moves through the world. For example, this might be used to simulate air or water friction.
-    * @default
-    */
-    this.linearDamping = 0.0;
-
-    /**
-    * Set the checkCollision properties to control which directions collision is processed for this Body.
-    * For example checkCollision.up = false means it won't collide when the collision happened while moving up.
-    * @property {object} checkCollision - An object containing allowed collision.
-    */
-    this.checkCollision = { none: false, any: true, up: true, down: true, left: true, right: true };
-
-    /**
-    * This object is populated with boolean values when the Body collides with another.
-    * touching.up = true means the collision happened to the top of this Body for example.
-    * @property {object} touching - An object containing touching results.
-    */
-    this.touching = { none: true, up: false, down: false, left: false, right: false };
-
-    /**
-    * This object is populated with boolean values when the Body collides with the World bounds or a Tile.
-    * For example if blocked.up is true then the Body cannot move up.
-    * @property {object} blocked - An object containing on which faces this Body is blocked from moving, if any.
-    */
-    this.blocked = { x: 0, y: 0, up: false, down: false, left: false, right: false };
-
-    /**
-    * @property {number} facing - A const reference to the direction the Body is traveling or facing.
-    * @default
-    */
-    this.facing = Phaser.NONE;
-
-    /**
-    * @property {boolean} rebound - A Body set to rebound will exchange velocity with another Body during collision. Set to false to allow this body to be 'pushed' rather than exchange velocity.
-    * @default
-    */
-    this.rebound = true;
-
-    /**
-    * @property {boolean} immovable - An immovable Body will not receive any impacts or exchanges of velocity from other bodies.
-    * @default
-    */
-    this.immovable = false;
-
-    /**
-    * @property {boolean} moves - Set to true to allow the Physics system (such as velocity) to move this Body, or false to move it manually.
-    * @default
-    */
-    this.moves = true;
-
-    /**
-    * @property {number} rotation - The amount the parent Sprite is rotated.
-    * @default
-    */
-    this.rotation = 0;
-
-    /**
-    * @property {boolean} allowRotation - Allow angular rotation? This will cause the Sprite to be rotated via angularVelocity, etc.
-    * @default
-    */
-    this.allowRotation = true;
-
-    /**
-    * @property {boolean} allowGravity - Allow this Body to be influenced by the global Gravity value? Note: It will always be influenced by the local gravity if set.
-    * @default
-    */
-    this.allowGravity = true;
-
-    /**
-    * @property {function} customSeparateCallback - If set this callback will be used for Body separation instead of the built-in one. Callback should return true if separated, otherwise false.
-    * @default
-    */
-    this.customSeparateCallback = null;
-
-    /**
-    * @property {object} customSeparateContext - The context in which the customSeparateCallback is called.
-    * @default
-    */
-    this.customSeparateContext = null;
-
-    /**
-    * @property {function} collideCallback - If set this callback will be fired whenever this Body is hit (on any face). It will send three parameters, the face it hit on, this Body and the Body that hit it.
-    * @default
-    */
-    this.collideCallback = null;
-
-    /**
-    * @property {object} collideCallbackContext - The context in which the collideCallback is called.
-    * @default
-    */
-    this.collideCallbackContext = null;
-
-    /**
-    * A Body can be set to collide against the World bounds automatically and rebound back into the World if this is set to true. Otherwise it will leave the World.
-    * @property {boolean} collideWorldBounds - Should the Body collide with the World bounds?
-    */
-    this.collideWorldBounds = false;
-
-    /**
-    * @property {Phaser.Physics.Arcade.RECT|Phaser.Physics.Arcade.CIRCLE} type - The type of SAT Shape.
-    */
-    this.type = Phaser.Physics.Arcade.RECT;
-
-    /**
-    * @property {SAT.Box|SAT.Circle|SAT.Polygon} shape - The SAT Collision shape.
-    */
     this.shape = null;
 
-    /**
-    * @property {SAT.Polygon} polygon - The SAT Polygons, as derived from the Shape.
-    */
-    this.polygon = null;
+    this.data = new p2.Body({ position:[this.px2p(sprite.x), this.px2p(sprite.y)], mass: 1 });
 
     /**
-    * @property {number} left - The left-most point of this Body.
-    * @readonly
+    * @property {Phaser.PointProxy} velocity - The velocity of the body. Set velocity.x to a negative value to move to the left, position to the right. velocity.y negative values move up, positive move down.
     */
-    this.left = 0;
+    this.velocity = new Phaser.Physics.PointProxy(this.data.velocity);
 
     /**
-    * @property {number} right - The right-most point of this Body.
-    * @readonly
+    * @property {Phaser.PointProxy} force - The force applied to the body.
     */
-    this.right = 0;
-
-    /**
-    * @property {number} top - The top-most point of this Body.
-    * @readonly
-    */
-    this.top = 0;
-
-    /**
-    * @property {number} bottom - The bottom-most point of this Body.
-    * @readonly
-    */
-    this.bottom = 0;
-
-    /**
-    * @property {number} width - The current width of the Body, taking into account the point rotation.
-    * @readonly
-    */
-    this.width = 0;
-
-    /**
-    * @property {number} height - The current height of the Body, taking into account the point rotation.
-    * @readonly
-    */
-    this.height = 0;
-
-    /**
-    * @property {array<Phaser.Physics.Arcade.Body>} contacts - Used to store references to bodies this Body is in contact with.
-    * @protected
-    */
-    this.contacts = [];
-
-    /**
-    * @property {number} overlapX - Mostly used internally to store the overlap values from Tile seperation.
-    * @protected
-    */
-    this.overlapX = 0;
-
-    /**
-    * @property {number} overlapY - Mostly used internally to store the overlap values from Tile seperation.
-    * @protected
-    */
-    this.overlapY = 0;
-
-    /**
-    * @property {Phaser.Point} _temp - Internal cache var.
-    * @private
-    */
-    this._temp = null;
-
-    /**
-    * @property {number} _dx - Internal cache var.
-    * @private
-    */
-    this._dx = 0;
-
-    /**
-    * @property {number} _dy - Internal cache var.
-    * @private
-    */
-    this._dy = 0;
-
-    /**
-    * @property {number} _sx - Internal cache var.
-    * @private
-    */
-    this._sx = sprite.scale.x;
-
-    /**
-    * @property {number} _sy - Internal cache var.
-    * @private
-    */
-    this._sy = sprite.scale.y;
-
-    /**
-    * @property {array} _distances - Internal cache var.
-    * @private
-    */
-    this._distances = [0, 0, 0, 0];
-
-    /**
-    * @property {number} _vx - Internal cache var.
-    * @private
-    */
-    this._vx = 0;
-
-    /**
-    * @property {number} _vy - Internal cache var.
-    * @private
-    */
-    this._vy = 0;
+    this.force = new Phaser.Physics.PointProxy(this.data.force);
 
     //  Set-up the default shape
     this.setRectangle(sprite.width, sprite.height, 0, 0);
 
+    this.game.physics.addBody(this.data);
+
     //  Set-up contact events
-    this.sprite.events.onBeginContact = new Phaser.Signal();
-    this.sprite.events.onEndContact = new Phaser.Signal();
+    // this.sprite.events.onBeginContact = new Phaser.Signal();
+    // this.sprite.events.onEndContact = new Phaser.Signal();
 
 };
 
-Phaser.Physics.Arcade.Body.prototype = {
+Phaser.Physics.Body.prototype = {
+
+    /*
+    * Add a shape to the body. You can pass a local transform when adding a shape, 
+    * so that the shape gets an offset and angle relative to the body center of mass. 
+    * Will automatically update the mass properties and bounding radius.
+    *
+    * @method Phaser.Physics.Body#addShape
+    */
+    addShape: function (shape, offsetX, offsetY, angle) {
+
+        if (typeof offsetX === 'undefined') { offsetX = 0; }
+        if (typeof offsetY === 'undefined') { offsetY = 0; }
+        if (typeof angle === 'undefined') { angle = 0; }
+
+        return this.data.addShape(shape, [ this.px2p(offsetX), this.px2p(offsetY) ], angle);
+
+    },
 
     /**
-    * Internal method that updates the Body scale in relation to the parent Sprite.
+    * Moves the shape offsets so their center of mass becomes the body center of mass.
     *
-    * @method Phaser.Physics.Arcade.Body#updateScale
-    * @protected
+    * @method Phaser.Physics.Body#adjustCenterOfMass
     */
-    updateScale: function () {
+    adjustCenterOfMass: function () {
 
-        if (this.polygon)
-        {
-            this.polygon.scale(this.sprite.scale.x / this._sx, this.sprite.scale.y / this._sy);
-        }
-        else
-        {
-            this.shape.r *= Math.max(this.sprite.scale.x, this.sprite.scale.y);
-        }
+        this.data.adjustCenterOfMass();
 
-        this._sx = this.sprite.scale.x;
-        this._sy = this.sprite.scale.y;
+    },
+
+    //  applyDamping
+    //  applyForce
+    //  fromPolygon
+
+    /**
+    * Remove a shape from the Body.
+    *
+    * @method Phaser.Physics.Body#removeShape
+    */
+    removeShape: function (shape) {
+
+        return this.data.removeShape(shape);
+
+    },
+
+    /**
+    * Sets the force on the body to zero.
+    *
+    * @method Phaser.Physics.Body#setZeroForce
+    */
+    setZeroForce: function () {
+
+        this.data.setZeroForce();
+
+    },
+
+    //  toLocalFrame
+    //  toWorldFrame
+
+    /**
+    * If this Body is dynamic then this will zero its velocity on both axis.
+    *
+    * @method Phaser.Physics.Body#setZeroRotation
+    */
+    setZeroRotation: function () {
+
+        ship.body.angularVelocity = 0;
+
+    },
+
+    /**
+    * If this Body is dynamic then this will zero its velocity on both axis.
+    *
+    * @method Phaser.Physics.Body#setZeroVelocity
+    */
+    setZeroVelocity: function () {
+
+        this.data.velocity[0] = 0;
+        this.data.velocity[1] = 0;
+
+    },
+
+    /**
+    * Sets the Body damping and angularDamping to zero.
+    *
+    * @method Phaser.Physics.Body#setZeroDamping
+    */
+    setZeroDamping: function () {
+
+        this.data.damping = 0;
+        this.data.angularDamping = 0;
+
+    },
+
+    /**
+    * This will rotate the Body by the given speed to the left (counter-clockwise).
+    *
+    * @method Phaser.Physics.Body#rotateLeft
+    * @param {number} speed - The speed at which it should rotate.
+    */
+    rotateLeft: function (speed) {
+
+        this.data.angularVelocity = this.px2p(speed);
+
+    },
+
+    /**
+    * This will rotate the Body by the given speed to the left (clockwise).
+    *
+    * @method Phaser.Physics.Body#rotateRight
+    * @param {number} speed - The speed at which it should rotate.
+    */
+    rotateRight: function (speed) {
+
+        this.data.angularVelocity = this.px2p(-speed);
+
+    },
+
+    /**
+    * Applies a force to the Body that causes it to 'thrust' forwards, based on its current angle and the given speed.
+    * The speed is represented in pixels per second. So a value of 100 would move 100 pixels in 1 second (1000ms).
+    *
+    * @method Phaser.Physics.Body#thrust
+    * @param {number} speed - The speed at which it should thrust.
+    */
+    thrust: function (speed) {
+
+        var magnitude = this.px2p(-speed);
+        var angle = this.data.angle + Math.PI / 2;
+
+        this.data.force[0] += magnitude * Math.cos(angle);
+        this.data.force[1] += magnitude * Math.sin(angle);
+
+    },
+
+    /**
+    * If this Body is dynamic then this will move it to the left by setting its x velocity to the given speed.
+    * The speed is represented in pixels per second. So a value of 100 would move 100 pixels in 1 second (1000ms).
+    *
+    * @method Phaser.Physics.Body#moveLeft
+    * @param {number} speed - The speed at which it should move to the left, in pixels per second.
+    */
+    moveLeft: function (speed) {
+
+        this.data.velocity[0] = this.px2p(-speed);
+
+    },
+
+    /**
+    * If this Body is dynamic then this will move it to the right by setting its x velocity to the given speed.
+    * The speed is represented in pixels per second. So a value of 100 would move 100 pixels in 1 second (1000ms).
+    *
+    * @method Phaser.Physics.Body#moveRight
+    * @param {number} speed - The speed at which it should move to the right, in pixels per second.
+    */
+    moveRight: function (speed) {
+
+        this.data.velocity[0] = this.px2p(speed);
+
+    },
+
+    /**
+    * If this Body is dynamic then this will move it up by setting its y velocity to the given speed.
+    * The speed is represented in pixels per second. So a value of 100 would move 100 pixels in 1 second (1000ms).
+    *
+    * @method Phaser.Physics.Body#moveUp
+    * @param {number} speed - The speed at which it should move up, in pixels per second.
+    */
+    moveUp: function (speed) {
+
+        this.data.velocity[1] = this.px2p(-speed);
+
+    },
+
+    /**
+    * If this Body is dynamic then this will move it down by setting its y velocity to the given speed.
+    * The speed is represented in pixels per second. So a value of 100 would move 100 pixels in 1 second (1000ms).
+    *
+    * @method Phaser.Physics.Body#moveDown
+    * @param {number} speed - The speed at which it should move down, in pixels per second.
+    */
+    moveDown: function (speed) {
+
+        this.data.velocity[1] = this.px2p(speed);
 
     },
 
     /**
     * Internal method that updates the Body position in relation to the parent Sprite.
     *
-    * @method Phaser.Physics.Arcade.Body#preUpdate
+    * @method Phaser.Physics.Body#preUpdate
     * @protected
     */
     preUpdate: function () {
 
-        this.x = (this.sprite.world.x - (this.sprite.anchor.x * this.sprite.width)) + this.offset.x;
-        this.y = (this.sprite.world.y - (this.sprite.anchor.y * this.sprite.height)) + this.offset.y;
-
-        //  This covers any motion that happens during this frame, not since the last frame
-        this.preX = this.x;
-        this.preY = this.y;
-        this.preRotation = this.sprite.angle;
-
-        this.rotation = this.preRotation;
-
-        if (this.sprite.scale.x !== this._sx || this.sprite.scale.y !== this._sy)
-        {
-            this.updateScale();
-        }
-
-        this.checkBlocked();
-
-        this.touching.none = true;
-        this.touching.up = false;
-        this.touching.down = false;
-        this.touching.left = false;
-        this.touching.right = false;
-
-        if (this.moves)
-        {
-            if (this._vx !== this.velocity.x || this._vy !== this.velocity.y)
-            {
-                //  No need to re-calc these if they haven't changed
-                this._vx = this.velocity.x;
-                this._vy = this.velocity.y;
-                this.speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
-                this.angle = Math.atan2(this.velocity.y, this.velocity.x);
-            }
-
-            if (this.game.physics.checkBounds(this))
-            {
-                this.reboundCheck(true, true, true);
-            }
-
-            this.applyDamping();
-
-            this.integrateVelocity();
-
-            this.updateBounds();
-
-            this.checkBlocked();
-        }
-        else
-        {
-            this.updateBounds();
-        }
-
-    },
-
-    /**
-    * Internal method that checks and potentially resets the blocked status flags.
-    *
-    * @method Phaser.Physics.Arcade.Body#checkBlocked
-    * @protected
-    */
-    checkBlocked: function () {
-
-        if ((this.blocked.left || this.blocked.right) && (Math.floor(this.x) !== this.blocked.x || Math.floor(this.y) !== this.blocked.y))
-        {
-            this.blocked.left = false;
-            this.blocked.right = false;
-        }
-
-        if ((this.blocked.up || this.blocked.down) && (Math.floor(this.x) !== this.blocked.x || Math.floor(this.y) !== this.blocked.y))
-        {
-            this.blocked.up = false;
-            this.blocked.down = false;
-        }
-
-    },
-
-    /**
-    * Internal method that updates the left, right, top, bottom, width and height properties.
-    *
-    * @method Phaser.Physics.Arcade.Body#updateBounds
-    * @protected
-    */
-    updateBounds: function () {
-
-        if (this.type === Phaser.Physics.Arcade.CIRCLE)
-        {
-            this.left = this.shape.pos.x - this.shape.r;
-            this.right = this.shape.pos.x + this.shape.r;
-            this.top = this.shape.pos.y - this.shape.r;
-            this.bottom = this.shape.pos.y + this.shape.r;
-        }
-        else
-        {
-            this.left = Phaser.Math.minProperty('x', this.polygon.points) + this.polygon.pos.x;
-            this.right = Phaser.Math.maxProperty('x', this.polygon.points) + this.polygon.pos.x;
-            this.top = Phaser.Math.minProperty('y', this.polygon.points) + this.polygon.pos.y;
-            this.bottom = Phaser.Math.maxProperty('y', this.polygon.points) + this.polygon.pos.y;
-        }
-
-        this.width = this.right - this.left;
-        this.height = this.bottom - this.top;
-
-    },
-
-    /**
-    * Internal method that checks the acceleration and applies damping if not set.
-    *
-    * @method Phaser.Physics.Arcade.Body#applyDamping
-    * @protected
-    */
-    applyDamping: function () {
-
-        if (this.linearDamping > 0 && this.acceleration.isZero())
-        {
-            if (this.speed > this.linearDamping)
-            {
-                this.speed -= this.linearDamping;
-            }
-            else
-            {
-                this.speed = 0;
-            }
-
-            if (this.speed > 0 || !this.velocity.isZero())
-            {
-                this.velocity.x = Math.cos(this.angle) * this.speed;
-                this.velocity.y = Math.sin(this.angle) * this.speed;
-
-                this.speed = Math.sqrt(this.velocity.x * this.velocity.x + this.velocity.y * this.velocity.y);
-                this.angle = Math.atan2(this.velocity.y, this.velocity.x);
-            }
-        }
-
-    },
-
-    /**
-    * Check if we're below minVelocity and gravity isn't trying to drag us in the opposite direction.
-    *
-    * @method Phaser.Physics.Arcade.Body#reboundCheck
-    * @protected
-    * @param {boolean} x - Check the X axis?
-    * @param {boolean} y - Check the Y axis?
-    * @param {boolean} rebound - If true it will reverse the velocity on the given axis
-    */
-    reboundCheck: function (x, y, rebound) {
-
-        if (x)
-        {
-            if (rebound && this.bounce.x !== 0 && (this.blocked.left || this.blocked.right || this.touching.left || this.touching.right))
-            {
-                //  Don't rebound if they've already rebounded in this frame
-                if (!(this._vx <= 0 && this.velocity.x > 0) && !(this._vx >= 0 && this.velocity.x < 0))
-                {
-                    this.velocity.x *= -this.bounce.x;
-                    this.angle = Math.atan2(this.velocity.y, this.velocity.x);
-                }
-            }
-
-            if (this.bounce.x === 0 || Math.abs(this.velocity.x) < this.minVelocity.x)
-            {
-                var gx = this.getUpwardForce();
-
-                if (((this.blocked.left || this.touching.left) && (gx < 0 || this.velocity.x < 0)) || ((this.blocked.right || this.touching.right) && (gx > 0 || this.velocity.x > 0)))
-                {
-                    this.velocity.x = 0;
-                }
-            }
-        }
-
-        if (y)
-        {
-            if (rebound && this.bounce.y !== 0 && (this.blocked.up || this.blocked.down || this.touching.up || this.touching.down))
-            {
-                //  Don't rebound if they've already rebounded in this frame
-                if (!(this._vy <= 0 && this.velocity.y > 0) && !(this._vy >= 0 && this.velocity.y < 0))
-                {
-                    this.velocity.y *= -this.bounce.y;
-                    this.angle = Math.atan2(this.velocity.y, this.velocity.x);
-                }
-            }
-
-            if (this.bounce.y === 0 || Math.abs(this.velocity.y) < this.minVelocity.y)
-            {
-                var gy = this.getDownwardForce();
-
-                if (((this.blocked.up || this.touching.up) && (gy < 0 || this.velocity.y < 0)) || ((this.blocked.down || this.touching.down) && (gy > 0 || this.velocity.y > 0)))
-                {
-                    this.velocity.y = 0;
-                }
-            }
-        }
-
-    },
-
-    /**
-    * Gets the total force being applied on the X axis, including gravity and velocity.
-    *
-    * @method Phaser.Physics.Arcade.Body#getUpwardForce
-    * @return {number} The total force being applied on the X axis.
-    */
-    getUpwardForce: function () {
-
-        if (this.allowGravity)
-        {
-            return this.gravity.x + this.game.physics.gravity.x + this.velocity.x;
-        }
-        else
-        {
-            return this.gravity.x + this.velocity.x;
-        }
-
-    },
-
-    /**
-    * Gets the total force being applied on the X axis, including gravity and velocity.
-    *
-    * @method Phaser.Physics.Arcade.Body#getDownwardForce
-    * @return {number} The total force being applied on the Y axis.
-    */
-    getDownwardForce: function () {
-
-        if (this.allowGravity)
-        {
-            return this.gravity.y + this.game.physics.gravity.y + this.velocity.y;
-        }
-        else
-        {
-            return this.gravity.y + this.velocity.y;
-        }
-
-    },
-
-    /**
-    * Subtracts the given Vector from this Body.
-    *
-    * @method Phaser.Physics.Arcade.Body#sub
-    * @protected
-    * @param {SAT.Vector} v - The vector to substract from this Body.
-    */
-    sub: function (v) {
-
-        this.x -= v.x;
-        this.y -= v.y;
-
-    },
-
-    /**
-    * Adds the given Vector to this Body.
-    *
-    * @method Phaser.Physics.Arcade.Body#add
-    * @protected
-    * @param {SAT.Vector} v - The vector to add to this Body.
-    */
-    add: function (v) {
-
-        this.x += v.x;
-        this.y += v.y;
-
-    },
-
-    /**
-    * Separation response handler.
-    *
-    * @method Phaser.Physics.Arcade.Body#give
-    * @protected
-    * @param {Phaser.Physics.Arcade.Body} body - The Body that collided.
-    * @param {SAT.Response} response - The SAT Response object containing the collision data.
-    */
-    give: function (body, response) {
-
-        this.add(response.overlapV);
-
-        if (this.rebound)
-        {
-            this.processRebound(body);
-            this.reboundCheck(true, true, false);
-            body.reboundCheck(true, true, false);
-        }
-
-    },
-
-    /**
-    * Separation response handler.
-    *
-    * @method Phaser.Physics.Arcade.Body#take
-    * @protected
-    * @param {Phaser.Physics.Arcade.Body} body - The Body that collided.
-    * @param {SAT.Response} response - The SAT Response object containing the collision data.
-    */
-    take: function (body, response) {
-
-        this.sub(response.overlapV);
-
-        if (this.rebound)
-        {
-            this.processRebound(body);
-            this.reboundCheck(true, true, false);
-            body.reboundCheck(true, true, false);
-        }
-
-    },
-
-    /**
-    * Split the collision response evenly between the two bodies.
-    *
-    * @method Phaser.Physics.Arcade.Body#split
-    * @protected
-    * @param {Phaser.Physics.Arcade.Body} body - The Body that collided.
-    * @param {SAT.Response} response - The SAT Response object containing the collision data.
-    */
-    split: function (body, response) {
-    
-        response.overlapV.scale(0.5);
-        this.sub(response.overlapV);
-        body.add(response.overlapV);
-
-        if (this.rebound)
-        {
-            this.exchange(body);
-            this.reboundCheck(true, true, false);
-            body.reboundCheck(true, true, false);
-        }
-
-    },
-
-    /**
-    * Exchange velocity with the given Body.
-    *
-    * @method Phaser.Physics.Arcade.Body#exchange
-    * @protected
-    * @param {Phaser.Physics.Arcade.Body} body - The Body that collided.
-    */
-    exchange: function (body) {
-
-        if (this.mass === body.mass && this.speed > 0 && body.speed > 0)
-        {
-            //  A direct velocity exchange (as they are both moving and have the same mass)
-            this._dx = body.velocity.x;
-            this._dy = body.velocity.y;
-
-            body.velocity.x = this.velocity.x * body.bounce.x;
-            body.velocity.y = this.velocity.y * body.bounce.x;
-
-            this.velocity.x = this._dx * this.bounce.x;
-            this.velocity.y = this._dy * this.bounce.y;
-        }
-        else
-        {
-            var nv1 = Math.sqrt((body.velocity.x * body.velocity.x * body.mass) / this.mass) * ((body.velocity.x > 0) ? 1 : -1);
-            var nv2 = Math.sqrt((this.velocity.x * this.velocity.x * this.mass) / body.mass) * ((this.velocity.x > 0) ? 1 : -1);
-            var average = (nv1 + nv2) * 0.5;
-            nv1 -= average;
-            nv2 -= average;
-
-            this.velocity.x = nv1;
-            body.velocity.x = nv2;
-
-            nv1 = Math.sqrt((body.velocity.y * body.velocity.y * body.mass) / this.mass) * ((body.velocity.y > 0) ? 1 : -1);
-            nv2 = Math.sqrt((this.velocity.y * this.velocity.y * this.mass) / body.mass) * ((this.velocity.y > 0) ? 1 : -1);
-            average = (nv1 + nv2) * 0.5;
-            nv1 -= average;
-            nv2 -= average;
-
-            this.velocity.y = nv1;
-            body.velocity.y = nv2;
-        }
-
-        //  update speed / angle?
-
-    },
-
-    /**
-    * Rebound the velocity of this Body.
-    *
-    * @method Phaser.Physics.Arcade.Body#processRebound
-    * @protected
-    * @param {Phaser.Physics.Arcade.Body} body - The Body that collided.
-    */
-    processRebound: function (body) {
-
-        //  Don't rebound again if they've already rebounded in this frame
-        if (!(this._vx <= 0 && this.velocity.x > 0) && !(this._vx >= 0 && this.velocity.x < 0))
-        {
-            this.velocity.x = body.velocity.x - this.velocity.x * this.bounce.x;
-        }
-
-        if (!(this._vy <= 0 && this.velocity.y > 0) && !(this._vy >= 0 && this.velocity.y < 0))
-        {
-            this.velocity.y = body.velocity.y - this.velocity.y * this.bounce.y;
-        }
-
-        this.angle = Math.atan2(this.velocity.y, this.velocity.x);
-
-        this.reboundCheck(true, true, false);
-
-    },
-
-    /**
-    * Checks for an overlap between this Body and the given Body.
-    *
-    * @method Phaser.Physics.Arcade.Body#overlap
-    * @param {Phaser.Physics.Arcade.Body} body - The Body that is being checked against this Body.
-    * @param {SAT.Response} response - SAT Response handler.
-    * @return {boolean} True if the two bodies overlap, otherwise false.
-    */
-    overlap: function (body, response) {
-
-        var result = false;
-
-        if ((this.type === Phaser.Physics.Arcade.RECT || this.type === Phaser.Physics.Arcade.POLYGON) && (body.type === Phaser.Physics.Arcade.RECT || body.type === Phaser.Physics.Arcade.POLYGON))
-        {
-            result = SAT.testPolygonPolygon(this.polygon, body.polygon, response);
-        }
-        else if (this.type === Phaser.Physics.Arcade.CIRCLE && body.type === Phaser.Physics.Arcade.CIRCLE)
-        {
-            result = SAT.testCircleCircle(this.shape, body.shape, response);
-        }
-        else if ((this.type === Phaser.Physics.Arcade.RECT || this.type === Phaser.Physics.Arcade.POLYGON) && body.type === Phaser.Physics.Arcade.CIRCLE)
-        {
-            result = SAT.testPolygonCircle(this.polygon, body.shape, response);
-        }
-        else if (this.type === Phaser.Physics.Arcade.CIRCLE && (body.type === Phaser.Physics.Arcade.RECT || body.type === Phaser.Physics.Arcade.POLYGON))
-        {
-            result = SAT.testCirclePolygon(this.shape, body.polygon, response);
-        }
-
-        if (!result)
-        {
-            this.removeContact(body);
-        }
-
-        return result;
-
-    },
-
-    /**
-    * Checks if this Body is already in contact with the given Body.
-    *
-    * @method Phaser.Physics.Arcade.Body#inContact
-    * @param {Phaser.Physics.Arcade.Body} body - The Body to be checked.
-    * @return {boolean} True if the given Body is already in contact with this Body.
-    */
-    inContact: function (body) {
-
-        return (this.contacts.indexOf(body) != -1);
-
-    },
-
-    /**
-    * Adds the given Body to the contact list of this Body. Also adds this Body to the contact list of the given Body.
-    *
-    * @method Phaser.Physics.Arcade.Body#addContact
-    * @param {Phaser.Physics.Arcade.Body} body - The Body to be added.
-    * @return {boolean} True if the given Body was added to this contact list, false if already on it.
-    */
-    addContact: function (body) {
-
-        if (this.inContact(body))
-        {
-            return false;
-        }
-
-        this.contacts.push(body);
-
-        this.sprite.events.onBeginContact.dispatch(this.sprite, body.sprite, this, body);
-
-        body.addContact(this);
-
-        return true;
-
-    },
-
-    /**
-    * Removes the given Body from the contact list of this Body. Also removes this Body from the contact list of the given Body.
-    *
-    * @method Phaser.Physics.Arcade.Body#removeContact
-    * @param {Phaser.Physics.Arcade.Body} body - The Body to be removed.
-    * @return {boolean} True if the given Body was removed from this contact list, false if wasn't on it.
-    */
-    removeContact: function (body) {
-
-        if (!this.inContact(body))
-        {
-            return false;
-        }
-
-        this.contacts.splice(this.contacts.indexOf(body), 1);
-
-        this.sprite.events.onEndContact.dispatch(this.sprite, body.sprite, this, body);
-
-        body.removeContact(this);
-
-        return true;
-
-    },
-
-    /**
-    * This separates this Body from the given Body unless a customSeparateCallback is set.
-    * It assumes they have already been overlap checked and the resulting overlap is stored in the SAT response.
-    *
-    * @method Phaser.Physics.Arcade.Body#separate
-    * @protected
-    * @param {Phaser.Physics.Arcade.Body} body - The Body to be separated from this one.
-    * @param {SAT.Response} response - SAT Response handler.
-    * @return {boolean} True if the bodies were separated, false if not (for example checkCollide allows them to pass through)
-    */
-    separate: function (body, response) {
-
-        // if (this.inContact(body))
-        // {
-            // return false;
-        // }
-
-        this._distances[0] = body.right - this.x;   // Distance of B to face on left side of A
-        this._distances[1] = this.right - body.x;   // Distance of B to face on right side of A
-        this._distances[2] = body.bottom - this.y;  // Distance of B to face on bottom side of A
-        this._distances[3] = this.bottom - body.y;  // Distance of B to face on top side of A
-
-        //  If we've zero distance then check for side-slicing
-        if (response.overlapN.x && (this._distances[0] === 0 || this._distances[1] === 0))
-        {
-            response.overlapN.x = false;
-            response.overlapN.y = true;
-        }
-        else if (response.overlapN.y && (this._distances[2] === 0 || this._distances[3] === 0))
-        {
-            response.overlapN.x = true;
-            response.overlapN.y = false;
-        }
-
-        if (this.customSeparateCallback)
-        {
-            return this.customSeparateCallback.call(this.customSeparateContext, this, response, this._distances);
-        }
-
-        var hasSeparated = false;
-
-        if (response.overlapN.x)
-        {
-            //  Which is smaller? Left or Right?
-            if (this._distances[0] < this._distances[1])
-            {
-                hasSeparated = this.hitLeft(body, response);
-            }
-            else if (this._distances[1] < this._distances[0])
-            {
-                hasSeparated = this.hitRight(body, response);
-            }
-        }
-        else if (response.overlapN.y)
-        {
-            //  Which is smaller? Top or Bottom?
-            if (this._distances[2] < this._distances[3])
-            {
-                hasSeparated = this.hitTop(body, response);
-            }
-            else if (this._distances[3] < this._distances[2])
-            {
-                hasSeparated = this.hitBottom(body, response);
-            }
-        }
-
-        if (hasSeparated)
-        {
-            this.game.physics.checkBounds(this);
-            this.game.physics.checkBounds(body);
-        }
-        else
-        {
-            //  They can only contact like this if at least one of their sides is open, otherwise it's a separation
-            if (!this.checkCollision.up || !this.checkCollision.down || !this.checkCollision.left || !this.checkCollision.right || !body.checkCollision.up || !body.checkCollision.down || !body.checkCollision.left || !body.checkCollision.right)
-            {
-                this.addContact(body);
-            }
-        }
-
-        return hasSeparated;
-
-    },
-
-    /**
-    * Process a collision with the left face of this Body.
-    * Collision and separation can be further checked by setting a collideCallback.
-    * This callback will be sent 4 parameters: The face of collision, this Body, the colliding Body and the SAT Response.
-    * If the callback returns true then separation, rebounds and the touching flags will all be set.
-    * If it returns false this will be skipped and must be handled manually.
-    *
-    * @method Phaser.Physics.Arcade.Body#hitLeft
-    * @protected
-    * @param {Phaser.Physics.Arcade.Body} body - The Body that collided.
-    * @param {SAT.Response} response - The SAT Response object containing the collision data.
-    */
-    hitLeft: function (body, response) {
-
-        if (!this.checkCollision.left || !body.checkCollision.right)
-        {
-            return false;
-        }
-
-        if (this.collideCallback && !this.collideCallback.call(this.collideCallbackContext, Phaser.LEFT, this, body, response))
-        {
-            return false;
-        }
-
-        if (!this.moves || this.immovable || this.blocked.right || this.touching.right)
-        {
-            body.give(this, response);
-        }
-        else
-        {
-            if (body.immovable || body.blocked.left || body.touching.left)
-            {
-                //  We take the full separation
-                this.take(body, response);
-            }
-            else
-            {
-                //  Share out the separation
-                this.split(body, response);
-            }
-        }
-
-        this.touching.left = true;
-        body.touching.right = true;
-
-        return true;
-
-    },
-
-    /**
-    * Process a collision with the right face of this Body.
-    * Collision and separation can be further checked by setting a collideCallback.
-    * This callback will be sent 4 parameters: The face of collision, this Body, the colliding Body and the SAT Response.
-    * If the callback returns true then separation, rebounds and the touching flags will all be set.
-    * If it returns false this will be skipped and must be handled manually.
-    *
-    * @method Phaser.Physics.Arcade.Body#hitRight
-    * @protected
-    * @param {Phaser.Physics.Arcade.Body} body - The Body that collided.
-    * @param {SAT.Response} response - The SAT Response object containing the collision data.
-    */
-    hitRight: function (body, response) {
-
-        if (!this.checkCollision.right || !body.checkCollision.left)
-        {
-            return false;
-        }
-
-        if (this.collideCallback && !this.collideCallback.call(this.collideCallbackContext, Phaser.RIGHT, this, body))
-        {
-            return false;
-        }
-
-        if (!this.moves || this.immovable || this.blocked.left || this.touching.left)
-        {
-            body.give(this, response);
-        }
-        else
-        {
-            if (body.immovable || body.blocked.right || body.touching.right)
-            {
-                //  We take the full separation
-                this.take(body, response);
-            }
-            else
-            {
-                //  Share out the separation
-                this.split(body, response);
-            }
-        }
-
-        this.touching.right = true;
-        body.touching.left = true;
-
-        return true;
-
-    },
-
-    /**
-    * Process a collision with the top face of this Body.
-    * Collision and separation can be further checked by setting a collideCallback.
-    * This callback will be sent 4 parameters: The face of collision, this Body, the colliding Body and the SAT Response.
-    * If the callback returns true then separation, rebounds and the touching flags will all be set.
-    * If it returns false this will be skipped and must be handled manually.
-    *
-    * @method Phaser.Physics.Arcade.Body#hitTop
-    * @protected
-    * @param {Phaser.Physics.Arcade.Body} body - The Body that collided.
-    * @param {SAT.Response} response - The SAT Response object containing the collision data.
-    */
-    hitTop: function (body, response) {
-
-        if (!this.checkCollision.up || !body.checkCollision.down)
-        {
-            return false;
-        }
-
-        if (this.collideCallback && !this.collideCallback.call(this.collideCallbackContext, Phaser.UP, this, body))
-        {
-            return false;
-        }
-
-        if (!this.moves || this.immovable || this.blocked.down || this.touching.down)
-        {
-            body.give(this, response);
-        }
-        else
-        {
-            if (body.immovable || body.blocked.up || body.touching.up)
-            {
-                //  We take the full separation
-                this.take(body, response);
-            }
-            else
-            {
-                //  Share out the separation
-                this.split(body, response);
-            }
-        }
-
-        this.touching.up = true;
-        body.touching.down = true;
-
-        return true;
-
-    },
-
-    /**
-    * Process a collision with the bottom face of this Body.
-    * Collision and separation can be further checked by setting a collideCallback.
-    * This callback will be sent 4 parameters: The face of collision, this Body, the colliding Body and the SAT Response.
-    * If the callback returns true then separation, rebounds and the touching flags will all be set.
-    * If it returns false this will be skipped and must be handled manually.
-    *
-    * @method Phaser.Physics.Arcade.Body#hitBottom
-    * @protected
-    * @param {Phaser.Physics.Arcade.Body} body - The Body that collided.
-    * @param {SAT.Response} response - The SAT Response object containing the collision data.
-    */
-    hitBottom: function (body, response) {
-
-        if (!this.checkCollision.down || !body.checkCollision.up)
-        {
-            return false;
-        }
-
-        if (this.collideCallback && !this.collideCallback.call(this.collideCallbackContext, Phaser.DOWN, this, body))
-        {
-            return false;
-        }
-
-        if (!this.moves || this.immovable || this.blocked.up || this.touching.up)
-        {
-            body.give(this, response);
-        }
-        else
-        {
-            if (body.immovable || body.blocked.down || body.touching.down)
-            {
-                //  We take the full separation
-                this.take(body, response);
-            }
-            else
-            {
-                //  Share out the separation
-                this.split(body, response);
-            }
-        }
-
-        this.touching.down = true;
-        body.touching.up = true;
-
-        return true;
-
-    },
-
-    /**
-    * Internal method. Integrates velocity, global gravity and the delta timer.
-    *
-    * @method Phaser.Physics.Arcade.Body#integrateVelocity
-    * @protected
-    */
-    integrateVelocity: function () {
-
-        this._temp = this.game.physics.updateMotion(this);
-        this._dx = this.game.time.physicsElapsed * (this.velocity.x + this._temp.x / 2);
-        this._dy = this.game.time.physicsElapsed * (this.velocity.y + this._temp.y / 2);
-
-        //  positive = RIGHT / DOWN
-        //  negative = LEFT / UP
-
-        if ((this._dx < 0 && !this.blocked.left && !this.touching.left) || (this._dx > 0 && !this.blocked.right && !this.touching.right))
-        {
-            this.x += this._dx;
-            this.velocity.x += this._temp.x;
-        }
-
-        if ((this._dy < 0 && !this.blocked.up && !this.touching.up) || (this._dy > 0 && !this.blocked.down && !this.touching.down))
-        {
-            this.y += this._dy;
-            this.velocity.y += this._temp.y;
-        }
-
-        if (this.velocity.x > this.maxVelocity.x)
-        {
-            this.velocity.x = this.maxVelocity.x;
-        }
-        else if (this.velocity.x < -this.maxVelocity.x)
-        {
-            this.velocity.x = -this.maxVelocity.x;
-        }
-
-        if (this.velocity.y > this.maxVelocity.y)
-        {
-            this.velocity.y = this.maxVelocity.y;
-        }
-        else if (this.velocity.y < -this.maxVelocity.y)
-        {
-            this.velocity.y = -this.maxVelocity.y;
-        }
+        // this.x = (this.sprite.world.x - (this.sprite.anchor.x * this.sprite.width)) + this.offset.x;
+        // this.y = (this.sprite.world.y - (this.sprite.anchor.y * this.sprite.height)) + this.offset.y;
 
     },
 
     /**
     * Internal method. This is called directly before the sprites are sent to the renderer and after the update function has finished.
     *
-    * @method Phaser.Physics.Arcade.Body#postUpdate
+    * @method Phaser.Physics.Body#postUpdate
     * @protected
     */
     postUpdate: function () {
 
-        if (this.moves)
+        this.sprite.x = this.p2px(this.data.position[0]);
+        this.sprite.y = this.p2px(this.data.position[1]);
+
+        if (!this.fixedRotation)
         {
-            this.game.physics.checkBounds(this);
-
-            this.reboundCheck(true, true, true);
-
-            this._dx = this.deltaX();
-            this._dy = this.deltaY();
-
-            if (this._dx < 0)
-            {
-                this.facing = Phaser.LEFT;
-            }
-            else if (this._dx > 0)
-            {
-                this.facing = Phaser.RIGHT;
-            }
-
-            if (this._dy < 0)
-            {
-                this.facing = Phaser.UP;
-            }
-            else if (this._dy > 0)
-            {
-                this.facing = Phaser.DOWN;
-            }
-
-            if (this._dx !== 0 || this._dy !== 0)
-            {
-                this.sprite.x += this._dx;
-                this.sprite.y += this._dy;
-            }
-
-            if (this.allowRotation && this.deltaZ() !== 0)
-            {
-                this.sprite.angle += this.deltaZ();
-            }
-
-            if (this.sprite.scale.x !== this._sx || this.sprite.scale.y !== this._sy)
-            {
-                this.updateScale();
-            }
+            this.sprite.rotation = this.data.angle;
         }
 
     },
@@ -41760,11 +31466,12 @@ Phaser.Physics.Arcade.Body.prototype = {
     * Resets the Body motion values: velocity, acceleration, angularVelocity and angularAcceleration.
     * Also resets the forces to defaults: gravity, bounce, minVelocity,maxVelocity, angularDrag, maxAngular, mass, friction and checkCollision if 'full' specified.
     *
-    * @method Phaser.Physics.Arcade.Body#reset
+    * @method Phaser.Physics.Body#reset
     * @param {boolean} [full=false] - A full reset clears down settings you may have set, such as gravity, bounce and drag. A non-full reset just clears motion values.
     */
     reset: function (full) {
 
+        /*
         if (typeof full === 'undefined') { full = false; }
 
         if (full)
@@ -41792,18 +31499,20 @@ Phaser.Physics.Arcade.Body.prototype = {
         this.updateBounds();
 
         this.contacts.length = 0;
+        */
 
     },
 
     /**
     * Destroys this Body and all references it holds to other objects.
     *
-    * @method Phaser.Physics.Arcade.Body#destroy
+    * @method Phaser.Physics.Body#destroy
     */
     destroy: function () {
 
         this.sprite = null;
 
+        /*
         this.collideCallback = null;
         this.collideCallbackContext = null;
 
@@ -41811,6 +31520,7 @@ Phaser.Physics.Arcade.Body.prototype = {
         this.customSeparateContext = null;
 
         this.contacts.length = 0;
+        */
 
     },
 
@@ -41818,21 +31528,21 @@ Phaser.Physics.Arcade.Body.prototype = {
     * Sets this Body to use a circle of the given radius for all collision.
     * The Circle will be centered on the center of the Sprite by default, but can be adjusted via the Body.offset property and the setCircle x/y parameters.
     *
-    * @method Phaser.Physics.Arcade.Body#setCircle
+    * @method Phaser.Physics.Body#setCircle
     * @param {number} radius - The radius of this circle (in pixels)
     * @param {number} [offsetX=0] - The x amount the circle will be offset from the Sprites center.
     * @param {number} [offsetY=0] - The y amount the circle will be offset from the Sprites center.
     */
     setCircle: function (radius, offsetX, offsetY) {
 
-        if (typeof offsetX === 'undefined') { offsetX = this.sprite._cache.halfWidth; }
-        if (typeof offsetY === 'undefined') { offsetY = this.sprite._cache.halfHeight; }
+        // if (typeof offsetX === 'undefined') { offsetX = this.sprite._cache.halfWidth; }
+        // if (typeof offsetY === 'undefined') { offsetY = this.sprite._cache.halfHeight; }
 
-        this.type = Phaser.Physics.Arcade.CIRCLE;
-        this.shape = new SAT.Circle(new SAT.Vector(this.sprite.x, this.sprite.y), radius);
-        this.polygon = null;
+        // this.type = Phaser.Physics.Arcade.CIRCLE;
+        // this.shape = new SAT.Circle(new SAT.Vector(this.sprite.x, this.sprite.y), radius);
+        // this.polygon = null;
 
-        this.offset.setTo(offsetX, offsetY);
+        // this.offset.setTo(offsetX, offsetY);
 
     },
 
@@ -41840,23 +31550,22 @@ Phaser.Physics.Arcade.Body.prototype = {
     * Sets this Body to use a rectangle for all collision.
     * If you don't specify any parameters it will be sized to match the parent Sprites current width and height (including scale factor) and centered on the sprite.
     *
-    * @method Phaser.Physics.Arcade.Body#setRectangle
+    * @method Phaser.Physics.Body#setRectangle
     * @param {number} [width] - The width of the rectangle. If not specified it will default to the width of the parent Sprite.
     * @param {number} [height] - The height of the rectangle. If not specified it will default to the height of the parent Sprite.
     * @param {number} [translateX] - The x amount the rectangle will be translated from the Sprites center.
     * @param {number} [translateY] - The y amount the rectangle will be translated from the Sprites center.
     */
-    setRectangle: function (width, height, translateX, translateY) {
+    setRectangle: function (width, height, offsetX, offsetY) {
 
         if (typeof width === 'undefined') { width = this.sprite.width; }
         if (typeof height === 'undefined') { height = this.sprite.height; }
-        if (typeof translateX === 'undefined') { translateX = -this.sprite._cache.halfWidth; }
-        if (typeof translateY === 'undefined') { translateY = -this.sprite._cache.halfHeight; }
+        // if (typeof translateX === 'undefined') { translateX = this.sprite.width / 2; }
+        // if (typeof translateY === 'undefined') { translateY = this.sprite.height / 2; }
 
-        this.type = Phaser.Physics.Arcade.RECT;
-        this.shape = new SAT.Box(new SAT.Vector(this.sprite.world.x, this.sprite.world.y), width, height);
-        this.polygon = this.shape.toPolygon();
-        this.polygon.translate(translateX, translateY);
+        //  This means 1 shape per body, need to move this to an array or similar
+        this.shape = new p2.Rectangle(this.px2p(width), this.px2p(height));
+        this.data.addShape(this.shape);
 
         this.offset.setTo(0, 0);
 
@@ -41867,7 +31576,7 @@ Phaser.Physics.Arcade.Body.prototype = {
     * The points are specified in a counter-clockwise direction and must create a convex polygon.
     * Use Body.translate and/or Body.offset to re-position the polygon from the Sprite origin.
     *
-    * @method Phaser.Physics.Arcade.Body#setPolygon
+    * @method Phaser.Physics.Body#setPolygon
     * @param {(SAT.Vector[]|number[]|...SAT.Vector|...number)} points - This can be an array of Vectors that form the polygon,
     *      a flat array of numbers that will be interpreted as [x,y, x,y, ...], or the arguments passed can be
     *      all the points of the polygon e.g. `setPolygon(new SAT.Vector(), new SAT.Vector(), ...)`, or the
@@ -41875,6 +31584,7 @@ Phaser.Physics.Arcade.Body.prototype = {
     */
     setPolygon: function (points) {
 
+        /*
         this.type = Phaser.Physics.Arcade.POLYGON;
         this.shape = null;
 
@@ -41898,108 +31608,61 @@ Phaser.Physics.Arcade.Body.prototype = {
         this.polygon = new SAT.Polygon(new SAT.Vector(this.sprite.center.x, this.sprite.center.y), points);
 
         this.offset.setTo(0, 0);
+        */
 
     },
 
     /**
-    * Used for translating rectangle and polygon bodies from the Sprite parent. Doesn't apply to Circles.
-    * See also the Body.offset property.
-    *
-    * @method Phaser.Physics.Arcade.Body#translate
-    * @param {number} x - The x amount the polygon or rectangle will be translated by from the Sprite.
-    * @param {number} y - The y amount the polygon or rectangle will be translated by from the Sprite.
+    * Convert p2 physics value to pixel scale.
+    * 
+    * @method Phaser.Math#p2px
+    * @param {number} v - The value to convert.
+    * @return {number} The scaled value.
     */
-    translate: function (x, y) {
+    p2px: function (v) {
 
-        if (this.polygon)
-        {
-            this.polygon.translate(x, y);
-        }
+        return v *= -20;
 
     },
 
     /**
-    * Determines if this Body is 'on the floor', which means in contact with a Tile or World bounds, or other object that has set 'down' as blocked.
-    *
-    * @method Phaser.Physics.Arcade.Body#onFloor
-    * @return {boolean} True if this Body is 'on the floor', which means in contact with a Tile or World bounds, or object that has set 'down' as blocked.
+    * Convert pixel value to p2 physics scale.
+    * 
+    * @method Phaser.Math#px2p
+    * @param {number} v - The value to convert.
+    * @return {number} The scaled value.
     */
-    onFloor: function () {
-        return this.blocked.down;
-    },
+    px2p: function (v) {
 
-    /**
-    * Determins if this Body is 'on a wall', which means horizontally in contact with a Tile or World bounds, or other object but not the ground.
-    *
-    * @method Phaser.Physics.Arcade.Body#onWall
-    * @return {boolean} True if this Body is 'on a wall', which means horizontally in contact with a Tile or World bounds, or other object but not the ground.
-    */
-    onWall: function () {
-        return (!this.blocked.down && (this.blocked.left || this.blocked.right));
-    },
+        return v * -0.05;
 
-    /**
-    * Returns the delta x value. The amount the Body has moved horizontally in the current step.
-    *
-    * @method Phaser.Physics.Arcade.Body#deltaX
-    * @return {number} The delta value. Positive if the motion was to the right, negative if to the left.
-    */
-    deltaX: function () {
-        return this.x - this.preX;
-    },
-
-    /**
-    * Returns the delta y value. The amount the Body has moved vertically in the current step.
-    *
-    * @method Phaser.Physics.Arcade.Body#deltaY
-    * @return {number} The delta value. Positive if the motion was downwards, negative if upwards.
-    */
-    deltaY: function () {
-        return this.y - this.preY;
-    },
-
-    /**
-    * Returns the delta z value. The amount the Body has rotated in the current step.
-    *
-    * @method Phaser.Physics.Arcade.Body#deltaZ
-    * @return {number} The delta value.
-    */
-    deltaZ: function () {
-        return this.rotation - this.preRotation;
     }
 
 };
 
-Phaser.Physics.Arcade.Body.prototype.constructor = Phaser.Physics.Arcade.Body;
+Phaser.Physics.Body.prototype.constructor = Phaser.Physics.Body;
 
 /**
-* @name Phaser.Physics.Arcade.Body#x
-* @property {number} x - The x coordinate of this Body.
+* @name Phaser.Physics.Body#static
+* @property {boolean} static - Returns true if the Body is static. Setting Body.static to 'false' will make it dynamic.
 */
-Object.defineProperty(Phaser.Physics.Arcade.Body.prototype, "x", {
+Object.defineProperty(Phaser.Physics.Body.prototype, "static", {
     
     get: function () {
-        
-        if (this.type === Phaser.Physics.Arcade.CIRCLE)
-        {
-            return this.shape.pos.x;
-        }
-        else
-        {
-            return this.polygon.pos.x;
-        }
+
+        return (this.data.motionState === Phaser.STATIC);
 
     },
 
     set: function (value) {
 
-        if (this.type === Phaser.Physics.Arcade.CIRCLE)
+        if (value && this.data.motionState !== Phaser.STATIC)
         {
-            this.shape.pos.x = value;
+            this.data.motionState = Phaser.STATIC;
         }
-        else
+        else if (!value && this.data.motionState === Phaser.STATIC)
         {
-            this.polygon.pos.x = value;
+            this.data.motionState = Phaser.DYNAMIC;
         }
 
     }
@@ -42007,34 +31670,358 @@ Object.defineProperty(Phaser.Physics.Arcade.Body.prototype, "x", {
 });
 
 /**
-* @name Phaser.Physics.Arcade.Body#y
-* @property {number} y - The y coordinate of this Body.
+* @name Phaser.Physics.Body#dynamic
+* @property {boolean} dynamic - Returns true if the Body is dynamic. Setting Body.dynamic to 'false' will make it static.
 */
-Object.defineProperty(Phaser.Physics.Arcade.Body.prototype, "y", {
+Object.defineProperty(Phaser.Physics.Body.prototype, "dynamic", {
     
     get: function () {
-        
-        if (this.type === Phaser.Physics.Arcade.CIRCLE)
-        {
-            return this.shape.pos.y;
-        }
-        else
-        {
-            return this.polygon.pos.y;
-        }
+
+        return (this.data.motionState === Phaser.DYNAMIC);
 
     },
 
     set: function (value) {
 
-        if (this.type === Phaser.Physics.Arcade.CIRCLE)
+        if (value && this.data.motionState !== Phaser.DYNAMIC)
         {
-            this.shape.pos.y = value;
+            this.data.motionState = Phaser.DYNAMIC;
         }
-        else
+        else if (!value && this.data.motionState === Phaser.DYNAMIC)
         {
-            this.polygon.pos.y = value;
+            this.data.motionState = Phaser.STATIC;
         }
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.Body#kinematic
+* @property {boolean} kinematic - Returns true if the Body is kinematic. Setting Body.kinematic to 'false' will make it static.
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "kinematic", {
+    
+    get: function () {
+
+        return (this.data.motionState === Phaser.KINEMATIC);
+
+    },
+
+    set: function (value) {
+
+        if (value && this.data.motionState !== Phaser.KINEMATIC)
+        {
+            this.data.motionState = Phaser.KINEMATIC;
+        }
+        else if (!value && this.data.motionState === Phaser.KINEMATIC)
+        {
+            this.data.motionState = Phaser.STATIC;
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.Body#allowSleep
+* @property {boolean} allowSleep - 
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "allowSleep", {
+    
+    get: function () {
+
+        return this.data.allowSleep;
+
+    },
+
+    set: function (value) {
+
+        if (value !== this.data.allowSleep)
+        {
+            this.data.allowSleep = value;
+        }
+
+    }
+
+});
+
+/**
+* The angle of the Body in degrees from its original orientation. Values from 0 to 180 represent clockwise rotation; values from 0 to -180 represent counterclockwise rotation.
+* Values outside this range are added to or subtracted from 360 to obtain a value within the range. For example, the statement Body.angle = 450 is the same as Body.angle = 90.
+* If you wish to work in radians instead of degrees use the property Body.rotation instead. Working in radians is faster as it doesn't have to convert values.
+* 
+* @name Phaser.Physics.Body#angle
+* @property {number} angle - The angle of this Body in degrees.
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "angle", {
+
+    get: function() {
+
+        return Phaser.Math.wrapAngle(Phaser.Math.radToDeg(this.data.angle));
+
+    },
+
+    set: function(value) {
+
+        this.data.angle = Phaser.Math.degToRad(Phaser.Math.wrapAngle(value));
+
+    }
+
+});
+
+/**
+* Damping is specified as a value between 0 and 1, which is the proportion of velocity lost per second.
+* @name Phaser.Physics.Body#angularDamping
+* @property {number} angularDamping - The angular damping acting acting on the body.
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "angularDamping", {
+    
+    get: function () {
+
+        return this.data.angularDamping;
+
+    },
+
+    set: function (value) {
+
+        this.data.angularDamping = value;
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.Body#angularForce
+* @property {number} angularForce - The angular force acting on the body.
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "angularForce", {
+    
+    get: function () {
+
+        return this.data.angularForce;
+
+    },
+
+    set: function (value) {
+
+        this.data.angularForce = value;
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.Body#angularVelocity
+* @property {number} angularVelocity - The angular velocity of the body.
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "angularVelocity", {
+    
+    get: function () {
+
+        return this.data.angularVelocity;
+
+    },
+
+    set: function (value) {
+
+        this.data.angularVelocity = value;
+
+    }
+
+});
+
+/**
+* Damping is specified as a value between 0 and 1, which is the proportion of velocity lost per second.
+* @name Phaser.Physics.Body#damping
+* @property {number} damping - The linear damping acting on the body in the velocity direction.
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "damping", {
+    
+    get: function () {
+
+        return this.data.damping;
+
+    },
+
+    set: function (value) {
+
+        this.data.damping = value;
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.Body#fixedRotation
+* @property {boolean} fixedRotation - 
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "fixedRotation", {
+    
+    get: function () {
+
+        return this.data.fixedRotation;
+
+    },
+
+    set: function (value) {
+
+        if (value !== this.data.fixedRotation)
+        {
+            this.data.fixedRotation = value;
+            //  update anything?
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.Body#inertia
+* @property {number} inertia - The inertia of the body around the Z axis..
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "inertia", {
+    
+    get: function () {
+
+        return this.data.inertia;
+
+    },
+
+    set: function (value) {
+
+        this.data.inertia = value;
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.Body#mass
+* @property {number} mass - 
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "mass", {
+    
+    get: function () {
+
+        return this.data.mass;
+
+    },
+
+    set: function (value) {
+
+        if (value !== this.data.mass)
+        {
+            this.data.mass = value;
+            this.data.updateMassProperties();
+        }
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.Body#motionState
+* @property {number} motionState - The type of motion this body has. Should be one of: Body.STATIC (the body does not move), Body.DYNAMIC (body can move and respond to collisions) and Body.KINEMATIC (only moves according to its .velocity).
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "motionState", {
+    
+    get: function () {
+
+        return this.data.motionState;
+
+    },
+
+    set: function (value) {
+
+        if (value !== this.data.motionState)
+        {
+            this.data.motionState = value;
+            //  update?
+        }
+
+    }
+
+});
+
+/**
+* The angle of the Body in radians.
+* If you wish to work in degrees instead of radians use the Body.angle property instead. Working in radians is faster as it doesn't have to convert values.
+* 
+* @name Phaser.Physics.Body#rotation
+* @property {number} rotation - The angle of this Body in radians.
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "rotation", {
+
+    get: function() {
+
+        return this.data.angle;
+
+    },
+
+    set: function(value) {
+
+        this.data.angle = value;
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.Body#sleepSpeedLimit
+* @property {number} sleepSpeedLimit - .
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "sleepSpeedLimit", {
+    
+    get: function () {
+
+        return this.data.sleepSpeedLimit;
+
+    },
+
+    set: function (value) {
+
+        this.data.sleepSpeedLimit = value;
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.Body#x
+* @property {number} x - The x coordinate of this Body.
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "x", {
+    
+    get: function () {
+
+        return this.p2px(this.data.position[0]);
+
+    },
+
+    set: function (value) {
+
+        this.data.position[0] = this.px2p(value);
+
+    }
+
+});
+
+/**
+* @name Phaser.Physics.Body#y
+* @property {number} y - The y coordinate of this Body.
+*/
+Object.defineProperty(Phaser.Physics.Body.prototype, "y", {
+    
+    get: function () {
+
+        return this.p2px(this.data.position[1]);
+
+    },
+
+    set: function (value) {
+
+        this.data.position[1] = this.px2p(value);
 
     }
 
@@ -42644,7 +32631,6 @@ Phaser.Particles.Arcade.Emitter.prototype.at = function (object) {
 * The emitters alpha value.
 * @name Phaser.Particles.Arcade.Emitter#alpha
 * @property {number} alpha - Gets or sets the alpha value of the Emitter.
-*/
 Object.defineProperty(Phaser.Particles.Arcade.Emitter.prototype, "alpha", {
     
     get: function () {
@@ -42656,12 +32642,12 @@ Object.defineProperty(Phaser.Particles.Arcade.Emitter.prototype, "alpha", {
     }
 
 });
+*/
 
 /**
 * The emitter visible state.
 * @name Phaser.Particles.Arcade.Emitter#visible
 * @property {boolean} visible - Gets or sets the Emitter visible state.
-*/
 Object.defineProperty(Phaser.Particles.Arcade.Emitter.prototype, "visible", {
     
     get: function () {
@@ -42673,6 +32659,7 @@ Object.defineProperty(Phaser.Particles.Arcade.Emitter.prototype, "visible", {
     }
 
 });
+*/
 
 /**
 * @name Phaser.Particles.Arcade.Emitter#x
@@ -42880,16 +32867,16 @@ Phaser.Tile = function (layer, index, x, y, width, height) {
     this.collideDown = false;
 
     /**
-    * @property {function} callback - Tile collision callback.
+    * @property {function} collisionCallback - Tile collision callback.
     * @default
     */
-    this.callback = null;
+    this.collisionCallback = null;
 
     /**
-    * @property {object} callbackContext - The context in which the collision callback will be called.
+    * @property {object} collisionCallbackContext - The context in which the collision callback will be called.
     * @default
     */
-    this.callbackContext = this;
+    this.collisionCallbackContext = this;
 
 };
 
@@ -42901,12 +32888,12 @@ Phaser.Tile.prototype = {
     * 
     * @method Phaser.Tile#setCollisionCallback
     * @param {function} callback - Callback function.
-    * @param {object} context - Callback will be called with this context.
+    * @param {object} context - Callback will be called within this context.
     */
     setCollisionCallback: function (callback, context) {
 
-        this.collisionCallbackContext = context;
         this.collisionCallback = callback;
+        this.collisionCallbackContext = context;
 
     },
 
@@ -43173,13 +33160,13 @@ Phaser.Tilemap = function (game, key) {
     this._results = [];
 
     /**
-    * @property {number} _tempA - Internal cache var.
+    * @property {number} _tempA - Internal var.
     * @private
     */
     this._tempA = 0;
 
     /**
-    * @property {number} _tempB - Internal cache var.
+    * @property {number} _tempB - Internal var.
     * @private
     */
     this._tempB = 0;
@@ -43234,7 +33221,7 @@ Phaser.Tilemap.prototype = {
             format: Phaser.Tilemap.CSV,
             data: data,
             indexes: [],
-            dirty: true
+			dirty: true
 
         });
 
@@ -43858,7 +33845,7 @@ Phaser.Tilemap.prototype = {
                 this.layers[layer].data[y][x].index = tile;
             }
 
-            this.layers[layer].dirty = true;
+			this.layers[layer].dirty = true;
             this.calculateFaces(layer);
         }
 
@@ -44010,15 +33997,15 @@ Phaser.Tilemap.prototype = {
         }
 
         //  Find out the difference between tileblock[1].x/y and x/y and use it as an offset, as it's the top left of the block to paste
-        var diffX = x - tileblock[1].x;
-        var diffY = y - tileblock[1].y;
+        var diffX = tileblock[1].x - x;
+        var diffY = tileblock[1].y - y;
 
         for (var i = 1; i < tileblock.length; i++)
         {
             this.layers[layer].data[ diffY + tileblock[i].y ][ diffX + tileblock[i].x ].copy(tileblock[i]);
         }
 
-        this.layers[layer].dirty = true;
+		this.layers[layer].dirty = true;
         this.calculateFaces(layer);
 
     },
@@ -45530,10 +35517,6 @@ Phaser.TilemapParser = {
             newSet.columns = (set.imagewidth - set.margin) / (set.tilewidth + set.spacing);
             newSet.total = newSet.rows * newSet.columns;
 
-            if (newSet.rows % 1 !== 0 || newSet.columns % 1 !== 0) {
-                console.warn('TileSet image dimensions do not match expected dimensions.');
-            }
-
             tilesets.push(newSet);
         }
 
@@ -45748,291 +35731,5 @@ Phaser.Tileset.prototype = {
 };
 
 Phaser.Tileset.prototype.constructor = Phaser.Tileset;
-
-/**
-* We're replacing a couple of Pixi's methods here to fix or add some vital functionality:
-*
-* 1) Added support for Trimmed sprite sheets
-* 2) Skip display objects with an alpha of zero
-* 3) Avoid Style Recalculation from the incorrect bgcolor value
-* 4) Added support for Canvas unit rounding via Phaser.CANVAS_PX_ROUND boolean (disabled by default).
-*
-* Hopefully we can remove this once Pixi has been updated to support these things.
-*/
-
-/**
- * Renders the stage to its canvas view
- *
- * @method render
- * @param stage {Stage} the Stage element to be rendered
- */
-PIXI.CanvasRenderer.prototype.render = function(stage)
-{
-    PIXI.texturesToUpdate.length = 0;
-    PIXI.texturesToDestroy.length = 0;
-    
-    PIXI.visibleCount++;
-    stage.updateTransform();
-
-    this.context.setTransform(1, 0, 0, 1, 0, 0);
-
-    if (Phaser.CANVAS_CLEAR_RECT)
-    {
-        this.context.clearRect(0, 0, this.width, this.height)
-    }
-
-    this.renderDisplayObject(stage, false);
-   
-    //  Remove frame updates
-    if (PIXI.Texture.frameUpdates.length > 0)
-    {
-        PIXI.Texture.frameUpdates.length = 0;
-    }
-    
-}
-
-// @param {boolean} [renderHidden=false] - If true displayObjects that have their visible property set to false will still be rendered.
-
-PIXI.CanvasRenderer.prototype.renderDisplayObject = function(displayObject, renderHidden)
-{
-    // Once the display object hits this we can break the loop  
-    var testObject = displayObject.last._iNext;
-    displayObject = displayObject.first;
-    
-    do
-    {
-        if (!displayObject.visible && !renderHidden)
-        {
-            displayObject = displayObject.last._iNext;
-            continue;
-        }
-        
-        if (!displayObject.renderable || displayObject.alpha === 0)
-        {
-            displayObject = displayObject._iNext;
-            continue;
-        }
-        
-        if (displayObject instanceof PIXI.Sprite)
-        {
-            if (displayObject.texture.frame)
-            {
-                this.context.globalAlpha = displayObject.worldAlpha;
-
-                if (Phaser.CANVAS_PX_ROUND)
-                {
-                    this.context.setTransform(
-                            displayObject.worldTransform[0],
-                            displayObject.worldTransform[3],
-                            displayObject.worldTransform[1],
-                            displayObject.worldTransform[4],
-                            Math.floor(displayObject.worldTransform[2]),
-                            Math.floor(displayObject.worldTransform[5]));
-                }
-                else
-                {
-                    this.context.setTransform(
-                            displayObject.worldTransform[0],
-                            displayObject.worldTransform[3],
-                            displayObject.worldTransform[1],
-                            displayObject.worldTransform[4],
-                            displayObject.worldTransform[2],
-                            displayObject.worldTransform[5]);
-                }
-
-                if (displayObject.texture.trimmed)
-                {
-                    this.context.transform(1, 0, 0, 1, displayObject.texture.trim.x, displayObject.texture.trim.y);
-                }
-
-                //if smoothingEnabled is supported and we need to change the smoothing property for this texture
-                if (this.smoothProperty && this.scaleMode !== displayObject.texture.baseTexture.scaleMode)
-                {
-                    this.scaleMode = displayObject.texture.baseTexture.scaleMode;
-                    this.context[this.smoothProperty] = (this.scaleMode === PIXI.BaseTexture.SCALE_MODE.LINEAR);
-                }
-                    
-                this.context.drawImage(
-                    displayObject.texture.baseTexture.source,
-                    displayObject.texture.frame.x,
-                    displayObject.texture.frame.y,
-                    displayObject.texture.frame.width,
-                    displayObject.texture.frame.height,
-                    Math.floor((displayObject.anchor.x) * -displayObject.texture.frame.width),
-                    Math.floor((displayObject.anchor.y) * -displayObject.texture.frame.height),
-                    displayObject.texture.frame.width,
-                    displayObject.texture.frame.height);
-            }
-        }
-        else if (displayObject instanceof PIXI.Strip)
-        {
-            this.context.setTransform(displayObject.worldTransform[0], displayObject.worldTransform[3], displayObject.worldTransform[1], displayObject.worldTransform[4], displayObject.worldTransform[2], displayObject.worldTransform[5])
-            this.renderStrip(displayObject);
-        }
-        else if (displayObject instanceof PIXI.TilingSprite)
-        {
-            this.context.setTransform(displayObject.worldTransform[0], displayObject.worldTransform[3], displayObject.worldTransform[1], displayObject.worldTransform[4], displayObject.worldTransform[2], displayObject.worldTransform[5])
-            this.renderTilingSprite(displayObject);
-        }
-        else if (displayObject instanceof PIXI.CustomRenderable)
-        {
-            displayObject.renderCanvas(this);
-        }
-        else if (displayObject instanceof PIXI.Graphics)
-        {
-            this.context.setTransform(displayObject.worldTransform[0], displayObject.worldTransform[3], displayObject.worldTransform[1], displayObject.worldTransform[4], displayObject.worldTransform[2], displayObject.worldTransform[5])
-            PIXI.CanvasGraphics.renderGraphics(displayObject, this.context);
-        }
-        else if (displayObject instanceof PIXI.FilterBlock)
-        {
-            if(displayObject.data instanceof PIXI.Graphics)
-            {
-                var mask = displayObject.data;
-
-                if(displayObject.open)
-                {
-                    this.context.save();
-
-                    var cacheAlpha = mask.alpha;
-                    var maskTransform = mask.worldTransform;
-
-                    this.context.setTransform(maskTransform[0], maskTransform[3], maskTransform[1], maskTransform[4], maskTransform[2], maskTransform[5]);
-
-                    mask.worldAlpha = 0.5;
-
-                    this.context.worldAlpha = 0;
-
-                    PIXI.CanvasGraphics.renderGraphicsMask(mask, this.context);
-                    this.context.clip();
-
-                    mask.worldAlpha = cacheAlpha;
-                }
-                else
-                {
-                    this.context.restore();
-                }
-            }
-        }
-        //  count++
-        displayObject = displayObject._iNext;
-    }
-    while(displayObject != testObject)
-    
-}
-
-PIXI.WebGLBatch.prototype.update = function()
-{
-    // var gl = this.gl;
-    // var worldTransform, width, height, aX, aY, w0, w1, h0, h1, index, index2, index3
-
-    var worldTransform, width, height, aX, aY, w0, w1, h0, h1, index;
-
-    var a, b, c, d, tx, ty;
-
-    var indexRun = 0;
-
-    var displayObject = this.head;
-
-    while(displayObject)
-    {
-        if(displayObject.vcount === PIXI.visibleCount)
-        {
-            width = displayObject.texture.frame.width;
-            height = displayObject.texture.frame.height;
-
-            // TODO trim??
-            aX = displayObject.anchor.x;// - displayObject.texture.trim.x
-            aY = displayObject.anchor.y; //- displayObject.texture.trim.y
-            w0 = width * (1-aX);
-            w1 = width * -aX;
-
-            h0 = height * (1-aY);
-            h1 = height * -aY;
-
-            index = indexRun * 8;
-
-            worldTransform = displayObject.worldTransform;
-
-            a = worldTransform[0];
-            b = worldTransform[3];
-            c = worldTransform[1];
-            d = worldTransform[4];
-            tx = worldTransform[2];
-            ty = worldTransform[5];
-
-            if (displayObject.texture.trimmed)
-            {
-                tx += displayObject.texture.trim.x;
-                ty += displayObject.texture.trim.y;
-            }
-
-            this.verticies[index + 0 ] = a * w1 + c * h1 + tx;
-            this.verticies[index + 1 ] = d * h1 + b * w1 + ty;
-
-            this.verticies[index + 2 ] = a * w0 + c * h1 + tx;
-            this.verticies[index + 3 ] = d * h1 + b * w0 + ty;
-
-            this.verticies[index + 4 ] = a * w0 + c * h0 + tx;
-            this.verticies[index + 5 ] = d * h0 + b * w0 + ty;
-
-            this.verticies[index + 6] =  a * w1 + c * h0 + tx;
-            this.verticies[index + 7] =  d * h0 + b * w1 + ty;
-
-            if(displayObject.updateFrame || displayObject.texture.updateFrame)
-            {
-                this.dirtyUVS = true;
-
-                var texture = displayObject.texture;
-
-                var frame = texture.frame;
-                var tw = texture.baseTexture.width;
-                var th = texture.baseTexture.height;
-
-                this.uvs[index + 0] = frame.x / tw;
-                this.uvs[index +1] = frame.y / th;
-
-                this.uvs[index +2] = (frame.x + frame.width) / tw;
-                this.uvs[index +3] = frame.y / th;
-
-                this.uvs[index +4] = (frame.x + frame.width) / tw;
-                this.uvs[index +5] = (frame.y + frame.height) / th;
-
-                this.uvs[index +6] = frame.x / tw;
-                this.uvs[index +7] = (frame.y + frame.height) / th;
-
-                displayObject.updateFrame = false;
-            }
-
-            // TODO this probably could do with some optimisation....
-            if(displayObject.cacheAlpha != displayObject.worldAlpha)
-            {
-                displayObject.cacheAlpha = displayObject.worldAlpha;
-
-                var colorIndex = indexRun * 4;
-                this.colors[colorIndex] = this.colors[colorIndex + 1] = this.colors[colorIndex + 2] = this.colors[colorIndex + 3] = displayObject.worldAlpha;
-                this.dirtyColors = true;
-            }
-        }
-        else
-        {
-            index = indexRun * 8;
-
-            this.verticies[index + 0 ] = 0;
-            this.verticies[index + 1 ] = 0;
-
-            this.verticies[index + 2 ] = 0;
-            this.verticies[index + 3 ] = 0;
-
-            this.verticies[index + 4 ] = 0;
-            this.verticies[index + 5 ] = 0;
-
-            this.verticies[index + 6] = 0;
-            this.verticies[index + 7] = 0;
-        }
-
-        indexRun++;
-        displayObject = displayObject.__next;
-    }
-}
   return Phaser;
 });

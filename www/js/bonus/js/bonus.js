@@ -1,3 +1,6 @@
+define(['phaser'], function(Phaser) {
+
+
 /**
  * This class creates a Phaser-game.
  * @param settings {Object}
@@ -257,3 +260,8 @@ var Bonus = function(settings) {
 
     };
 };
+
+
+return Bonus;
+
+});

@@ -10,10 +10,10 @@ var requirejsconfig = {
 		helper:		'front/helper',
 		stats:		'front/stats',
 		front:		'front/main',
-        phaser:     'bonus-game/src/js/lib/phaser',
-        pixi:       'bonus-game/src/js/lib/pixi',
-        p2:         'bonus-game/src/js/lib/p2',
-        bonus:      'bonus-game/src/js/bonus'
+        phaser:     'bonus/js/lib/phaser',
+        pixi:       'bonus/js/lib/pixi',
+        p2:         'bonus/js/lib/p2',
+        bonus:      'bonus/js/bonus'
 	},
 	shim: {
 		'jqm': ['jquery'],
