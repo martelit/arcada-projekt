@@ -171,12 +171,11 @@ $(".answer-button").click(function(){
 	console.log("total questions:"+back.questions_answered);
 	console.log("bonus available: "+back.bonusIsAvailable());
 	
+	
 	var answer = $(this).html();
 	var correctAnswer = back.getAnswer(answer);
 		if( answer == correctAnswer ){
 			$(this).addClass("guessed-answer correct-answer");
-			//$("#correct-wrong").text("Du svarade rätt!");
-			//$("#correct-answer-number").text(answer);
 			
 			$(".wrong-answer-icon").hide();
 			$(".right-answer-icon").show();
@@ -189,9 +188,7 @@ $(".answer-button").click(function(){
 		else
 		{
 			$(this).addClass("guessed-answer wrong-answer");
-			//$("#correct-wrong").text("Du svarade fel.");
-			//$("#correct-answer-number").text(correctAnswer);
-								
+			
 			$(".right-answer-icon").hide();
 			$(".wrong-answer-icon").show();
 			
@@ -217,7 +214,8 @@ $(".answer-button").click(function(){
 	$("#response-popup").popup("open");
 });
 	
-$(".next-button").click(function(){		
+$(".next-button").click(function(){
+	$(".answer-button").removeClass("guessed-answer correct-answer wrong-answer");
 	var nextTask = getQuestion();		
 	displayQuestion = nextTask.question;
 	$('#question-holder').html(nextTask.question);
