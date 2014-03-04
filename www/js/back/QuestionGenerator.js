@@ -25,7 +25,7 @@ function QuestionGenerator () {
 	 */
 	this.getQuestion = function(howMany, minValue, maxValue, operation){
 		
-		console.log(howMany, minValue, maxValue, operation);
+		//console.log(howMany, minValue, maxValue, operation);
 		//TODO: here should come som function about how to generate next question
 		var arrayObj = new Array(this.generateQuestion(howMany, minValue, maxValue, operation));
 		return arrayObj;

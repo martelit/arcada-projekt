@@ -86,9 +86,56 @@ function drawStatistics(){
 	}
 }
 
+
+function initMusic(){
+	var Sound;
+	//Starts and stops music
+	$( ".flip-music" ).change(function () {
+		if(this.value=="on"){
+			musicOld.play();
+			//playMusic();
+		} else {
+			musicOld.pause();
+			//pauseMusic();
+		}
+	});
+	$( ".flip-sound" ).change(function () {
+		if(this.value=="on"){
+			Sound=true;
+		} else {
+			Sound=false;
+		}
+	});
+	// Checks the flip switch on the settings page and plays click sound if it is on there
+	$(".play-click").click( function(){
+		if(Sound){
+			play("click");	
+		}
+	});
+
+		//starts playing background music
+	$(".play-music").click( function(){
+		music.playclip();
+	});
+
+		//pauses background music
+	$(".stop-music").click(function(){
+		music.pause();
+	});
+}
+
+function initBinds(){
+	$( "#save" ).click(function () {
+		setSettings();
+	});
+}
+
 $(document).on('pageshow', function(){
+//	var media = new Media('res/sounds/music.mp3');
+//	media.play();
 	drawStatistics();
 	if(isPhoneGap()){
+		$("start-button").html("LALALA");
 		console.log("is phonegap");
 		navigator.notification.alert(
 			"is phoegap",
@@ -98,62 +145,10 @@ $(document).on('pageshow', function(){
 		);
 	}
 	else {
-		console.log("Not phonegap");
 	}
 	
-$( "#save" ).click(function () {
-	setSettings();
-	//$.mobile.changePage("");
-});	
+	initBinds();
 
-//Starts and stops music
-$( ".flip-music" ).change(function () {
-	if(this.value=="on")
-	{
-		musicOld.play();
-		//playMusic();
-	}
-	else
-	{
-		musicOld.pause();
-		//pauseMusic();
-	}
-});
-			
-	var Sound;
-	
-$( ".flip-sound" ).change(function () {
-	if(this.value=="on")
-	{
-		Sound=true;
-	}
-	else
-	{
-		Sound=false;
-	}
-});
-
-	//plays a click sound
-$(".play-click").click(function(){
-	if(Sound)
-	{
-		play("click");
-	}
-	else
-	{
-		
-	}
-});
-
-	//starts playing background music
-$(".play-music").click(function(){
-	music.playclip();
-});
-
-	//pauses background music
-$(".stop-music").click(function(){
-	music.pause();
-});
 	
 	var task = getQuestion();
 	
@@ -306,7 +301,6 @@ $('#arithmetic-settings input[type="checkbox"]:not("#symbols")').click(function(
 $("#settings").on('pageshow',function(){
 	console.log("settings button clicked");
 	var settings = getSettings();
-	console.log(settings);
 	$('#min').val(settings.minNumber);
 	$('#max').val(settings.maxNumber);
 	$('#addition').prop('checked', settings.addition).checkboxradio('refresh');
