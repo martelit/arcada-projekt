@@ -1,6 +1,5 @@
 define(['phaser'], function(Phaser) {
 
-
 /**
  * This class creates a Phaser-game.
  * @param settings {Object}
@@ -203,14 +202,12 @@ var Bonus = function(settings) {
             /* Callbacks for different states of the game */
 
             preload: function() {
-                game.load.audio('music',[
-                    basePath + 'assets/audio/rorri.ogg',
-                    basePath + 'assets/audio/rorri.mp3'
-                ]);
-                game.load.audio('tsound', [basePath + 'assets/audio/click_sound.ogg']);
-                game.load.audio('fsound', [basePath + 'assets/audio/find_sound.ogg']);
-                game.load.image('target', basePath + 'assets/vaahtosammutin.png');
-                game.load.image('backgroundImage', basePath + 'assets/dark_sky.jpg');
+                game.load.baseUrl = basePath;
+                game.load.audio('music',['assets/audio/rorri.ogg', 'assets/audio/rorri.mp3']);
+                game.load.audio('tsound', ['assets/audio/click_sound.ogg']);
+                game.load.audio('fsound', ['assets/audio/find_sound.ogg']);
+                game.load.image('target', 'assets/vaahtosammutin.png');
+                game.load.image('backgroundImage', 'assets/dark_sky.jpg');
             },
 
             create: function() {
