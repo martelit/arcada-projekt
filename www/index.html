@@ -33,10 +33,14 @@
 		<title>Snille</title>
     </head>
     <body>
-		<audio class="sound" hidden="hidden">
+		<!--<audio class="sound" hidden="hidden" src="res/sounds/click.mp3"></audio>
+		<audio class="music" hidden="hidden" src="res/sounds/music.mp3"></audio>-->
+
+		
+		<audio class="click-sound" hidden="hidden">
 			<source src="res/sounds/click.mp3" type="audio/mpeg" >
 		</audio>
-		<audio class="music1" hidden="hidden">
+		<audio class="music" hidden="hidden">
 			<source src="res/sounds/music.mp3" type="audio/mpeg" >
 		</audio>
 	<div data-role="page" id="front" >
@@ -134,7 +138,6 @@
 	</div>
 	<!-- TODO add rewards page -->
 	<div data-role="page" id="rewards">
-		<div data-role="header"></div>
 		<div data-role="content">
 		<div id="bonus-game-container"></div>
 		</div>
@@ -152,9 +155,11 @@
             </div>
         </div> -->
         <script type="text/javascript" src="phonegap.js"></script><!-- needed by phonegap, do not delete this line -->
-        <script type="text/javascript" src="js/index.js"></script>
+        <!--
+	changed this to app.js and added as module
+	<script type="text/javascript" src="js/index.js"></script>
         <script type="text/javascript">
             app.initialize();
-        </script>
+        </script>-->
     </body>
 </html>

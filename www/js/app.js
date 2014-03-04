@@ -17,6 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+define(function(require){
 var app = {
     // Application Constructor
     initialize: function() {
@@ -35,6 +36,11 @@ var app = {
     // function, we must explicity call 'app.receivedEvent(...);'
     onDeviceReady: function() {
         app.receivedEvent('deviceready');
+	alert('device ready');
+	/*
+	var media = new Media("/android_asset/www/res/sounds/music.mp3");
+	media.play();
+	*/
     },
     // Update DOM on a Received Event
     receivedEvent: function(id) {
@@ -48,3 +54,5 @@ var app = {
         console.log('Received Event: ' + id);
     }
 };
+return app;
+});

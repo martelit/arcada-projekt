@@ -87,16 +87,16 @@ function drawStatistics(){
 }
 
 
-function initMusic(){
+function initSound(){
 	var Sound;
 	//Starts and stops music
 	$( ".flip-music" ).change(function () {
 		if(this.value=="on"){
-			musicOld.play();
-			//playMusic();
+			//musicOld.play();
+			playMusic();
 		} else {
-			musicOld.pause();
-			//pauseMusic();
+			//musicOld.pause();
+			pauseMusic();
 		}
 	});
 	$( ".flip-sound" ).change(function () {
@@ -109,19 +109,20 @@ function initMusic(){
 	// Checks the flip switch on the settings page and plays click sound if it is on there
 	$(".play-click").click( function(){
 		if(Sound){
-			play("click");	
+			playClickSound();
+//			play("click");	
 		}
 	});
 
 		//starts playing background music
-	$(".play-music").click( function(){
+/*	$(".play-music").click( function(){
 		music.playclip();
 	});
 
 		//pauses background music
 	$(".stop-music").click(function(){
 		music.pause();
-	});
+	});*/
 }
 
 function initBinds(){
@@ -129,136 +130,104 @@ function initBinds(){
 		setSettings();
 	});
 }
-
 $(document).on('pageshow', function(){
-//	var media = new Media('res/sounds/music.mp3');
-//	media.play();
 	drawStatistics();
-	if(isPhoneGap()){
-		$("start-button").html("LALALA");
-		console.log("is phonegap");
-		navigator.notification.alert(
-			"is phoegap",
-			notifyCallback,
-			"title",
-			"Button text"
-		);
-	}
-	else {
-	}
-	
 	initBinds();
-
-	
+	initSound();
 	var task = getQuestion();
-	
-$('#question-holder').html(task.question);
-
-$('.button-container').find('button').each(function(i){
-	$(this).html(task.answers[i]);
-});
-
+	$('#question-holder').html(task.question);
+	$('.button-container').find('button').each(function(i){
+		$(this).html(task.answers[i]);
+	});
 	var displayQuestion = task.question;
-$(".answer-button").click(function(){
-	//problem, always sets 2 questions_answered when one is answered? -Bogezu
-	//getAnswer is called twice. once here, once in helper. -Neko
-	//This was getting really annoying so I did a quickfix (that made the guessAnswer function redundant, which it bloody well was to begin with?), revert it and make a better fix if you feel like it -rasmus
-	console.log("total questions:"+back.questions_answered);
-	console.log("bonus available: "+back.bonusIsAvailable());
-	
-	
-	var answer = $(this).html();
-	var correctAnswer = back.getAnswer(answer);
-		if( answer == correctAnswer ){
-			$(this).addClass("guessed-answer correct-answer");
-			
-			$(".wrong-answer-icon").hide();
-			$(".right-answer-icon").show();
-	
-			displayQuestion=displayQuestion.toString();
-			displayQuestion = displayQuestion.replace(",", " ");
-			displayQuestion = displayQuestion.replace(",", " ");
-			$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
-		}
-		else
-		{
-			$(this).addClass("guessed-answer wrong-answer");
-			
-			$(".right-answer-icon").hide();
-			$(".wrong-answer-icon").show();
-			
-			displayQuestion=displayQuestion.toString();
-			displayQuestion = displayQuestion.replace(",", " ");
-			displayQuestion = displayQuestion.replace(",", " ");
-			$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
-		}
+	$(".answer-button").click(function(){
+		//problem, always sets 2 questions_answered when one is answered? -Bogezu
+		//getAnswer is called twice. once here, once in helper. -Neko
+		//This was getting really annoying so I did a quickfix (that made the guessAnswer function redundant, which it bloody well was to begin with?), revert it and make a better fix if you feel like it -rasmus
+		console.log("total questions:"+back.questions_answered);
+		console.log("bonus available: "+back.bonusIsAvailable());
+		
+		var answer = $(this).html();
+		var correctAnswer = back.getAnswer(answer);
+			if( answer == correctAnswer ){
+				$(this).addClass("guessed-answer correct-answer");
 				
-		//show bonus button only when bonus is available
-		if(back.bonusIsAvailable())
-		{
-			$("#next-question").hide();
-			$("#play-bonus-game").show();
-		}
-		//else shows next question button
-		else
-		{
-			$("#next-question").show();
-			$("#play-bonus-game").hide();
-		}
+				$(".wrong-answer-icon").hide();
+				$(".right-answer-icon").show();
+		
+				displayQuestion=displayQuestion.toString();
+				displayQuestion = displayQuestion.replace(",", " ");
+				displayQuestion = displayQuestion.replace(",", " ");
+				$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
+			} else {
+				$(this).addClass("guessed-answer wrong-answer");
+				
+				$(".right-answer-icon").hide();
+				$(".wrong-answer-icon").show();
+				
+				displayQuestion=displayQuestion.toString();
+				displayQuestion = displayQuestion.replace(",", " ");
+				displayQuestion = displayQuestion.replace(",", " ");
+				$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
+			}
+					
+			//show bonus button only when bonus is available
+			if(back.bonusIsAvailable()){
+				$("#next-question").hide();
+				$("#play-bonus-game").show();
+			} else { //else shows next question button
+				$("#next-question").show();
+				$("#play-bonus-game").hide();
+			}
+		$("#response-popup").popup("open");
+	});
 	
-	$("#response-popup").popup("open");
-});
-	
-$(".next-button").click(function(){
-	$(".answer-button").removeClass("guessed-answer correct-answer wrong-answer");
-	var nextTask = getQuestion();		
-	displayQuestion = nextTask.question;
-	$('#question-holder').html(nextTask.question);
-		$('.button-container').find('button').each(function(i){
-			$(this).html(nextTask.answers[i]);
-		});
-	$("#response-popup").popup("close");
-});
+	$(".next-button").click(function(){
+		$(".answer-button").removeClass("guessed-answer correct-answer wrong-answer");
+		var nextTask = getQuestion();		
+		displayQuestion = nextTask.question;
+		$('#question-holder').html(nextTask.question);
+			$('.button-container').find('button').each(function(i){
+				$(this).html(nextTask.answers[i]);
+			});
+		$("#response-popup").popup("close");
+	});
 
-var bonusGame = false;
-$(".bonus-button").click(function(){
+	var bonusGame = false;
+	$(".bonus-button").click(function(){
 		if(back.bonusIsAvailable() == true){
 			//start bonus game
 			$.mobile.changePage("#rewards");
 			$("#response-popup").popup("close");
-
-            // TODO: why executed twice?
-
-            if (!bonusGame) {
-                var Bonus = require('bonus');
-                bonusGame = new Bonus({
-                    parent: 'bonus-game-container',
-                    basePath: 'js/bonus/',
-                    inputDiameter: back.getLampSize() * 20,
-                    newTargetsCount: 5,
-                    musicEnabled: false,
-                    sfxEnabled: true,
-                    onFinish: function(bonusFound) {
-                        back.bonusPlayed(bonusFound);
-                        bonusGame.pause();
-                        $.mobile.changePage("#questions");
-                    }
-                });
-            }
-            bonusGame.play();
-        }
-		else
-		{
+			// TODO: why executed twice?
+			if (!bonusGame) {
+				var Bonus = require('bonus');
+				bonusGame = new Bonus({
+					parent: 'bonus-game-container',
+					basePath: 'js/bonus/',
+					inputDiameter: back.getLampSize() * 20,
+					newTargetsCount: 5,
+					musicEnabled: false,
+					sfxEnabled: true,
+					onFinish: function(bonusFound) {
+						back.bonusPlayed(bonusFound);
+						bonusGame.pause();
+						$.mobile.changePage("#questions");
+					}
+				});
+			}
+			bonusGame.play();
+		} else {
 			//Next question
 			var nextTask = getQuestion();
 			displayQuestion = nextTask.question;
 			$('#question-holder').html(nextTask.question);
-				$('.button-container').find('button').each(function(i){
-					$(this).html(nextTask.answers[i]);
-				});
-		$("#response-popup").popup("close");
+			$('.button-container').find('button').each(function(i){
+				$(this).html(nextTask.answers[i]);
+			});
+			$("#response-popup").popup("close");
 		}
-});
+	});
 
 	// Sets min and max values for the sliders.
 	// This is is not optimal, but probably the best solution if we want to
@@ -283,16 +252,19 @@ $(".bonus-button").click(function(){
 	*/
 	
 	//Deselects all other arithmetic options if symbols are selected (counting without arithmetic)
-$("#symbols").click(function(){
-	$(this).closest('#arithmetic-settings').find('input[type="checkbox"]:not("#symbols")').prop('checked', false).checkboxradio( "refresh" );
-});
+	$("#symbols").click(function(){
+		$(this).closest('#arithmetic-settings')
+		.find('input[type="checkbox"]:not("#symbols")')
+		.prop('checked', false)
+		.checkboxradio( "refresh" );
+	});
 	
-//Deselects symbols (counting without arithmetic) if any other arithmetic setting is clicked
-$('#arithmetic-settings input[type="checkbox"]:not("#symbols")').click(function(){
+	//Deselects symbols (counting without arithmetic) if any other arithmetic setting is clicked
+	$('#arithmetic-settings input[type="checkbox"]:not("#symbols")').click(function(){
 		if($('#symbols').prop('checked', true)){
 			$("#symbols").prop('checked', false).checkboxradio( "refresh" );
 		}
-});
+	});
 	
 	
 	

@@ -1,6 +1,7 @@
 var requirejsconfig = {
 	baseUrl: 'js',
 	paths:  {
+		app:		'app',
 		jquery:		'lib/jquery',
 		jqm: 		'lib/jqm/jquery.mobile',
 		generator:	'back/QuestionGenerator',
@@ -23,6 +24,7 @@ var requirejsconfig = {
 	}
 }
 requirejs.config(requirejsconfig);
-require(['jquery', 'jqm', 'back', 'generator', 'store', 'helper', 'stats', 'front', 'sounds', 'bonus'],
-function($, jqm, back, generator, store, helper, stats, front, sounds, Bonus) {
+require(['app','jquery', 'jqm', 'back', 'generator', 'store', 'helper', 'stats', 'front', 'sounds', 'bonus'],
+function(app, $, jqm, back, generator, store, helper, stats, front, sounds, Bonus) {
+app.initialize();
 });
