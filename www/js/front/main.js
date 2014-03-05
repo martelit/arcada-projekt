@@ -56,7 +56,7 @@ function notifyCallback(){
 function setCanvas(){
 	var h = $("#question-holder").height();
 	var w = $("#question-holder").width();
-	$('#question-holder').html('<canvas id="object-canvas" width="900" height="400"></canvas>');
+	$('#question-holder').html('<canvas id="object-canvas" width="900" height="300"></canvas>');
 }
 
 function drawCanvasObjects(numberOfObjects){
