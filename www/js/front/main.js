@@ -1,30 +1,3 @@
-function getRewardData(){
-	//TODO define what reward data is
-	return {
-		lamps: 2,
-		canPlay: false
-	};
-}
-
-function setRewardData(data){
-	// TODO do we need this?
-}
-
-function getQuestion(){
-	return formatQuestion();
-}
-
-function guessAnswer(guess){
-	if( answerQuestion(guess)  ) {
-		return true;
-	} else {
-		return false;
-	}
-}
-
-function getLamp(){
-	return back.getLampSize();
-}
 
 function getSettings(){
 	/*
@@ -80,22 +53,14 @@ function notifyCallback(){
 
 }
 
-function drawStatistics(){
-	if($.mobile.activePage.attr('id') == 'statistics'){
-		drawStats();
-	}
-}
-
 
 function initSound(){
 	var Sound;
 	//Starts and stops music
 	$( ".flip-music" ).change(function () {
 		if(this.value=="on"){
-			//musicOld.play();
 			playMusic();
 		} else {
-			//musicOld.pause();
 			pauseMusic();
 		}
 	});
@@ -110,90 +75,18 @@ function initSound(){
 	$(".play-click").click( function(){
 		if(Sound){
 			playClickSound();
-//			play("click");	
 		}
 	});
 
-		//starts playing background music
-/*	$(".play-music").click( function(){
-		music.playclip();
-	});
-
-		//pauses background music
-	$(".stop-music").click(function(){
-		music.pause();
-	});*/
 }
 
 function initBinds(){
 	$( "#save" ).click(function () {
 		setSettings();
 	});
-}
-$(document).on('pageshow', function(){
-	drawStatistics();
-	initBinds();
-	initSound();
-	var task = getQuestion();
-	$('#question-holder').html(task.question);
-	$('.button-container').find('button').each(function(i){
-		$(this).html(task.answers[i]);
-	});
-	var displayQuestion = task.question;
-	$(".answer-button").click(function(){
-		//problem, always sets 2 questions_answered when one is answered? -Bogezu
-		//getAnswer is called twice. once here, once in helper. -Neko
-		//This was getting really annoying so I did a quickfix (that made the guessAnswer function redundant, which it bloody well was to begin with?), revert it and make a better fix if you feel like it -rasmus
-		console.log("total questions:"+back.questions_answered);
-		console.log("bonus available: "+back.bonusIsAvailable());
-		
-		var answer = $(this).html();
-		var correctAnswer = back.getAnswer(answer);
-			if( answer == correctAnswer ){
-				$(this).addClass("guessed-answer correct-answer");
-				
-				$(".wrong-answer-icon").hide();
-				$(".right-answer-icon").show();
-		
-				displayQuestion=displayQuestion.toString();
-				displayQuestion = displayQuestion.replace(",", " ");
-				displayQuestion = displayQuestion.replace(",", " ");
-				$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
-			} else {
-				$(this).addClass("guessed-answer wrong-answer");
-				
-				$(".right-answer-icon").hide();
-				$(".wrong-answer-icon").show();
-				
-				displayQuestion=displayQuestion.toString();
-				displayQuestion = displayQuestion.replace(",", " ");
-				displayQuestion = displayQuestion.replace(",", " ");
-				$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
-			}
-					
-			//show bonus button only when bonus is available
-			if(back.bonusIsAvailable()){
-				$("#next-question").hide();
-				$("#play-bonus-game").show();
-			} else { //else shows next question button
-				$("#next-question").show();
-				$("#play-bonus-game").hide();
-			}
-		$("#response-popup").popup("open");
-	});
-	
-	$(".next-button").click(function(){
-		$(".answer-button").removeClass("guessed-answer correct-answer wrong-answer");
-		var nextTask = getQuestion();		
-		displayQuestion = nextTask.question;
-		$('#question-holder').html(nextTask.question);
-			$('.button-container').find('button').each(function(i){
-				$(this).html(nextTask.answers[i]);
-			});
-		$("#response-popup").popup("close");
-	});
-
-	var bonusGame = false;
+	if(typeof(bonusGame) === 'undefined'){
+		var bonusGame = false;
+	}
 	$(".bonus-button").click(function(){
 		if(back.bonusIsAvailable() == true){
 			//start bonus game
@@ -213,44 +106,44 @@ $(document).on('pageshow', function(){
 						back.bonusPlayed(bonusFound);
 						bonusGame.pause();
 						$.mobile.changePage("#questions");
+						//$("#bonus-game-container").html('');
 					}
 				});
 			}
 			bonusGame.play();
-		} else {
-			//Next question
-			var nextTask = getQuestion();
-			displayQuestion = nextTask.question;
-			$('#question-holder').html(nextTask.question);
-			$('.button-container').find('button').each(function(i){
-				$(this).html(nextTask.answers[i]);
-			});
-			$("#response-popup").popup("close");
 		}
 	});
-
-	// Sets min and max values for the sliders.
-	// This is is not optimal, but probably the best solution if we want to
-	// use sliders. 
-	// Rangeslider implemented (the _plugin_ was deprecated because it is apparently now part of standard jqm)
-	/*
-	$( "#min" ).on( "slidestop", function( event, ui ) {
-		var minValue = $('#min').val();
-		$("#max").prop('min', minValue).slider( "refresh" );
-		if($("#max").prop('value') < minValue){
-			$("#max").prop('value', minValue).slider( "refresh" );
-		}
-	} );
-	
-	$( "#max" ).on( "slidestop", function( event, ui ) {
-		var maxValue = $('#max').val();
-		$("#min").prop('max', maxValue).slider( "refresh" );
-		if($("#min").prop('value') > maxValue){
-			$("#min").prop('value', maxValue).slider( "refresh" );
-		}
-	} );
-	*/
-	
+	$(".answer-button").click(function(){
+		//problem, always sets 2 questions_answered when one is answered? -Bogezu
+		//getAnswer is called twice. once here, once in helper. -Neko
+		//This was getting really annoying so I did a quickfix (that made the guessAnswer function redundant, which it bloody well was to begin with?), revert it and make a better fix if you feel like it -rasmus
+		console.log("total questions:"+back.questions_answered);
+		console.log("bonus available: "+back.bonusIsAvailable());
+		
+		var answer = $(this).html();
+		var correctAnswer = back.getAnswer(answer);
+		var displayQuestion = $("#question-holder").text();
+			if( answer == correctAnswer ){
+				$(this).addClass("guessed-answer correct-answer");
+				$(".wrong-answer-icon").hide();
+				$(".right-answer-icon").show();
+			} else {
+				$(this).addClass("guessed-answer wrong-answer");
+				$(".right-answer-icon").hide();
+				$(".wrong-answer-icon").show();
+			}
+			$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
+					
+			//show bonus button only when bonus is available
+			if(back.bonusIsAvailable()){
+				$("#next-question").hide();
+				$("#play-bonus-game").show();
+			} else { //else shows next question button
+				$("#next-question").show();
+				$("#play-bonus-game").hide();
+			}
+		$("#response-popup").popup("open");
+	});
 	//Deselects all other arithmetic options if symbols are selected (counting without arithmetic)
 	$("#symbols").click(function(){
 		$(this).closest('#arithmetic-settings')
@@ -265,10 +158,49 @@ $(document).on('pageshow', function(){
 			$("#symbols").prop('checked', false).checkboxradio( "refresh" );
 		}
 	});
-	
-	
-	
-	// TODO doesn't get settings on second click, check why and fix or make this happen on settings page load
+
+	$(".next-button").click(function(){
+		newQuestion();
+		$("#response-popup").popup("close");
+	});
+}
+function newQuestion(){
+		$(".answer-button").removeClass("guessed-answer correct-answer wrong-answer");
+		var nextTask = formatQuestion();
+		$('#question-holder').html(nextTask.question);
+			$('.button-container').find('button').each(function(i){
+				$(this).html(nextTask.answers[i]);
+			});
+//		$("#response-popup").popup("close");
+}
+/*
+$("#rewards").on('pageshow', function(){
+	var Bonus = require('bonus');
+	console.log("YES HERE");
+	bonusGame = new Bonus({
+		parent: 'bonus-game-container',
+		basePath: 'js/bonus/',
+		inputDiameter: /*back.getLampSize() * 20/ 100,
+		newTargetsCount: 5,
+		musicEnabled: false,
+		sfxEnabled: false,
+		onFinish: function(bonusFound) {
+//			back.bonusPlayed(bonusFound);
+//			bonusGame.pause();
+//			$.mobile.changePage("#questions");
+			bonusGame.play();
+		}
+	});
+bonusGame.play();
+});
+*/
+newQuestion();
+initBinds();
+initSound();
+$(document).on('pageshow', function(){
+});
+$("#statistics").on('pageshow', function(){
+	drawStats(); // call function in stats.js
 });
 $("#settings").on('pageshow',function(){
 	console.log("settings button clicked");

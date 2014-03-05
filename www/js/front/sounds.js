@@ -1,6 +1,6 @@
 if(window.cordova){
-var phoneMusic = new Media("/android_asset/www/res/sounds/music.mp3");
-var phoneClickSound = new Media("/android_asset/www/res/sounds/music.mp3");
+	var phoneMusic = new Media("/android_asset/www/res/sounds/music.mp3");
+	var phoneClickSound = new Media("/android_asset/www/res/sounds/music.mp3");
 }
 
 function playMusic(){
