@@ -164,6 +164,12 @@ function clearIndicators(){
 }
 
 function initBinds(){
+	
+	//the amount of indicator bulbs needs to be reset every game
+	$('.start-button').click(function(){
+		clearIndicators();
+		setProgressIndicators();
+	});
 	$( "#save" ).click(function () {
 		setSettings();
 	});
@@ -296,8 +302,6 @@ bonusGame.play();
 newQuestion();
 initBinds();
 initSound();
-clearIndicators();
-setProgressIndicators();
 $(document).on('pageshow', function(){
 });
 $("#statistics").on('pageshow', function(){
