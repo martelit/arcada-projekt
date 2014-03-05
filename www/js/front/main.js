@@ -54,9 +54,7 @@ function notifyCallback(){
 }
 
 function setCanvas(){
-	var h = $("#question-holder").height();
-	var w = $("#question-holder").width();
-	$('#question-holder').html('<canvas id="object-canvas" width="900" height="400"></canvas>');
+	$('#question-holder').html('<canvas id="object-canvas" width="900" height="300"></canvas>');
 }
 
 function drawCanvasObjects(numberOfObjects){
@@ -159,6 +157,7 @@ function initBinds(){
 						back.bonusPlayed(bonusFound);
 						bonusGame.pause();
 						$.mobile.changePage("#questions");
+						$(".answer-button").removeClass("guessed-answer correct-answer wrong-answer");
 						//$("#bonus-game-container").html('');
 					}
 				});
