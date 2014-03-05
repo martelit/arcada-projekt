@@ -267,6 +267,10 @@ var Bonus = function(settings) {
             }
             game.input.onTap.addOnce(onClickTap, this);
             game.paused = false;
+        },
+
+        setLampSize: function(diameter) {
+            inputDiameter = diameter;
         }
 
     };

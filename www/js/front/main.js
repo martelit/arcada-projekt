@@ -192,7 +192,7 @@ function initBinds(){
 				bonusGame = new Bonus({
 					parent: 'bonus-game-container',
 					basePath: 'js/bonus/',
-					inputDiameter: back.getLampSize() * 200,
+					inputDiameter: back.getLampSize() * 50,
 					newTargetsCount: 5,
 					musicEnabled: false,
 					sfxEnabled: true,
@@ -203,7 +203,7 @@ function initBinds(){
 					}
 				});
 			}
-			bonusGame.play();
+			bonusGame.play(back.getLampSize() * 50);
 		}
 	});
 	$(".answer-button").click(function(){
