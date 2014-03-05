@@ -172,6 +172,7 @@ function initBinds(){
 	});
 	$( "#save" ).click(function () {
 		setSettings();
+		newQuestion();
 	});
 	
 	$( "#reset" ).click(function () {
@@ -199,11 +200,14 @@ function initBinds(){
 					onFinish: function(bonusFound) {
 						back.bonusPlayed(bonusFound);
 						$.mobile.changePage("#questions");
-						$(".answer-button").removeClass("guessed-answer correct-answer wrong-answer");
+						newQuestion();
+						clearIndicators();
+						setProgressIndicators();
 					}
 				});
 			}
-			bonusGame.play(back.getLampSize() * 50);
+			bonusGame.setLampSize(back.getLampSize() * 50);
+			bonusGame.play();
 		}
 	});
 	$(".answer-button").click(function(){
@@ -306,14 +310,14 @@ $("#statistics").on('pageshow', function(){
 $("#settings").on('pageshow',function(){
 	console.log("settings button clicked");
 	var settings = getSettings();
-	$('#min').val(settings.minNumber);
-	$('#max').val(settings.maxNumber);
+	$('#min').val(settings.minNumber).slider('refresh');
+	$('#max').val(settings.maxNumber).slider('refresh');
 	$('#addition').prop('checked', settings.addition).checkboxradio('refresh');
 	$('#subtraction').prop('checked', settings.subtraction).checkboxradio('refresh');
 	$('#multiplication').prop('checked', settings.multiplication).checkboxradio('refresh');
 	$('#division').prop('checked', settings.division).checkboxradio('refresh');
 	$('#symbols').prop('checked', settings.symbols).checkboxradio('refresh');
-	$('#bonus').attr('value', settings.questionsBeforeBonus);
+	$('#bonus').attr('value', settings.questionsBeforeBonus).slider('refresh');
 	// TODO Backend needs to take in the new values (symbols & bonus) and set the amount of questions needed answered before bonusIsAvailable() becomes true to the new value. -Bogezu
 	// TODO change the rest of the settings page to what the settings are
 });	
