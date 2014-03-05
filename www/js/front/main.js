@@ -53,6 +53,54 @@ function notifyCallback(){
 
 }
 
+function setCanvas(){
+	var h = $("#question-holder").height();
+	var w = $("#question-holder").width();
+	$('#question-holder').html('<canvas id="object-canvas" width="900" height="400"></canvas>');
+}
+
+function drawCanvasObjects(numberOfObjects){
+		
+	var originalImgHeight = 129;
+	var originalImgWidth = 	142;
+	
+	//Function defaults
+	var x = 20;
+	var y = 20;
+	var scale = 0.8;
+	var scaledx = x;
+	var scaledy = y;
+	
+	var width =  originalImgWidth * scale;
+	var height = originalImgHeight * scale;
+	
+	for(var i = 0; i < numberOfObjects; i++){
+		draw(scaledx,scaledy,width, height);
+		if(numberOfObjects < 6){
+			scaledx += 150;
+		}
+		if(numberOfObjects >= 6 && numberOfObjects <= 10){
+			scaledx += 150;
+			if(i == 5){
+				scaledx = 20;
+				scaledy += 100;
+			}
+		}
+	};
+
+}
+
+function draw(x,y,width,height) {
+	var ctx = document.getElementById('object-canvas').getContext('2d');
+	ctx.clearRect(0, 0, $('#object-canvas').width(), $('#object-canvas').height());
+	ctx.mozImageSmoothingEnabled = false;
+	var symbol = new Image();
+	symbol.src = "img/apple.png";
+	symbol.onload = function() {
+		ctx.drawImage(symbol, x, y, width, height);
+	};
+}
+
 
 function initSound(){
 	var Sound;
@@ -172,10 +220,16 @@ function initBinds(){
 function newQuestion(){
 		$(".answer-button").removeClass("guessed-answer correct-answer wrong-answer");
 		var nextTask = formatQuestion();
-		$('#question-holder').html(nextTask.question);
-			$('.button-container').find('button').each(function(i){
-				$(this).html(nextTask.answers[i]);
-			});
+		if(nextTask.question[1] != ''){
+			$('#question-holder').html(nextTask.question);
+		}
+		else{
+			setCanvas();
+			drawCanvasObjects(nextTask.question[0]);
+		}
+		$('.button-container').find('button').each(function(i){
+			$(this).html(nextTask.answers[i]);
+		});
 //		$("#response-popup").popup("close");
 }
 /*
