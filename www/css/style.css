@@ -144,7 +144,7 @@ h1 {
 #response-popup{
 	font: 1em "Arial"; 
 	background-color: #0072bc;
-	padding: 1em;
+	padding: 1em  10em;
 }
 
 #response-popup span{

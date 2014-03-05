@@ -14,10 +14,3 @@
 
 }
 
-/* this apparently works without overrides, go figure...*/
-#response-popup {
-	border: 0;
-	width:100%;
-	color: #FFF;
-	text-shadow: none !important;
-}
