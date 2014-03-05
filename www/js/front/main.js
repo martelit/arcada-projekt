@@ -84,6 +84,11 @@ function initBinds(){
 	$( "#save" ).click(function () {
 		setSettings();
 	});
+	
+	$( "#reset" ).click(function () {
+		//need to call method for removing history
+	});
+	
 	if(typeof(bonusGame) === 'undefined'){
 		var bonusGame = false;
 	}
