@@ -141,9 +141,7 @@ h1 {
 	font-size: 3.44em !important;
 }
 
-#response-popup.ui-popup{
-	width:auto;
-	height:auto;
+#response-popup{
 	font: 1em "Arial"; 
 	background-color: #0072bc;
 	padding: 1em;
