@@ -86,7 +86,7 @@ function initBinds(){
 	});
 	
 	$( "#reset" ).click(function () {
-		//need to call method for removing history
+		back.clearStats();
 	});
 	
 	if(typeof(bonusGame) === 'undefined'){
