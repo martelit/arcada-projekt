@@ -54,7 +54,7 @@ function notifyCallback(){
 }
 
 function setCanvas(){
-	$('#question-holder').html('<canvas id="object-canvas" width="900" height="250"></canvas>');
+	$('#question-holder').html('<canvas id="object-canvas" width="900" height="300"></canvas>');
 }
 
 function drawCanvasObjects(numberOfObjects){
@@ -192,18 +192,14 @@ function initBinds(){
 				bonusGame = new Bonus({
 					parent: 'bonus-game-container',
 					basePath: 'js/bonus/',
-					inputDiameter: back.getLampSize() * 20,
+					inputDiameter: back.getLampSize() * 200,
 					newTargetsCount: 5,
 					musicEnabled: false,
 					sfxEnabled: true,
 					onFinish: function(bonusFound) {
 						back.bonusPlayed(bonusFound);
-						bonusGame.pause();
 						$.mobile.changePage("#questions");
 						$(".answer-button").removeClass("guessed-answer correct-answer wrong-answer");
-						clearIndicators();
-						setProgressIndicators();
-						//$("#bonus-game-container").html('');
 					}
 				});
 			}
