@@ -158,3 +158,25 @@ h1 {
 	font: 4em "Arial Black";
 }
 
+.indicator-unanswered{
+		float: left;
+		background: url(../img/indicator-unanswered.png) no-repeat;
+		width: 55px;
+		height: 77px;
+}
+
+.indicator-correct{
+		float: left;
+		background: url(../img/indicator-correct.png) no-repeat;
+		width: 55px;
+		height: 77px;
+}
+
+.indicator-incorrect{
+		float: left;
+		background: url(../img/indicator-incorrect.png) no-repeat;
+		width: 55px;
+		height: 77px;
+}
+
+

@@ -54,7 +54,7 @@ function notifyCallback(){
 }
 
 function setCanvas(){
-	$('#question-holder').html('<canvas id="object-canvas" width="900" height="300"></canvas>');
+	$('#question-holder').html('<canvas id="object-canvas" width="900" height="250"></canvas>');
 }
 
 function drawCanvasObjects(numberOfObjects){
@@ -126,6 +126,43 @@ function initSound(){
 
 }
 
+//Draws unanswerd question indicators on the game screen
+function setProgressIndicators(){
+	if(!$('#progress-indicator').children().length){
+		var settings = back.store.get("settings");
+		var numIndicators = settings.questionsBeforeBonus;
+	
+		for(var i = 0; i < numIndicators; i++){
+			$('#progress-indicator').append('<div id="indicator-'+(i+1)+'" class="indicator-unanswered"></div>');
+		}
+	}
+}
+
+//Sets the next unanswered indicator to false
+function setIndicatorCorrect(){
+	var ind = getCurrentIndicator();
+	$(ind).removeClass('indicator-unanswered');
+	$(ind).addClass('indicator-correct');
+}
+
+//Sets the next unanswered indicator to false
+function setIndicatorFalse(){
+	var ind = getCurrentIndicator();
+	$(ind).removeClass('indicator-unanswered');
+	$(ind).addClass('indicator-incorrect');
+}
+
+//returns the first unlit indicator
+function getCurrentIndicator(){
+	var ind = $('#progress-indicator').children('.indicator-unanswered').eq(0);
+	return ind;
+}
+
+//clears answer indicators
+function clearIndicators(){
+	$('#progress-indicator').empty();
+}
+
 function initBinds(){
 	$( "#save" ).click(function () {
 		setSettings();
@@ -158,6 +195,8 @@ function initBinds(){
 						bonusGame.pause();
 						$.mobile.changePage("#questions");
 						$(".answer-button").removeClass("guessed-answer correct-answer wrong-answer");
+						clearIndicators();
+						setProgressIndicators();
 						//$("#bonus-game-container").html('');
 					}
 				});
@@ -179,10 +218,12 @@ function initBinds(){
 				$(this).addClass("guessed-answer correct-answer");
 				$(".wrong-answer-icon").hide();
 				$(".right-answer-icon").show();
+				setIndicatorCorrect();
 			} else {
 				$(this).addClass("guessed-answer wrong-answer");
 				$(".right-answer-icon").hide();
 				$(".wrong-answer-icon").show();
+				setIndicatorFalse();
 			}
 			$("#correct-answer-number").text(displayQuestion +" = "+ correctAnswer);
 					
@@ -255,6 +296,8 @@ bonusGame.play();
 newQuestion();
 initBinds();
 initSound();
+clearIndicators();
+setProgressIndicators();
 $(document).on('pageshow', function(){
 });
 $("#statistics").on('pageshow', function(){
