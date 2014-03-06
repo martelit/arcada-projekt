@@ -176,7 +176,7 @@ function initBinds(){
 	});
 	
 	$( "#reset" ).click(function () {
-		back.clearStats();
+		back.store.remove("history");
 	});
 	
 	if(typeof(bonusGame) === 'undefined'){
