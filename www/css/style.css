@@ -1,3 +1,7 @@
+#questions .ui-content {
+	padding:0 1% 0 1%;
+}
+
 html, body {
 	height: 100% !important;
 	background-size: 100% !important;
@@ -134,6 +138,9 @@ h1 {
  
 .answer-button {
 	color: #FFF !important;
+	padding:0;
+}
+.old-answer-button {
 	text-shadow: 0 !important;
 	/*width: 3.44em !important;*/
 	width: 100% !important;

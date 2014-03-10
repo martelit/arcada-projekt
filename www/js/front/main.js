@@ -133,7 +133,7 @@ function setProgressIndicators(){
 		var numIndicators = settings.questionsBeforeBonus;
 	
 		for(var i = 0; i < numIndicators; i++){
-			$('#progress-indicator').append('<div id="indicator-'+(i+1)+'" class="indicator-unanswered"></div>');
+			$('#progress-indicator').append('<div id="indicator-'+(i+1)+'" class="indicator indicator-unanswered"></div>');
 		}
 	}
 }
@@ -310,9 +310,43 @@ $("#rewards").on('pageshow', function(){
 bonusGame.play();
 });
 */
+$(window).on('resize', function(){
+	$height = $(window).height();
+	$width = $(window).width();
+	$("#progress-indicator").css({
+		width: "100%"
+	});
+	$("#question-holder").css({
+		width: $width,
+		height: $height*0.5
+	});
+	$(".button-container").css({
+	});
+	$("#progress-indicator").css({
+		width: $width,
+		height: $height*0.11
+	});
+	if($width < $height){
+		var lampsize = $width;
+		console.log("w gt h");
+	} else {
+		var lampsize = $height;
+		console.log("w lt h");
+	}
+	$('.indicator').css({
+		width: lampsize/14,
+		height: lampsize/11.5,
+		"background-size": "100% 100%"
+	});
+	$('.answer-button').css({
+		"font-size" : $height /6
+	});
+}).trigger('resize');
+
 newQuestion();
 initBinds();
 initSound();
+
 $(document).on('pageshow', function(){
 });
 $("#statistics").on('pageshow', function(){
