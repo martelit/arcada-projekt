@@ -185,5 +185,8 @@ h1 {
 		width: 55px;
 		height: 77px;
 }
+.clear{
+	clear:both;
+}
 
 
