@@ -310,13 +310,21 @@ $("#rewards").on('pageshow', function(){
 bonusGame.play();
 });
 */
+window.setInterval(function(){
+	$(window).trigger("resize");
+}, 1000);
 $(window).on('resize', function(){
+	cssFixes();
+}).trigger('resize');
+
+function cssFixes(){
 	$height = $(window).height();
 	$width = $(window).width();
 	$("#progress-indicator").css({
 		width: "100%"
 	});
 	$("#question-holder").css({
+		"font-size": $height*0.3,
 		width: $width,
 		height: $height*0.5
 	});
@@ -328,10 +336,8 @@ $(window).on('resize', function(){
 	});
 	if($width < $height){
 		var lampsize = $width;
-		console.log("w gt h");
 	} else {
 		var lampsize = $height;
-		console.log("w lt h");
 	}
 	$('.indicator').css({
 		width: lampsize/14,
@@ -341,8 +347,7 @@ $(window).on('resize', function(){
 	$('.answer-button').css({
 		"font-size" : $height /6
 	});
-}).trigger('resize');
-
+}
 newQuestion();
 initBinds();
 initSound();
