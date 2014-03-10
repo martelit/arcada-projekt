@@ -114,8 +114,6 @@ define([], function() {
 
 
 
-	// Helperfile is breaking this logic, this function is called more than once per question.
-	// Parameter 'a' is not passed correctly. currently undefined.
 	/* Param 'a' = guessed answer. Increments total questions and correctly answered questions */
 	Backend.prototype.getAnswer = function(a)
 	{
@@ -131,7 +129,7 @@ define([], function() {
 	};
 	
 	/*stores the question array and whether it was right or wrong to the localstorage in an array*/
-	Backend.prototype.saveQuestion= function(correct)
+	Backend.prototype.saveQuestion = function(correct)
 	{
 		var question = this.questions.globalQuestion;		
 		var history = this.store.get("history");
@@ -348,7 +346,6 @@ define([], function() {
 	};
 
 	/* returns Bonus-lamp radius in pixels depending on current score*/
-	// TODO: return proper values
 	Backend.prototype.getLampSize = function()
 	{
 		var retval = 1;
@@ -357,6 +354,14 @@ define([], function() {
 		if((this.correct_answers >= 3) && (this.correct_answers < 6)) { retval = 2; };
 		return retval;
 	};
+
+	/* reset all counters */
+	Backend.prototype.resetGame = function(){
+		this.questions_answered = 0;
+		this.correct_answers = 0;
+		this.bonus_found = 0;
+		this.total_score = 0;
+	}
 
 
 
