@@ -101,7 +101,6 @@
 		<div data-role="content">
 			<div id="settings-container">
 			<a href="#statistics">Stats</a>
-			<a href="#front" id="reset">Reset</a>
 				<div data-role="rangeslider">
 					<label for="min">Lowest and highest possible numbers</label>
 					<input type="range" name="min" id="min" value="0" min="0" max="100" />
@@ -146,8 +145,26 @@
 	<div data-role="page" id="statistics">
 		<div data-role="content">
 		<a href="#settings"><img src="img/back_arrow.png"></a>
+		<a href="#resetStats" data-role="button" data-inline="true" data-rel="dialog" data-transition="pop"  class="ui-btn ui-btn-inline ui-btn-corner-all ui-shadow ui-btn-up-c" data-close-btn="none">
+			<span class="ui-btn-inner ui-btn-corner-all">
+				<span class="ui-btn-text">reset stats</span>
+			</span>
+		</a>
 			<div class="stats-draw"></div>
 		</div>
+	</div>
+		<div data-role="page" id="resetStats">
+		<h1>Do you want to reset stats?<h1>
+		<a href="#resetStats" onclick="resetStats()" data-role="button" data-rel="dialog"class="ui-btn ui-btn-corner-all ui-shadow ui-btn-up-b" data-transition="pop" data-direction="reverse">
+			<span class="ui-btn-inner ui-btn-corner-all">
+			<span class="ui-btn-text">Yes</span>
+			</span>
+		</a>
+		<a href="#resetStats" onclick="cancel()"data-role="button" data-rel="dialog"class="ui-btn ui-btn-corner-all ui-shadow ui-btn-up-b" data-transition="pop" data-direction="reverse">
+			<span class="ui-btn-inner ui-btn-corner-all">
+			<span class="ui-btn-text">No</span>
+			</span>
+		</a>
 	</div>
        <!-- <div class="app">
             <h1>PhoneGap</h1>

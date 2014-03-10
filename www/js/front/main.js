@@ -278,6 +278,17 @@ function newQuestion(){
 		});
 //		$("#response-popup").popup("close");
 }
+//resets stats
+function resetStats(){
+		back.store.remove("history");
+		$.mobile.back();
+		console.log("reset");
+}
+//cancels reset stats
+function cancel() {
+		$.mobile.back();
+		console.log("not reset");
+}
 /*
 $("#rewards").on('pageshow', function(){
 	var Bonus = require('bonus');
