@@ -167,45 +167,20 @@ var Bonus = function(settings) {
     };
 
     /**
-     *
-     * @param coordinates array of Points (object with x and y property, eg Phaser.Point)
+     * Adds new targets to the game
+     * @param count {Integer} the number of objects to add
      * @param group {Phaser.Group} the group onto which the targets are added
      */
-    var setupTargets = function(coordinates, group) {
-        for (var i = 0; i < coordinates.length; i++) {
-            var point = coordinates[i];
-            var target = game.add.sprite(point.x, point.y, 'target');
+    var setupTargets = function(count, group) {
+        for (var i = 0; i < count; i++) {
+            var target = game.add.sprite(
+                game.rnd.integerInRange(0, width - 100),
+                game.rnd.integerInRange(0, height - 100),
+                'target'
+            );
             target.alpha = 0;
             target.inputEnabled = false;
             group.add(target);
-        }
-    };
-
-    /**
-     * Adds count number of coordinates to objectCoordinates at random positions
-     * @param count {Integer} the number of objects to add
-     */
-    var setupNewTargets = function(count) {
-        for (var i = 0; i < count; i++) {
-            objectCoordinates.push({
-                x: game.rnd.integerInRange(0, width - 100),
-                y: game.rnd.integerInRange(0, height - 100)
-            });
-        }
-    };
-
-    /**
-     * Simulates clicks made in the past games
-     * @param taps array of Points (object with x and y property, eg Phaser.Point)
-     */
-    var simulateTaps = function(taps) {
-        for (var i = 0; i < taps.length; i++) {
-            var point = taps[i];
-            var pointer = new Phaser.Pointer(game, 0);
-            pointer.x = point.x;
-            pointer.y = point.y;
-            pointer.circle.setTo(point.x, point.y, inputDiameter);
-            onClickTap(pointer, false);
         }
     };
 
@@ -216,13 +191,14 @@ var Bonus = function(settings) {
             /* Callbacks for different states of the game */
 
             preload: function() {
-                game.load.baseUrl = basePath;
+//                game.load.baseURL = basePath;
 //                game.load.audio('music',['assets/audio/rorri.ogg', 'assets/audio/rorri.mp3']);
 //                game.load.audio('tsound', ['assets/audio/click_sound.ogg']);
 //                game.load.audio('fsound', ['assets/audio/find_sound.ogg']);
 //                game.load.image('target', 'assets/vaahtosammutin.png');
 //                game.load.image('backgroundImage', 'assets/dark_sky.jpg');
-                game.load.image('target', BASE64_TARGET_IMG);
+//                game.load.image('target', BASE64_TARGET_IMG);
+                game.load.image('target', basePath + 'assets/zeppelin.svg');
                 game.load.image('backgroundImage', BASE64_BG_IMG);
                 game.load.image('btn', BASE64_BTN_IMG);
             },
@@ -244,11 +220,11 @@ var Bonus = function(settings) {
                 targets = game.add.group();
                 targets.z = 2;
 
-                if (objectCoordinates.length === 0) {
-                    setupNewTargets(TARGET_COUNT);
-                }
-                setupTargets(objectCoordinates, targets);
-                simulateTaps(tapCoordinates);
+                setupTargets(TARGET_COUNT, targets);
+
+                targets.forEach(function(target) {
+                    target.scale.setTo(0.1, 0.1);
+                }, this, false);
 
                 game.input.onTap.addOnce(onClickTap, this);
             }
