@@ -282,6 +282,7 @@ function newQuestion(){
 function resetStats(){
 		back.store.remove("history");
 		$.mobile.back();
+		location.reload(true);
 		console.log("reset");
 }
 //cancels reset stats
