@@ -37,7 +37,8 @@ var Bonus = function(settings) {
         /** @type {Phaser.Sound} */
         fsound,
         /** @type {Phaser.Sound} */
-        music;
+        music,
+        introText;
 
     /**
      * Reveals a sprite and soft-kills it (ie not destroy, set alive to false and leave visible)
@@ -97,12 +98,9 @@ var Bonus = function(settings) {
     /**
      * Callback for taps/clicks
      * @param pointer {Phaser.Pointer}
-     * @param humanTrigged bool whether this callback was called as a result of a actual tap. Defaults to true
-     * because when the callback is called as a actual callback then only pointer is set by Phaser. When called
-     * manually anything can be passed in as arguments.
      */
-    var onClickTap = function(pointer, humanTrigged) {
-        humanTrigged = humanTrigged || true;
+    var onClickTap = function(pointer) {
+        introText.visible = false;
 
         // Pointers circle diameter is by default 44px, so we need to change the pointers size manually
         pointer.circle.setTo(pointer.circle.x, pointer.circle.y, inputDiameter);
@@ -124,6 +122,7 @@ var Bonus = function(settings) {
                 var alphaTarget = game.add.sprite(sprite.x, sprite.y, 'target');
                 alphaTarget.alpha = 0.3;
                 alphaTarget.mask = getMask(pointer, backgroundImageGroup);
+                alphaTarget.scale.setTo(0.1, 0.1);
                 backgroundImageGroup.add(alphaTarget);
             }
 
@@ -137,18 +136,7 @@ var Bonus = function(settings) {
         }, this);
 
 
-        // If this callback was trigged by simulation then we don't want
-        // to store the tap-coordinate again, play sounds etc
-        if (humanTrigged) {
-//            if (sfxEnabled) {
-//                if (foundObject) {
-//                    fsound.play();
-//                } else {
-//                    tsound.play();
-//                }
-//            }
-            finalize();
-        }
+        finalize();
     };
 
     /**
@@ -177,27 +165,12 @@ var Bonus = function(settings) {
 
             preload: function() {
 //                game.load.baseURL = basePath;
-//                game.load.audio('music',['assets/audio/rorri.ogg', 'assets/audio/rorri.mp3']);
-//                game.load.audio('tsound', ['assets/audio/click_sound.ogg']);
-//                game.load.audio('fsound', ['assets/audio/find_sound.ogg']);
-//                game.load.image('target', 'assets/vaahtosammutin.png');
-//                game.load.image('backgroundImage', 'assets/dark_sky.jpg');
-//                game.load.image('target', BASE64_TARGET_IMG);
                 game.load.image('target', basePath + 'assets/zeppelin.svg');
                 game.load.image('backgroundImage', basePath + 'assets/sky.svg');
                 game.load.image('btn', BASE64_BTN_IMG);
             },
 
             create: function() {
-//                music = game.add.audio('music', 1, true);
-//                tsound = game.add.audio('tsound');
-//                fsound = game.add.audio('fsound');
-//                if (musicEnabled) {
-//                    music.play('' , 0, 1, true);
-//                }
-
-                game.stage.scale.startFullScreen(true);
-
                 backgroundImageGroup = game.add.group();
                 backgroundImageGroup.z = 1;
 
@@ -212,6 +185,16 @@ var Bonus = function(settings) {
                 }, this, false);
 
                 game.input.onTap.addOnce(onClickTap, this);
+
+                introText = game.add.text(game.world.centerX, 500, '- Klicka på rutan -',
+                    { font: "40px Arial", fill: "#ffff00", align: "center" });
+                introText.anchor.setTo(0.5, 0.5);
+
+                game.stage.fullScreenScaleMode = Phaser.StageScaleMode.SHOW_ALL;
+                game.stage.scale.setShowAll();
+                game.stage.scale.pageAlignHorizontally = true;
+                game.stage.scale.pageAlignVertically = true;
+                game.stage.scale.refresh();
             }
         });
 
@@ -225,9 +208,10 @@ var Bonus = function(settings) {
         play: function() {
             if (typeof game === 'undefined') {
                 init();
+            } else {
+                game.input.onTap.addOnce(onClickTap, this);
+                game.paused = false;
             }
-            game.input.onTap.addOnce(onClickTap, this);
-            game.paused = false;
         },
 
         setLampSize: function(diameter) {
