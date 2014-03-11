@@ -184,6 +184,23 @@ function initBinds(){
 	}
 	$(".bonus-button").click(function(){
 		if(back.bonusIsAvailable() == true){
+		var lampSize = back.getLampSize();
+			if (lampSize == 4) {
+				lampSize = lampSize * 55;
+			}
+			else if (lampSize == 3) {
+				lampSize = lampSize * 50;
+			}
+			else if (lampSize == 2) {
+				lampSize = lampSize * 45; 
+			}
+			else if (lampSize == 1) {
+				lampSize = lampSize * 40;
+			}
+			else {
+				console.log('error');
+			}
+			//console.log(lampSize);
 			//start bonus game
 			$.mobile.changePage("#rewards");
 			$("#response-popup").popup("close");
@@ -193,7 +210,7 @@ function initBinds(){
 				bonusGame = new Bonus({
 					parent: 'bonus-game-container',
 					basePath: 'js/bonus/',
-					inputDiameter: back.getLampSize() * 50,
+					inputDiameter: lampSize,
 					newTargetsCount: 5,
 					musicEnabled: false,
 					sfxEnabled: true,
@@ -206,7 +223,7 @@ function initBinds(){
 					}
 				});
 			}
-			bonusGame.setLampSize(back.getLampSize() * 50);
+			bonusGame.setLampSize(lampSize);
 			bonusGame.play();
 		}
 	});
@@ -282,6 +299,7 @@ function newQuestion(){
 function resetStats(){
 		back.store.remove("history");
 		$.mobile.back();
+		location.reload(true);
 		console.log("reset");
 }
 //cancels reset stats

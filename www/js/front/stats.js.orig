@@ -1,0 +1,125 @@
+function getSign(s){
+	switch(s){
+		case 0:
+			return ' ';
+		break;
+		case 1:
+			return '+';
+		
+		break;
+		case 2:
+			return '-';
+		
+		break;
+		case 3:
+			return '×';
+		
+		break;
+		case 4:
+			return '÷';
+		
+		break;
+		default:
+			return ' ';
+		break;
+	}
+}
+function percentToColor(percent){
+	if(percent == 0){
+		return "rgb(200,200,200)";
+	}
+	return "rgb(" + Math.round(255 * percent) +","+ Math.round(255*(1-percent)) + ",0)";
+}
+
+function formatStats(stat){
+	var rstat = [];
+	var nums = [];
+	
+	for(var i = 1; i < 5; i++){
+		nums = [];
+		for(var w = 1; w < 11; w++){
+			if( typeof(stat[i][w]) !== 'undefined'){
+				nums[w] = (stat[i][w]);
+			} else {
+				nums[w] = 0;
+			}
+		}
+		rstat.push(nums);
+	}
+	console.log(rstat);
+	return rstat;
+}
+
+function drawStats(){
+	var statArray = formatStats(back.getStats());
+	var fill = '';
+	var color = '';
+	var stats = '';
+<<<<<<< HEAD
+	for(var cols = 0; cols < 5; cols++){
+		stats = stats + '<div class="stats-col">';
+		for(var rows = 10; rows > -1; rows--){
+			if( rows < 1 ){
+				fill = getSign(cols);
+			} else {
+				fill = '';
+			}
+			if(cols < 1) {
+				if(rows > 0) {
+					fill = rows;
+				}
+			}
+			if(cols > 0) {
+				console.log(cols);
+				if(rows > 0) {
+					color = percentToColor(statArray[cols-1][rows]);
+				} else {
+					color = '';
+				}
+			}
+			stats = stats + '<div style="background-color: ' + color + '; " class="stats-row">' + fill + "</div>"
+=======
+	var testStats = back.getStats();
+	for(var cols = 0; cols < 4; cols++){
+		stats = stats + '<div class="stats-col">';
+		for(var rows = 10; rows > 0; rows--){
+			//gray if undefined
+			if(testStats[cols][rows]==undefined){
+				stats = stats + '<div class="stats-row"style="background-color:#cccccc; text-align:center">' + rows +": "+ testStats[cols][rows] + "</div>"
+			}
+			//green if above 0.666666666% corect
+			else if (testStats[cols][rows]>=0.666666666){
+				stats = stats + '<div class="stats-row"style="background-color:#00ff00; text-align:center">' + rows +": "+ testStats[cols][rows] + "</div>"
+			}
+			//yellow if above 0.33333333% corect
+			else if (testStats[cols][rows]>=0.33333333){
+				stats = stats + '<div class="stats-row"style="background-color:#ffff00; text-align:center">' + rows +": "+ testStats[cols][rows] + "</div>"
+			}
+			//red if below 0.33333333% corect
+			else {
+				stats = stats + '<div class="stats-row"style="background-color:#ff0000; text-align:center">' + rows +": "+ testStats[cols][rows] + "</div>"
+			}
+		}
+		if(cols==0){
+			stats = stats +'<div class="stats-row"style="background-color:#cccccc; text-align:center">' +"+"+ "</div>"
+		}
+		else if(cols==1){
+			stats = stats +'<div class="stats-row"style="background-color:#cccccc; text-align:center">' +"-"+ "</div>"
+		}
+		else if(cols==2){
+			stats = stats +'<div class="stats-row"style="background-color:#cccccc; text-align:center">' +"/"+ "</div>"
+		}
+		else{
+			stats = stats +'<div class="stats-row"style="background-color:#cccccc; text-align:center">' +"*"+ "</div>"
+>>>>>>> ae5f20b305258c37fc9abe748ca36c49234cc830
+		}
+		stats = stats + '</div>';
+	}
+	
+	var start = $(".stats-buttons").height();
+	
+	$('.stats-draw').html(stats);
+	$('.stats-draw').parent().height($(window).height() );
+	$('.stats-row').height( ( ($(window).height() * 0.9) - start) /10);
+	$('.stats-col').width( $('.stats-row').height()).css({"font-size": $('.stats-row').height()/2});
+}
