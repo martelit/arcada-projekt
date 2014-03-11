@@ -1,11 +1,7 @@
 function getSign(s){
 	switch(s){
-		case 0:
-			return ' ';
-		break;
 		case 1:
 			return '+';
-		
 		break;
 		case 2:
 			return '-';
@@ -19,32 +15,36 @@ function getSign(s){
 			return '÷';
 		
 		break;
+		case 5:
+			return 's';
+		
+		break;
 		default:
 			return ' ';
 		break;
 	}
 }
 function percentToColor(percent){
-	if(percent == 0){
+	if(percent == -1){
 		return "rgb(200,200,200)";
 	}
-	return "rgb(" + Math.round(255 * percent) +","+ Math.round(255*(1-percent)) + ",0)";
+	return "rgb(" + Math.round(255 * (1-percent)) +","+ Math.round(255*percent) + ",0)";
 }
 
 function formatStats(stat){
 	var rstat = [];
 	var nums = [];
 	
-	for(var i = 1; i < 5; i++){
+	for(var i = 0; i < 5; i++){
 		nums = [];
 		for(var w = 1; w < 11; w++){
 			if( typeof(stat[i][w]) !== 'undefined'){
 				nums[w] = (stat[i][w]);
 			} else {
-				nums[w] = 0;
+				nums[w] = -1;
 			}
 		}
-		rstat.push(nums);
+		rstat[i+1] = nums;
 	}
 	console.log(rstat);
 	return rstat;
@@ -55,7 +55,7 @@ function drawStats(){
 	var fill = '';
 	var color = '';
 	var stats = '';
-	for(var cols = 0; cols < 5; cols++){
+	for(var cols = 0; cols < 6; cols++){
 		stats = stats + '<div class="stats-col">';
 		for(var rows = 10; rows > -1; rows--){
 			if( rows < 1 ){
@@ -69,9 +69,8 @@ function drawStats(){
 				}
 			}
 			if(cols > 0) {
-				console.log(cols);
-				if(rows > 0) {
-					color = percentToColor(statArray[cols-1][rows]);
+				if(rows > -1) {
+					color = percentToColor(statArray[cols][rows]);
 				} else {
 					color = '';
 				}
