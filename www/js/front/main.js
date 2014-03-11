@@ -332,9 +332,6 @@ $("#rewards").on('pageshow', function(){
 bonusGame.play();
 });
 */
-window.setInterval(function(){
-	$(window).trigger("resize");
-}, 1000);
 $(window).on('resize', function(){
 	cssFixes();
 }).trigger('resize');
@@ -393,3 +390,6 @@ $("#settings").on('pageshow',function(){
 	// TODO Backend needs to take in the new values (symbols & bonus) and set the amount of questions needed answered before bonusIsAvailable() becomes true to the new value. -Bogezu
 	// TODO change the rest of the settings page to what the settings are
 });	
+$("#questions").on('pageshow', function() {
+	cssFixes();
+});
