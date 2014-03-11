@@ -289,6 +289,10 @@ function cancel() {
 		$.mobile.back();
 		console.log("not reset");
 }
+function quitGame(){
+		back.resetGame();
+		console.log("quit");
+}
 /*
 $("#rewards").on('pageshow', function(){
 	var Bonus = require('bonus');

@@ -64,6 +64,7 @@
 		 -->
 		<div data-role="content">
 			<div id="progress-indicator"></div>
+			<div id="quitButton"><a href="#quitGame" data-role="button" data-icon="delete" data-iconpos="bottom" data-inline="true" class="ui-btn-right">Quit</a></div>
 			<!--
 			TODO bigger font for question (not in px, needs to scale well)
 			 -->
@@ -167,6 +168,20 @@
 			</span>
 		</a>
 	</div>
+	<div data-role="page" id="quitGame">
+		<h1>Do you want to quit the game?<h1>
+		<a href="#front" onclick="quitGame()" data-role="button" data-rel="dialog" class="ui-btn ui-btn-corner-all ui-shadow ui-btn-up-b" data-transition="pop" data-direction="reverse">
+			<span class="ui-btn-inner ui-btn-corner-all">
+			<span class="ui-btn-text">Yes</span>
+			</span>
+		</a>
+		<a href="#questions" onclick="cancel()"data-role="button" data-rel="dialog"class="ui-btn ui-btn-corner-all ui-shadow ui-btn-up-b" data-transition="pop" data-direction="reverse">
+			<span class="ui-btn-inner ui-btn-corner-all">
+			<span class="ui-btn-text">No</span>
+			</span>
+		</a>
+	</div>
+	
        <!-- <div class="app">
             <h1>PhoneGap</h1>
             <div id="deviceready" class="blink">
