@@ -23,21 +23,13 @@ var Bonus = function(settings) {
         parent = settings.parent || undefined,
         /** Callback to be executed when the user clicks on the canvas on game-finished scene */
         onFinish = settings.onFinish || function() {},
-        /** Whether or not to enjoy some pretty nice music while playing */
-        musicEnabled = settings.musicEnabled || false,
-        sfxEnabled = settings.sfxEnabled || false,
         /** @type {Phaser.Game} */
         game,
         /** @type {Phaser.Group} */
         targets,
         /** @type {Phaser.Group} */
         backgroundImageGroup,
-        /** @type {Phaser.Sound} */
-        tsound,
-        /** @type {Phaser.Sound} */
-        fsound,
-        /** @type {Phaser.Sound} */
-        music,
+        /** @type {Phaser.Text} */
         introText;
 
     /**
