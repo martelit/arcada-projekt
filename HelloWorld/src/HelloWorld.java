@@ -9,6 +9,7 @@ public class HelloWorld {
 		System.out.println("Bogezu was here too!");
 		System.out.println("Fredrik was here too!");
 		System.out.println("Oscar was here too!");
+		System.out.println("Hello from ProgProj14!");
 	}
 }
 
